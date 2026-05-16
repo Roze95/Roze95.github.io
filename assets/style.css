@@ -1,0 +1,219 @@
+/* ============================================================
+   Georgi Gary Rozenman — academic site
+   Clean, fast, no build step. Edit freely.
+   ============================================================ */
+
+:root {
+  --mit-red: #a31f34;
+  --ink: #1a1a1a;
+  --muted: #5b6168;
+  --line: #e6e6e6;
+  --bg: #ffffff;
+  --bg-soft: #f7f7f5;
+  --link: #8a1a2b;
+  --maxw: 880px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: "Charter", "Georgia", "Cambria", "Times New Roman", serif;
+  font-size: 18px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+/* ---------- Header / nav ---------- */
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.brand span { color: var(--mit-red); }
+nav.main {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+}
+nav.main a {
+  text-decoration: none;
+  color: var(--muted);
+  margin-left: 18px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+nav.main a:hover { color: var(--ink); }
+nav.main a.active { color: var(--ink); border-bottom-color: var(--mit-red); }
+
+/* ---------- Layout ---------- */
+main { padding: 44px 0 80px; }
+section { margin-bottom: 46px; }
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: 2rem; margin: 0 0 6px; }
+h2 {
+  font-size: 1.35rem;
+  margin: 0 0 18px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+h3 { font-size: 1.08rem; margin: 26px 0 8px; }
+p { margin: 0 0 14px; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---------- Hero / bio ---------- */
+.hero { display: flex; gap: 30px; align-items: flex-start; margin-bottom: 30px; }
+.hero .photo {
+  flex: 0 0 168px;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  background: var(--bg-soft) center/cover no-repeat;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mit-red);
+  font-family: -apple-system, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 2.6rem;
+  overflow: hidden;
+}
+.hero .photo img { width: 100%; height: 100%; object-fit: cover; }
+.hero .intro { flex: 1; min-width: 0; }
+.role { color: var(--muted); font-size: 1.05rem; margin: 0 0 14px; }
+.role strong { color: var(--ink); }
+
+.contact {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.95rem;
+}
+.contact li { display: inline-block; margin: 0 16px 6px 0; color: var(--muted); }
+.contact li a { color: var(--link); }
+
+/* ---------- Cards / lists ---------- */
+.lead { font-size: 1.12rem; color: #2a2a2a; }
+
+ul.clean { padding-left: 1.2em; }
+ul.clean li { margin-bottom: 7px; }
+
+.entry { margin-bottom: 16px; }
+.entry .when {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.entry .what { font-weight: 600; }
+.entry .where { color: var(--muted); }
+
+.pub { margin-bottom: 14px; padding-left: 1.4em; text-indent: -1.4em; }
+.pub .me { font-weight: 700; }
+.pub .venue { font-style: italic; }
+.pub .year { color: var(--muted); }
+
+.tag {
+  display: inline-block;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.78rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 1px 9px;
+  border-radius: 999px;
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+
+.callout {
+  background: var(--bg-soft);
+  border-left: 3px solid var(--mit-red);
+  padding: 14px 18px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.98rem;
+}
+
+.research-area { margin-bottom: 26px; }
+.research-area h3 { color: var(--mit-red); margin-top: 0; }
+
+table.cv { width: 100%; border-collapse: collapse; }
+table.cv td { padding: 6px 0; vertical-align: top; }
+table.cv td.year {
+  width: 120px;
+  color: var(--muted);
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.note {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border: 1px dashed var(--line);
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.btn {
+  display: inline-block;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.92rem;
+  background: var(--mit-red);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.btn:hover { background: #861628; text-decoration: none; }
+.btn.ghost { background: transparent; color: var(--mit-red); border: 1px solid var(--mit-red); }
+
+/* ---------- Footer ---------- */
+footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.85rem;
+  padding: 26px 0 50px;
+}
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  body { font-size: 17px; }
+  .site-header .wrap { flex-direction: column; align-items: flex-start; gap: 8px; }
+  nav.main a { margin: 0 16px 0 0; }
+  .hero { flex-direction: column; gap: 18px; align-items: center; text-align: center; }
+  .hero .intro { text-align: left; }
+  table.cv td.year { width: 92px; }
+}
