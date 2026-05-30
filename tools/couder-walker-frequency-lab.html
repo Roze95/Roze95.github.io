@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Couder Walker Frequency Lab (Noise Edition)</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-deep: #030914;
+      --panel: rgba(10, 24, 45, 0.72);
+      --panel-strong: rgba(13, 31, 59, 0.92);
+      --panel-edge: rgba(135, 225, 255, 0.18);
+      --text: #ebf7ff;
+      --muted: #91a9c9;
+      --accent: #74f5ff;
+      --accent-soft: rgba(116, 245, 255, 0.18);
+      --danger: #ff7e88;
+      --success: #70ffb8;
+      --warning: #ffd86f;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --font-display: "Avenir Next", "Segoe UI Variable Display", "Trebuchet MS", sans-serif;
+      --font-body: "Avenir Next", "Segoe UI Variable Text", "Gill Sans", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--text);
+      font-family: var(--font-body);
+      background:
+        radial-gradient(circle at 20% 20%, rgba(80, 170, 255, 0.16), transparent 32%),
+        radial-gradient(circle at 80% 12%, rgba(109, 255, 200, 0.10), transparent 30%),
+        radial-gradient(circle at 50% 88%, rgba(255, 120, 150, 0.14), transparent 30%),
+        linear-gradient(180deg, #091426 0%, var(--bg-deep) 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      background:
+        linear-gradient(rgba(116, 245, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(116, 245, 255, 0.05) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 92%);
+    }
+
+    body::after {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.03));
+      opacity: 0.6;
+      animation: scan 9s linear infinite;
+    }
+
+    @keyframes scan {
+      0% {
+        transform: translateY(-10%);
+      }
+      100% {
+        transform: translateY(10%);
+      }
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1480px, calc(100% - 32px));
+      margin: 24px auto 40px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow);
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 32%, transparent 68%, rgba(116, 245, 255, 0.08));
+      pointer-events: none;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+      gap: 18px;
+    }
+
+    .hero-copy,
+    .hero-actions,
+    .scope-panel,
+    .desk-panel,
+    .metrics-panel,
+    .channels-panel {
+      padding: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.28em;
+      font-size: 0.75rem;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 4vw, 4.2rem);
+      line-height: 0.92;
+      letter-spacing: 0.02em;
+      max-width: 12ch;
+    }
+
+    .hero-copy p {
+      margin-top: 16px;
+      max-width: 62ch;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.6;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(116, 245, 255, 0.18);
+      background: rgba(116, 245, 255, 0.08);
+      color: var(--text);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .hero-actions {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+      background: var(--panel-strong);
+    }
+
+    .status-cluster {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      min-height: 48px;
+      border-radius: 999px;
+      border: 1px solid rgba(116, 245, 255, 0.14);
+      background: rgba(116, 245, 255, 0.08);
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 20px currentColor;
+    }
+
+    .status-pill.idle {
+      color: #9fb6d8;
+    }
+
+    .status-pill.live {
+      color: var(--success);
+    }
+
+    .status-pill.warn {
+      color: var(--warning);
+    }
+
+    .status-pill.error {
+      color: var(--danger);
+    }
+
+    .button-row,
+    .mini-button-row,
+    .preset-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .button.primary {
+      background: linear-gradient(135deg, #39c7ff, #57ffa8);
+      color: #07111f;
+      font-weight: 800;
+      box-shadow: 0 14px 28px rgba(57, 199, 255, 0.24);
+    }
+
+    .button.primary.live {
+      background: linear-gradient(135deg, #ff8aa2, #ffc66d);
+    }
+
+    .button.ghost {
+      background: rgba(116, 245, 255, 0.08);
+    }
+
+    .button.small {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+
+    .button.preset.active {
+      background: linear-gradient(135deg, rgba(116, 245, 255, 0.28), rgba(112, 255, 184, 0.28));
+      box-shadow: inset 0 0 0 1px rgba(116, 245, 255, 0.32), 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+      gap: 18px;
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-heading h2 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .panel-heading p,
+    .micro-copy {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .scope-frame {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid rgba(116, 245, 255, 0.16);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(116, 245, 255, 0.08), transparent 60%),
+        linear-gradient(180deg, rgba(5, 15, 30, 0.98), rgba(2, 9, 20, 0.98));
+      aspect-ratio: 16 / 8.2;
+    }
+
+    #scopeCanvas,
+    #noiseCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .noise-scope-frame {
+      aspect-ratio: auto;
+      display: grid;
+      grid-template-rows: 26% 74%;
+      gap: 0;
+    }
+
+    .noise-subscope,
+    .main-subscope {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .noise-subscope {
+      border-bottom: 1px solid rgba(116, 245, 255, 0.18);
+      background: rgba(5, 14, 28, 0.55);
+    }
+
+    .subscope-label {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      color: var(--accent);
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.85;
+    }
+
+    #noiseToggle.active {
+      background: linear-gradient(135deg, rgba(255, 209, 109, 0.3), rgba(255, 126, 136, 0.3));
+      box-shadow: inset 0 0 0 1px rgba(255, 209, 109, 0.48);
+    }
+
+    .scope-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .desk-panel {
+      display: grid;
+      gap: 18px;
+      background: var(--panel-strong);
+    }
+
+    .control-block {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(116, 245, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .control-block h3 {
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .control-row.spread {
+      justify-content: space-between;
+    }
+
+    .value-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .number-field {
+      width: 110px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      background: rgba(3, 12, 26, 0.88);
+      color: var(--text);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(116, 245, 255, 0.45) 0%, rgba(116, 245, 255, 0.45) var(--fill, 0%), rgba(255, 255, 255, 0.08) var(--fill, 0%), rgba(255, 255, 255, 0.08) 100%);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f8ffff;
+      border: 3px solid rgba(116, 245, 255, 0.95);
+      box-shadow: 0 0 0 6px rgba(116, 245, 255, 0.14);
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #f8ffff;
+      border: 3px solid rgba(116, 245, 255, 0.95);
+      box-shadow: 0 0 0 6px rgba(116, 245, 255, 0.14);
+      cursor: pointer;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric-card {
+      padding: 16px 18px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(116, 245, 255, 0.12);
+      min-height: 118px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.72rem;
+    }
+
+    .metric-value {
+      margin-top: 12px;
+      font-size: clamp(1.4rem, 2vw, 2rem);
+      font-family: var(--font-display);
+      letter-spacing: 0.03em;
+    }
+
+    .metric-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .meter {
+      margin-top: 14px;
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .meter-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #3de6ff, #7fffbe 55%, #ffd86f 78%, #ff7e88 100%);
+      transition: width 180ms ease;
+    }
+
+    .channels-panel {
+      padding-top: 22px;
+    }
+
+    .channels-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .channels-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .channel-card {
+      position: relative;
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        rgba(5, 14, 28, 0.86);
+      border: 1px solid rgba(var(--channel-rgb), 0.36);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 16px 36px rgba(0, 0, 0, 0.22);
+      transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+    }
+
+    .channel-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(var(--channel-rgb), 0.68);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 22px 42px rgba(0, 0, 0, 0.26);
+    }
+
+    .channel-card.active {
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 34px rgba(var(--channel-rgb), 0.24), 0 24px 48px rgba(0, 0, 0, 0.28);
+    }
+
+    .channel-top,
+    .line-row,
+    .channel-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .channel-id {
+      display: grid;
+      gap: 6px;
+    }
+
+    .channel-label {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .channel-sub {
+      color: rgba(var(--channel-rgb), 0.88);
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .arm-toggle {
+      padding-inline: 14px;
+      min-width: 112px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .arm-toggle.active {
+      background: rgba(var(--channel-rgb), 0.22);
+      box-shadow: inset 0 0 0 1px rgba(var(--channel-rgb), 0.52), 0 10px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    .field-label {
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .inline-input {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .inline-input input {
+      width: 94px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 0;
+      background: rgba(2, 10, 24, 0.94);
+      color: var(--text);
+    }
+
+    .inline-input span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .mini-button-row .button {
+      flex: 1 1 0;
+    }
+
+    .readout {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: rgba(var(--channel-rgb), 0.94);
+      background: rgba(var(--channel-rgb), 0.12);
+      border: 1px solid rgba(var(--channel-rgb), 0.24);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .fine-print {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 6px 12px 0;
+    }
+
+    @media (max-width: 1120px) {
+      .hero,
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app-shell {
+        width: min(100% - 18px, 100%);
+        margin: 14px auto 28px;
+      }
+
+      .hero-copy,
+      .hero-actions,
+      .scope-panel,
+      .desk-panel,
+      .metrics-panel,
+      .channels-panel {
+        padding: 18px;
+      }
+
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <article class="panel hero-copy">
+        <p class="eyebrow">Couder Walker Speaker Rig</p>
+        <h1>Frequency Lab Console</h1>
+        <p>
+          A standalone browser instrument for five synchronized sine channels. Tune frequencies by hand,
+          shape amplitudes, audition presets, and drive your speaker experiments without needing Python installed.
+        </p>
+        <div class="tag-row">
+          <span class="tag">Standalone HTML</span>
+          <span class="tag">Web Audio Engine</span>
+          <span class="tag">Typed Inputs + Sliders</span>
+          <span class="tag">Saved Sessions</span>
+        </div>
+      </article>
+
+      <aside class="panel hero-actions">
+        <div class="status-cluster">
+          <div id="statusBadge" class="status-pill idle">Audio idle</div>
+          <button id="startStopButton" class="button primary" type="button">Start Audio</button>
+        </div>
+        <div class="button-row">
+          <button id="saveSceneButton" class="button ghost" type="button">Save Scene</button>
+          <button id="loadSceneButton" class="button ghost" type="button">Load Saved</button>
+          <button id="resetAllButton" class="button ghost" type="button">Reset Defaults</button>
+        </div>
+        <p id="statusDetail" class="micro-copy">
+          Click Start Audio first. Browsers only allow sound after a user gesture.
+        </p>
+      </aside>
+    </section>
+
+    <section class="dashboard">
+      <article class="panel scope-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Signal Scope</h2>
+            <p>Futuristic monitor of the live mix or a synthetic preview when audio is idle.</p>
+          </div>
+          <p id="contextInfo" class="micro-copy">Output: browser default device</p>
+        </div>
+        <div class="scope-frame noise-scope-frame">
+          <div class="noise-subscope">
+            <span class="subscope-label">Noise Only</span>
+            <canvas id="noiseCanvas" width="1200" height="180"></canvas>
+          </div>
+          <div class="main-subscope">
+            <span class="subscope-label">Signal + Noise</span>
+            <canvas id="scopeCanvas" width="1200" height="460"></canvas>
+          </div>
+        </div>
+        <div class="scope-footer">
+          <span id="scopeCaption">Preview trace active. Start audio to switch to live output scope.</span>
+          <span>State autosaves locally on this machine.</span>
+        </div>
+      </article>
+
+      <aside class="panel desk-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Mix Desk</h2>
+            <p>Master shaping, presets, and quick lab actions.</p>
+          </div>
+        </div>
+
+        <section class="control-block">
+          <h3>Master Level</h3>
+          <div class="value-stack">
+            <input id="masterRange" type="range" min="0" max="1000" step="1" value="800">
+            <div class="control-row spread">
+              <span class="micro-copy">Global output gain</span>
+              <input id="masterNumber" class="number-field" type="number" min="0" max="1" step="0.001" value="0.8">
+            </div>
+          </div>
+        </section>
+
+        <section class="control-block">
+          <h3>Noise Generator</h3>
+          <div class="value-stack">
+            <div class="control-row spread">
+              <span class="micro-copy">Band-limited noise routing</span>
+              <button id="noiseToggle" class="button small" type="button">Idle</button>
+            </div>
+
+            <div class="control-row spread">
+              <span class="field-label">Amplitude</span>
+              <input id="noiseAmpNumber" class="number-field" type="number" min="0" max="1" step="0.001" value="0.1">
+            </div>
+            <input id="noiseAmpRange" type="range" min="0" max="1000" step="1" value="100">
+
+            <div class="control-row spread">
+              <span class="field-label">Low Freq</span>
+              <input id="noiseLowNumber" class="number-field" type="number" min="20" max="20000" step="1" value="200">
+            </div>
+            <input id="noiseLowRange" type="range" min="0" max="1000" step="1" value="333">
+
+            <div class="control-row spread">
+              <span class="field-label">High Freq</span>
+              <input id="noiseHighNumber" class="number-field" type="number" min="20" max="20000" step="1" value="2000">
+            </div>
+            <input id="noiseHighRange" type="range" min="0" max="1000" step="1" value="666">
+
+            <p id="noiseReadout" class="micro-copy">Spectrum: 200 Hz - 2000 Hz | Amp 0.1</p>
+          </div>
+        </section>
+
+        <section class="control-block">
+          <h3>Scene Presets</h3>
+          <div id="presetGrid" class="preset-grid"></div>
+        </section>
+
+        <section class="control-block">
+          <h3>Quick Actions</h3>
+          <div class="button-row">
+            <button id="allOnButton" class="button small" type="button">Arm All</button>
+            <button id="allOffButton" class="button small" type="button">Mute All</button>
+            <button id="panicButton" class="button small" type="button">Panic Stop</button>
+          </div>
+        </section>
+
+        <section class="control-block">
+          <h3>Session Notes</h3>
+          <p class="fine-print">
+            This HTML file can be opened directly from disk. Safari, Chrome, and Edge should all work.
+            If the browser suspends audio, click Start Audio again to resume the context.
+          </p>
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel metrics-panel">
+      <div class="metrics-grid">
+        <article class="metric-card">
+          <div class="metric-label">Armed Channels</div>
+          <div id="activeMetric" class="metric-value">0 / 5</div>
+          <p class="metric-note">Channels currently routed into the mix.</p>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Estimated Peak</div>
+          <div id="peakMetric" class="metric-value">0.00</div>
+          <div class="meter">
+            <div id="peakFill" class="meter-fill"></div>
+          </div>
+          <p id="peakNote" class="metric-note">Headroom is comfortable.</p>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Headroom</div>
+          <div id="headroomMetric" class="metric-value">1.00</div>
+          <p class="metric-note">Calculated from active amplitudes and master level.</p>
+        </article>
+
+        <article class="metric-card">
+          <div class="metric-label">Strongest Tone</div>
+          <div id="strongestMetric" class="metric-value">None</div>
+          <p id="strongestNote" class="metric-note">Enable a channel to begin routing.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel channels-panel">
+      <div class="channels-header">
+        <div>
+          <p class="eyebrow">Channel Matrix</p>
+          <h2>Five Independent Tone Lanes</h2>
+        </div>
+        <p class="micro-copy">
+          Each lane supports precise numeric entry, fast slider movement, octave nudges, and instant reset.
+        </p>
+      </div>
+      <div id="channelsGrid" class="channels-grid"></div>
+    </section>
+
+    <p class="footer-note">
+      Keyboard shortcuts: press <strong>Space</strong> to start or stop audio, and <strong>M</strong> for panic mute.
+    </p>
+  </main>
+
+  <script>
+    const NUM_CHANNELS = 5;
+    const FREQ_MIN = 20;
+    const FREQ_MAX = 20000;
+    const STORAGE_KEY = "couder-frequency-lab-scene-noise-v1";
+    const CHANNEL_COLORS = ["#67e7ff", "#82ffa8", "#ffd16d", "#ff9f9f", "#b78bff"];
+
+    const PRESETS = {
+      "Lab Default": {
+        master: 0.8,
+        channels: [
+          { freq: 80, amp: 0.25, phase: 0, active: false },
+          { freq: 120, amp: 0.20, phase: 0, active: false },
+          { freq: 250, amp: 0.15, phase: 0, active: false },
+          { freq: 1000, amp: 0.10, phase: 0, active: false },
+          { freq: 4000, amp: 0.10, phase: 0, active: false }
+        ]
+      },
+      "Harmonic Ladder": {
+        master: 0.62,
+        channels: [
+          { freq: 90, amp: 0.24, phase: 0, active: true },
+          { freq: 180, amp: 0.18, phase: 0, active: true },
+          { freq: 360, amp: 0.13, phase: 0, active: true },
+          { freq: 720, amp: 0.10, phase: 0, active: true },
+          { freq: 1440, amp: 0.08, phase: 0, active: true }
+        ]
+      },
+      "Low Resonance": {
+        master: 0.55,
+        channels: [
+          { freq: 42, amp: 0.20, phase: 0, active: true },
+          { freq: 63, amp: 0.17, phase: 0, active: true },
+          { freq: 84, amp: 0.15, phase: 0, active: true },
+          { freq: 126, amp: 0.12, phase: 0, active: true },
+          { freq: 168, amp: 0.10, phase: 0, active: true }
+        ]
+      },
+      "High Texture": {
+        master: 0.42,
+        channels: [
+          { freq: 780, amp: 0.12, phase: 0, active: true },
+          { freq: 1220, amp: 0.11, phase: 0, active: true },
+          { freq: 2100, amp: 0.10, phase: 0, active: true },
+          { freq: 4300, amp: 0.08, phase: 0, active: true },
+          { freq: 7200, amp: 0.06, phase: 0, active: true }
+        ]
+      }
+    };
+
+    const state = restoreScene() || createSceneFromPreset("Lab Default");
+    state.started = false;
+    if (!state.noise) {
+      state.noise = { active: false, amp: 0.1, lowFreq: 200, highFreq: 2000 };
+    }
+
+    const elements = {
+      startStopButton: document.getElementById("startStopButton"),
+      statusBadge: document.getElementById("statusBadge"),
+      statusDetail: document.getElementById("statusDetail"),
+      contextInfo: document.getElementById("contextInfo"),
+      scopeCaption: document.getElementById("scopeCaption"),
+      masterRange: document.getElementById("masterRange"),
+      masterNumber: document.getElementById("masterNumber"),
+      presetGrid: document.getElementById("presetGrid"),
+      channelsGrid: document.getElementById("channelsGrid"),
+      saveSceneButton: document.getElementById("saveSceneButton"),
+      loadSceneButton: document.getElementById("loadSceneButton"),
+      resetAllButton: document.getElementById("resetAllButton"),
+      allOnButton: document.getElementById("allOnButton"),
+      allOffButton: document.getElementById("allOffButton"),
+      panicButton: document.getElementById("panicButton"),
+      activeMetric: document.getElementById("activeMetric"),
+      peakMetric: document.getElementById("peakMetric"),
+      peakFill: document.getElementById("peakFill"),
+      peakNote: document.getElementById("peakNote"),
+      headroomMetric: document.getElementById("headroomMetric"),
+      strongestMetric: document.getElementById("strongestMetric"),
+      strongestNote: document.getElementById("strongestNote"),
+      scopeCanvas: document.getElementById("scopeCanvas"),
+      noiseCanvas: document.getElementById("noiseCanvas"),
+      noiseToggle: document.getElementById("noiseToggle"),
+      noiseAmpNumber: document.getElementById("noiseAmpNumber"),
+      noiseAmpRange: document.getElementById("noiseAmpRange"),
+      noiseLowNumber: document.getElementById("noiseLowNumber"),
+      noiseLowRange: document.getElementById("noiseLowRange"),
+      noiseHighNumber: document.getElementById("noiseHighNumber"),
+      noiseHighRange: document.getElementById("noiseHighRange"),
+      noiseReadout: document.getElementById("noiseReadout")
+    };
+
+    const channelRefs = [];
+    const audio = {
+      context: null,
+      masterGain: null,
+      analyser: null,
+      nodes: [],
+      waveform: null,
+      suspendTimer: null,
+      noiseSource: null,
+      noiseHighpass: null,
+      noiseLowpass: null,
+      noiseGain: null,
+      noiseAnalyser: null,
+      noiseWaveform: null
+    };
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function round(value, places = 3) {
+      return Number.parseFloat(value.toFixed(places));
+    }
+
+    function parseFinite(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function hexToRgbString(hex) {
+      const normalized = hex.replace("#", "");
+      const expanded = normalized.length === 3
+        ? normalized.split("").map(char => char + char).join("")
+        : normalized;
+      const value = Number.parseInt(expanded, 16);
+      const r = (value >> 16) & 255;
+      const g = (value >> 8) & 255;
+      const b = value & 255;
+      return `${r}, ${g}, ${b}`;
+    }
+
+    function formatFrequency(value) {
+      const formatted = value >= 1000 ? value.toFixed(1) : value.toFixed(2);
+      return formatted.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    }
+
+    function formatAmplitude(value) {
+      return value.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    }
+
+    function freqToRatio(freq) {
+      return Math.log(freq / FREQ_MIN) / Math.log(FREQ_MAX / FREQ_MIN);
+    }
+
+    function ratioToFreq(ratio) {
+      return FREQ_MIN * Math.pow(FREQ_MAX / FREQ_MIN, ratio);
+    }
+
+    function createSceneFromPreset(name) {
+      const preset = PRESETS[name];
+      return {
+        presetName: name,
+        master: preset.master,
+        channels: preset.channels.map(channel => ({ ...channel }))
+      };
+    }
+
+    function sanitizeScene(scene) {
+      if (!scene || !Array.isArray(scene.channels)) {
+        return createSceneFromPreset("Lab Default");
+      }
+
+      const fallback = createSceneFromPreset("Lab Default");
+      const noiseSrc = scene.noise || {};
+      const lowFreq = clamp(parseFinite(noiseSrc.lowFreq, 200), FREQ_MIN, FREQ_MAX);
+      const highFreqRaw = clamp(parseFinite(noiseSrc.highFreq, 2000), FREQ_MIN, FREQ_MAX);
+      return {
+        presetName: typeof scene.presetName === "string" ? scene.presetName : "Custom",
+        master: clamp(parseFinite(scene.master, fallback.master), 0, 1),
+        channels: fallback.channels.map((channel, index) => {
+          const source = scene.channels[index] || {};
+          return {
+            freq: clamp(parseFinite(source.freq, channel.freq), FREQ_MIN, FREQ_MAX),
+            amp: clamp(parseFinite(source.amp, channel.amp), 0, 1),
+            phase: index === 0 ? 0 : clamp(parseFinite(source.phase, 0), 0, 360),
+            active: Boolean(source.active)
+          };
+        }),
+        noise: {
+          active: Boolean(noiseSrc.active),
+          amp: clamp(parseFinite(noiseSrc.amp, 0.1), 0, 1),
+          lowFreq,
+          highFreq: Math.max(highFreqRaw, lowFreq + 1)
+        }
+      };
+    }
+
+    function persistScene() {
+      try {
+        const snapshot = {
+          presetName: state.presetName,
+          master: state.master,
+          channels: state.channels,
+          noise: state.noise
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+      } catch (error) {
+        setStatus("Local save unavailable in this browser mode.", "warn");
+      }
+    }
+
+    function restoreScene() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          return null;
+        }
+        return sanitizeScene(JSON.parse(raw));
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function setStatus(text, tone = "idle", detail = "") {
+      elements.statusBadge.textContent = text;
+      elements.statusBadge.className = `status-pill ${tone}`;
+      elements.statusDetail.textContent = detail;
+    }
+
+    function updateContextInfo(text) {
+      elements.contextInfo.textContent = text;
+    }
+
+    function setRangeFill(input, ratio, color = "rgba(116, 245, 255, 0.45)") {
+      input.style.setProperty("--fill", `${clamp(ratio, 0, 1) * 100}%`);
+      input.style.background = `linear-gradient(90deg, ${color} 0%, ${color} ${clamp(ratio, 0, 1) * 100}%, rgba(255, 255, 255, 0.08) ${clamp(ratio, 0, 1) * 100}%, rgba(255, 255, 255, 0.08) 100%)`;
+    }
+
+    function buildPresetButtons() {
+      elements.presetGrid.innerHTML = "";
+      Object.keys(PRESETS).forEach(name => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "button preset";
+        button.textContent = name;
+        button.addEventListener("click", () => {
+          applyPreset(name);
+        });
+        elements.presetGrid.appendChild(button);
+      });
+    }
+
+    function buildChannelCards() {
+      elements.channelsGrid.innerHTML = "";
+      state.channels.forEach((channel, index) => {
+        const card = document.createElement("article");
+        card.className = "channel-card";
+        const color = CHANNEL_COLORS[index % CHANNEL_COLORS.length];
+        card.style.setProperty("--channel-color", color);
+        card.style.setProperty("--channel-rgb", hexToRgbString(color));
+
+        card.innerHTML = `
+          <div class="channel-top">
+            <div class="channel-id">
+              <div class="channel-label">Channel ${index + 1}</div>
+              <div class="channel-sub">Sine Lane ${index + 1}</div>
+            </div>
+            <button type="button" class="arm-toggle">Idle</button>
+          </div>
+
+          <div class="line-row">
+            <span class="field-label">Frequency</span>
+            <label class="inline-input">
+              <input class="freq-number" type="number" min="${FREQ_MIN}" max="${FREQ_MAX}" step="0.1">
+              <span>Hz</span>
+            </label>
+          </div>
+          <input class="freq-range" type="range" min="0" max="1000" step="1">
+
+          <div class="mini-button-row">
+            <button type="button" class="button small octave-down">- Octave</button>
+            <button type="button" class="button small reset-channel">Reset</button>
+            <button type="button" class="button small octave-up">+ Octave</button>
+          </div>
+
+          <div class="line-row">
+            <span class="field-label">Amplitude</span>
+            <label class="inline-input">
+              <input class="amp-number" type="number" min="0" max="1" step="0.001">
+              <span>0 - 1</span>
+            </label>
+          </div>
+          <input class="amp-range" type="range" min="0" max="1000" step="1">
+
+          <div class="line-row">
+            <span class="field-label">Phase</span>
+            <label class="inline-input">
+              <input class="phase-number" type="number" min="0" max="360" step="1" ${index === 0 ? 'disabled' : ''}>
+              <span>deg</span>
+            </label>
+          </div>
+          <input class="phase-range" type="range" min="0" max="360" step="1" ${index === 0 ? 'disabled' : ''}>
+
+          <div class="channel-footer">
+            <div class="readout"></div>
+            <div class="chip">Precision Lane</div>
+          </div>
+        `;
+
+        const refs = {
+          card,
+          armToggle: card.querySelector(".arm-toggle"),
+          freqNumber: card.querySelector(".freq-number"),
+          freqRange: card.querySelector(".freq-range"),
+          ampNumber: card.querySelector(".amp-number"),
+          ampRange: card.querySelector(".amp-range"),
+          phaseNumber: card.querySelector(".phase-number"),
+          phaseRange: card.querySelector(".phase-range"),
+          octaveDown: card.querySelector(".octave-down"),
+          octaveUp: card.querySelector(".octave-up"),
+          resetChannel: card.querySelector(".reset-channel"),
+          readout: card.querySelector(".readout")
+        };
+
+        refs.armToggle.addEventListener("click", () => {
+          state.channels[index].active = !state.channels[index].active;
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.freqRange.addEventListener("input", event => {
+          const ratio = Number(event.target.value) / 1000;
+          state.channels[index].freq = round(ratioToFreq(ratio), 2);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.freqNumber.addEventListener("change", event => {
+          const value = clamp(Number(event.target.value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
+          state.channels[index].freq = round(value, 2);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.ampRange.addEventListener("input", event => {
+          state.channels[index].amp = round(Number(event.target.value) / 1000, 3);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.ampNumber.addEventListener("change", event => {
+          const value = clamp(Number(event.target.value) || 0, 0, 1);
+          state.channels[index].amp = round(value, 3);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        if (index > 0) {
+          refs.phaseRange.addEventListener("input", event => {
+            state.channels[index].phase = Number(event.target.value);
+            markCustom();
+            syncChannel(index);
+            syncAudio();
+            persistScene();
+          });
+
+          refs.phaseNumber.addEventListener("change", event => {
+            const value = clamp(Math.round(Number(event.target.value) || 0), 0, 360);
+            state.channels[index].phase = value;
+            markCustom();
+            syncChannel(index);
+            syncAudio();
+            persistScene();
+          });
+        }
+
+        refs.octaveDown.addEventListener("click", () => {
+          state.channels[index].freq = round(clamp(state.channels[index].freq / 2, FREQ_MIN, FREQ_MAX), 2);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.octaveUp.addEventListener("click", () => {
+          state.channels[index].freq = round(clamp(state.channels[index].freq * 2, FREQ_MIN, FREQ_MAX), 2);
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        refs.resetChannel.addEventListener("click", () => {
+          const presetChannel = PRESETS["Lab Default"].channels[index];
+          state.channels[index] = { ...presetChannel };
+          markCustom();
+          syncChannel(index);
+          syncAudio();
+          updateMetrics();
+          persistScene();
+        });
+
+        channelRefs[index] = refs;
+        elements.channelsGrid.appendChild(card);
+      });
+    }
+
+    function syncChannel(index) {
+      const channel = state.channels[index];
+      const refs = channelRefs[index];
+      if (!refs) {
+        return;
+      }
+
+      refs.card.classList.toggle("active", channel.active);
+      refs.armToggle.classList.toggle("active", channel.active);
+      refs.armToggle.textContent = channel.active ? "Armed" : "Idle";
+
+      refs.freqNumber.value = formatFrequency(channel.freq);
+      refs.freqRange.value = String(Math.round(freqToRatio(channel.freq) * 1000));
+      setRangeFill(refs.freqRange, freqToRatio(channel.freq), `rgba(${hexToRgbString(CHANNEL_COLORS[index])}, 0.64)`);
+
+      refs.ampNumber.value = formatAmplitude(channel.amp);
+      refs.ampRange.value = String(Math.round(channel.amp * 1000));
+      setRangeFill(refs.ampRange, channel.amp, `rgba(${hexToRgbString(CHANNEL_COLORS[index])}, 0.64)`);
+
+      refs.phaseNumber.value = String(Math.round(channel.phase));
+      refs.phaseRange.value = String(Math.round(channel.phase));
+      setRangeFill(refs.phaseRange, channel.phase / 360, `rgba(${hexToRgbString(CHANNEL_COLORS[index])}, 0.64)`);
+
+      refs.readout.textContent = `${formatFrequency(channel.freq)} Hz | Amp ${formatAmplitude(channel.amp)} | Phase ${Math.round(channel.phase)}° | ${channel.active ? "routed" : "muted"}`;
+    }
+
+    function syncPresetButtons() {
+      const buttons = elements.presetGrid.querySelectorAll(".button.preset");
+      buttons.forEach(button => {
+        button.classList.toggle("active", button.textContent === state.presetName);
+      });
+    }
+
+    function syncMasterControls() {
+      elements.masterNumber.value = formatAmplitude(state.master);
+      elements.masterRange.value = String(Math.round(state.master * 1000));
+      setRangeFill(elements.masterRange, state.master);
+    }
+
+    function syncNoiseControls() {
+      const n = state.noise;
+      elements.noiseAmpNumber.value = formatAmplitude(n.amp);
+      elements.noiseAmpRange.value = String(Math.round(n.amp * 1000));
+      setRangeFill(elements.noiseAmpRange, n.amp, "rgba(255, 209, 109, 0.6)");
+
+      elements.noiseLowNumber.value = String(Math.round(n.lowFreq));
+      elements.noiseLowRange.value = String(Math.round(freqToRatio(n.lowFreq) * 1000));
+      setRangeFill(elements.noiseLowRange, freqToRatio(n.lowFreq), "rgba(255, 209, 109, 0.6)");
+
+      elements.noiseHighNumber.value = String(Math.round(n.highFreq));
+      elements.noiseHighRange.value = String(Math.round(freqToRatio(n.highFreq) * 1000));
+      setRangeFill(elements.noiseHighRange, freqToRatio(n.highFreq), "rgba(255, 126, 136, 0.6)");
+
+      elements.noiseToggle.textContent = n.active ? "Armed" : "Idle";
+      elements.noiseToggle.classList.toggle("active", n.active);
+
+      elements.noiseReadout.textContent = `Spectrum: ${formatFrequency(n.lowFreq)} Hz - ${formatFrequency(n.highFreq)} Hz | Amp ${formatAmplitude(n.amp)} | ${n.active ? "routed" : "muted"}`;
+    }
+
+    function updateMetrics() {
+      const activeChannels = state.channels.filter(channel => channel.active);
+      const activeCount = activeChannels.length;
+      const peakEstimate = activeChannels.reduce((sum, channel) => sum + channel.amp, 0) * state.master;
+      const headroom = Math.max(0, 1 - peakEstimate);
+
+      elements.activeMetric.textContent = `${activeCount} / ${NUM_CHANNELS}`;
+      elements.peakMetric.textContent = peakEstimate.toFixed(2);
+      elements.peakFill.style.width = `${Math.min(peakEstimate, 1.25) / 1.25 * 100}%`;
+      elements.headroomMetric.textContent = headroom.toFixed(2);
+
+      if (peakEstimate > 1) {
+        elements.peakNote.textContent = "Clip risk is elevated. Pull back master or channel amplitudes.";
+      } else if (peakEstimate > 0.75) {
+        elements.peakNote.textContent = "Approaching the top of the safe mix window.";
+      } else {
+        elements.peakNote.textContent = "Headroom is comfortable.";
+      }
+
+      if (activeChannels.length) {
+        const strongest = activeChannels.reduce((best, channel) => {
+          return channel.amp > best.amp ? channel : best;
+        }, activeChannels[0]);
+        elements.strongestMetric.textContent = `${formatFrequency(strongest.freq)} Hz`;
+        elements.strongestNote.textContent = `Amplitude ${formatAmplitude(strongest.amp)} is currently the strongest routed tone.`;
+      } else {
+        elements.strongestMetric.textContent = "None";
+        elements.strongestNote.textContent = "Enable a channel to begin routing.";
+      }
+    }
+
+    function markCustom() {
+      state.presetName = "Custom";
+      syncPresetButtons();
+    }
+
+    function applyPreset(name) {
+      const preset = createSceneFromPreset(name);
+      state.presetName = name;
+      state.master = preset.master;
+      state.channels = preset.channels.map(channel => ({ ...channel }));
+      syncAllControls();
+      syncAudio();
+      updateMetrics();
+      persistScene();
+      setStatus(`Preset loaded: ${name}`, state.started ? "live" : "idle", "Preset values are now active in the console.");
+    }
+
+    function saveScene() {
+      persistScene();
+      setStatus("Scene saved locally", state.started ? "live" : "idle", "Use Load Saved to restore this exact setup later.");
+    }
+
+    function loadSavedScene() {
+      const restored = restoreScene();
+      if (!restored) {
+        setStatus("No saved scene found", "warn", "Change the mix and press Save Scene to create one.");
+        return;
+      }
+      state.presetName = restored.presetName;
+      state.master = restored.master;
+      state.channels = restored.channels.map(channel => ({ ...channel }));
+      if (restored.noise) {
+        state.noise = { ...restored.noise };
+      }
+      syncAllControls();
+      syncAudio();
+      updateMetrics();
+      setStatus("Saved scene restored", state.started ? "live" : "idle", "Local session values were loaded back into the desk.");
+    }
+
+    function resetAll() {
+      const preset = createSceneFromPreset("Lab Default");
+      state.presetName = "Lab Default";
+      state.master = preset.master;
+      state.channels = preset.channels.map(channel => ({ ...channel }));
+      state.noise = { active: false, amp: 0.1, lowFreq: 200, highFreq: 2000 };
+      syncAllControls();
+      syncAudio();
+      updateMetrics();
+      persistScene();
+      setStatus("Lab defaults restored", state.started ? "live" : "idle", "All five lanes returned to the baseline values.");
+    }
+
+    function armAll() {
+      state.channels.forEach(channel => {
+        channel.active = true;
+      });
+      markCustom();
+      syncAllControls();
+      syncAudio();
+      updateMetrics();
+      persistScene();
+      setStatus("All channels armed", state.started ? "live" : "idle", "Every lane is now routed into the mix.");
+    }
+
+    function muteAll() {
+      state.channels.forEach(channel => {
+        channel.active = false;
+      });
+      markCustom();
+      syncAllControls();
+      syncAudio();
+      updateMetrics();
+      persistScene();
+      setStatus("All channels muted", state.started ? "live" : "idle", "The channel configuration was kept, but output routing is off.");
+    }
+
+    function panicStop() {
+      state.started = false;
+      syncTransport();
+      syncAudio();
+      setStatus("Panic mute engaged", "warn", "Master output was pulled to zero immediately.");
+    }
+
+    function createPhaseWave(phaseDeg) {
+      const phaseRad = phaseDeg * Math.PI / 180;
+      const real = new Float32Array([0, Math.sin(phaseRad)]);
+      const imag = new Float32Array([0, Math.cos(phaseRad)]);
+      return audio.context.createPeriodicWave(real, imag, { disableNormalization: true });
+    }
+
+    function createAudioGraph() {
+      if (audio.context) {
+        return;
+      }
+
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) {
+        throw new Error("This browser does not support the Web Audio API.");
+      }
+
+      audio.context = new AudioContextCtor();
+      audio.masterGain = audio.context.createGain();
+      audio.masterGain.gain.value = 0;
+      audio.analyser = audio.context.createAnalyser();
+      audio.analyser.fftSize = 2048;
+      audio.analyser.smoothingTimeConstant = 0.82;
+      audio.waveform = new Float32Array(audio.analyser.fftSize);
+
+      audio.masterGain.connect(audio.analyser);
+      audio.analyser.connect(audio.context.destination);
+
+      audio.nodes = state.channels.map(channel => {
+        const oscillator = audio.context.createOscillator();
+        oscillator.setPeriodicWave(createPhaseWave(channel.phase));
+        oscillator.frequency.value = channel.freq;
+
+        const gain = audio.context.createGain();
+        gain.gain.value = channel.active ? channel.amp : 0;
+
+        oscillator.connect(gain);
+        gain.connect(audio.masterGain);
+        oscillator.start();
+
+        return { oscillator, gain };
+      });
+
+      // --- Noise chain: white noise buffer -> highpass -> lowpass -> noiseGain -> (analyser, master) ---
+      const bufferSeconds = 2;
+      const sampleRate = audio.context.sampleRate;
+      const noiseBuffer = audio.context.createBuffer(1, sampleRate * bufferSeconds, sampleRate);
+      const bufferData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferData.length; i += 1) {
+        bufferData[i] = Math.random() * 2 - 1;
+      }
+
+      audio.noiseSource = audio.context.createBufferSource();
+      audio.noiseSource.buffer = noiseBuffer;
+      audio.noiseSource.loop = true;
+
+      audio.noiseHighpass = audio.context.createBiquadFilter();
+      audio.noiseHighpass.type = "highpass";
+      audio.noiseHighpass.frequency.value = state.noise.lowFreq;
+      audio.noiseHighpass.Q.value = 0.707;
+
+      audio.noiseLowpass = audio.context.createBiquadFilter();
+      audio.noiseLowpass.type = "lowpass";
+      audio.noiseLowpass.frequency.value = state.noise.highFreq;
+      audio.noiseLowpass.Q.value = 0.707;
+
+      audio.noiseGain = audio.context.createGain();
+      audio.noiseGain.gain.value = state.noise.active ? state.noise.amp : 0;
+
+      audio.noiseAnalyser = audio.context.createAnalyser();
+      audio.noiseAnalyser.fftSize = 2048;
+      audio.noiseAnalyser.smoothingTimeConstant = 0.6;
+      audio.noiseWaveform = new Float32Array(audio.noiseAnalyser.fftSize);
+
+      audio.noiseSource.connect(audio.noiseHighpass);
+      audio.noiseHighpass.connect(audio.noiseLowpass);
+      audio.noiseLowpass.connect(audio.noiseGain);
+      audio.noiseGain.connect(audio.noiseAnalyser);
+      audio.noiseGain.connect(audio.masterGain);
+      audio.noiseSource.start();
+
+      updateContextInfo("Output: browser default device");
+    }
+
+    function rampParam(audioParam, value, duration = 0.04) {
+      if (!audio.context) {
+        return;
+      }
+      const now = audio.context.currentTime;
+      audioParam.cancelScheduledValues(now);
+      audioParam.setValueAtTime(audioParam.value, now);
+      audioParam.linearRampToValueAtTime(value, now + duration);
+    }
+
+    function syncAudio() {
+      if (!audio.context) {
+        return;
+      }
+
+      audio.nodes.forEach((node, index) => {
+        const channel = state.channels[index];
+        node.oscillator.frequency.setTargetAtTime(channel.freq, audio.context.currentTime, 0.01);
+        node.oscillator.setPeriodicWave(createPhaseWave(channel.phase));
+        rampParam(node.gain.gain, channel.active ? channel.amp : 0, 0.05);
+      });
+
+      if (audio.noiseHighpass) {
+        audio.noiseHighpass.frequency.setTargetAtTime(state.noise.lowFreq, audio.context.currentTime, 0.01);
+        audio.noiseLowpass.frequency.setTargetAtTime(state.noise.highFreq, audio.context.currentTime, 0.01);
+        rampParam(audio.noiseGain.gain, state.noise.active ? state.noise.amp : 0, 0.05);
+      }
+
+      rampParam(audio.masterGain.gain, state.started ? state.master : 0, state.started ? 0.05 : 0.08);
+
+      if (!state.started && audio.context.state === "running") {
+        window.clearTimeout(audio.suspendTimer);
+        audio.suspendTimer = window.setTimeout(() => {
+          if (!state.started && audio.context && audio.context.state === "running") {
+            audio.context.suspend().catch(() => {});
+          }
+        }, 160);
+      }
+    }
+
+    async function startAudio() {
+      try {
+        createAudioGraph();
+        window.clearTimeout(audio.suspendTimer);
+        await audio.context.resume();
+        state.started = true;
+        syncTransport();
+        syncAudio();
+        setStatus("Audio live", "live", "The browser synth is now driving the current five-channel mix.");
+        elements.scopeCaption.textContent = "Live output scope active through the browser audio engine.";
+      } catch (error) {
+        state.started = false;
+        syncTransport();
+        setStatus("Audio start failed", "error", error.message || "The browser could not start the audio context.");
+      }
+    }
+
+    function stopAudio() {
+      state.started = false;
+      syncTransport();
+      syncAudio();
+      setStatus("Audio idle", "idle", "The oscillators remain prepared, but master output is muted.");
+      elements.scopeCaption.textContent = "Preview trace active. Start audio to switch to live output scope.";
+    }
+
+    function syncTransport() {
+      elements.startStopButton.textContent = state.started ? "Stop Audio" : "Start Audio";
+      elements.startStopButton.classList.toggle("live", state.started);
+    }
+
+    function syncAllControls() {
+      syncMasterControls();
+      syncNoiseControls();
+      state.channels.forEach((_, index) => {
+        syncChannel(index);
+      });
+      syncPresetButtons();
+      syncTransport();
+    }
+
+    function drawGrid(context, width, height, gridAlpha = 0.16) {
+      context.strokeStyle = `rgba(116, 245, 255, ${gridAlpha})`;
+      context.lineWidth = 1;
+      for (let x = 0; x <= width; x += width / 16) {
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+      }
+      for (let y = 0; y <= height; y += height / 10) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+      }
+      const centerY = height / 2;
+      context.beginPath();
+      context.moveTo(0, centerY);
+      context.lineTo(width, centerY);
+      context.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      context.stroke();
+    }
+
+    // Simple 1-pole highpass and lowpass for the synthetic noise preview (when audio is idle).
+    function generateFilteredNoisePreview(numSamples, sampleRate, lowFreq, highFreq) {
+      const raw = new Float32Array(numSamples);
+      for (let i = 0; i < numSamples; i += 1) {
+        raw[i] = Math.random() * 2 - 1;
+      }
+      const dt = 1 / sampleRate;
+      const rcHigh = 1 / (2 * Math.PI * highFreq);
+      const alphaLow = dt / (rcHigh + dt);
+      const lowOut = new Float32Array(numSamples);
+      let prev = 0;
+      for (let i = 0; i < numSamples; i += 1) {
+        prev = prev + alphaLow * (raw[i] - prev);
+        lowOut[i] = prev;
+      }
+      const rcLow = 1 / (2 * Math.PI * lowFreq);
+      const alphaHigh = rcLow / (rcLow + dt);
+      const out = new Float32Array(numSamples);
+      let prevIn = 0;
+      let prevOut = 0;
+      for (let i = 0; i < numSamples; i += 1) {
+        const y = alphaHigh * (prevOut + lowOut[i] - prevIn);
+        out[i] = y;
+        prevIn = lowOut[i];
+        prevOut = y;
+      }
+      return out;
+    }
+
+    let previewNoiseSamples = null;
+    let previewNoiseKey = "";
+    function getPreviewNoiseSamples(width) {
+      const key = `${width}|${Math.round(state.noise.lowFreq)}|${Math.round(state.noise.highFreq)}`;
+      if (previewNoiseKey !== key || !previewNoiseSamples) {
+        previewNoiseSamples = generateFilteredNoisePreview(width * 3, 44100, state.noise.lowFreq, state.noise.highFreq);
+        previewNoiseKey = key;
+      }
+      return previewNoiseSamples;
+    }
+
+    function drawNoiseScope() {
+      const canvas = elements.noiseCanvas;
+      const context = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerY = height / 2;
+
+      context.clearRect(0, 0, width, height);
+      drawGrid(context, width, height, 0.12);
+
+      let samples = null;
+      if (audio.noiseAnalyser && audio.context && audio.context.state === "running" && state.started) {
+        audio.noiseAnalyser.getFloatTimeDomainData(audio.noiseWaveform);
+        samples = audio.noiseWaveform;
+      }
+
+      context.save();
+      context.shadowBlur = 10;
+      context.shadowColor = "rgba(255, 209, 109, 0.35)";
+      context.strokeStyle = state.noise.active ? "rgba(255, 209, 109, 0.95)" : "rgba(255, 209, 109, 0.35)";
+      context.lineWidth = 2;
+      context.beginPath();
+
+      const scale = (state.noise.active ? state.noise.amp : 0) * state.master;
+      const previewSamples = samples ? null : getPreviewNoiseSamples(width);
+      const time = performance.now() / 1000;
+      const previewOffset = Math.floor((time * 44100) % (previewSamples ? previewSamples.length - width : 1));
+
+      for (let i = 0; i < width; i += 1) {
+        let sample = 0;
+        if (samples) {
+          const index = Math.floor((i / width) * samples.length);
+          sample = samples[index] || 0;
+        } else if (previewSamples) {
+          sample = previewSamples[previewOffset + i] * scale * 2;
+        }
+        const y = centerY + sample * (height * 0.4);
+        if (i === 0) {
+          context.moveTo(i, y);
+        } else {
+          context.lineTo(i, y);
+        }
+      }
+      context.stroke();
+      context.restore();
+    }
+
+    function drawScope() {
+      const canvas = elements.scopeCanvas;
+      const context = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const time = performance.now() / 1000;
+
+      context.clearRect(0, 0, width, height);
+      drawGrid(context, width, height);
+
+      const centerY = height / 2;
+
+      let samples = null;
+      if (audio.analyser && audio.context && audio.context.state === "running" && state.started) {
+        audio.analyser.getFloatTimeDomainData(audio.waveform);
+        samples = audio.waveform;
+      }
+
+      context.save();
+      context.shadowBlur = 18;
+      context.shadowColor = "rgba(116, 245, 255, 0.38)";
+      context.strokeStyle = "rgba(116, 245, 255, 0.96)";
+      context.lineWidth = 3;
+      context.beginPath();
+
+      const previewSamples = samples ? null : getPreviewNoiseSamples(width);
+      const noiseScale = (state.noise.active ? state.noise.amp : 0) * state.master;
+      const previewOffset = Math.floor((time * 44100) % (previewSamples ? previewSamples.length - width : 1));
+
+      for (let i = 0; i < width; i += 1) {
+        let sample = 0;
+        if (samples) {
+          const index = Math.floor((i / width) * samples.length);
+          sample = samples[index] || 0;
+        } else {
+          state.channels.forEach((channel, channelIndex) => {
+            const presence = channel.active ? channel.amp : channel.amp * 0.15;
+            const phaseRad = channel.phase * Math.PI / 180;
+            sample += Math.sin((i / width) * channel.freq * 0.09 + time * (channelIndex + 1) * 1.4 + phaseRad) * presence;
+          });
+          sample *= state.master * 0.5;
+          if (previewSamples) {
+            sample += previewSamples[previewOffset + i] * noiseScale * 2;
+          }
+        }
+
+        const x = i;
+        const y = centerY + sample * (height * 0.28);
+        if (i === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+      context.stroke();
+      context.restore();
+
+      state.channels.forEach((channel, index) => {
+        const laneHeight = height - 34;
+        const laneY = 18 + (index / Math.max(1, NUM_CHANNELS - 1)) * laneHeight;
+        const length = width * clamp(freqToRatio(channel.freq), 0.03, 1);
+        context.strokeStyle = `rgba(${hexToRgbString(CHANNEL_COLORS[index])}, ${channel.active ? 0.68 : 0.26})`;
+        context.lineWidth = channel.active ? 3 : 1.4;
+        context.beginPath();
+        context.moveTo(24, laneY);
+        context.lineTo(24 + length * 0.25, laneY);
+        context.stroke();
+      });
+
+      drawNoiseScope();
+      window.requestAnimationFrame(drawScope);
+    }
+
+    function wireGlobalControls() {
+      elements.startStopButton.addEventListener("click", () => {
+        if (state.started) {
+          stopAudio();
+        } else {
+          startAudio();
+        }
+      });
+
+      elements.masterRange.addEventListener("input", event => {
+        state.master = round(Number(event.target.value) / 1000, 3);
+        markCustom();
+        syncMasterControls();
+        syncAudio();
+        updateMetrics();
+        persistScene();
+      });
+
+      elements.masterNumber.addEventListener("change", event => {
+        state.master = round(clamp(Number(event.target.value) || 0, 0, 1), 3);
+        markCustom();
+        syncMasterControls();
+        syncAudio();
+        updateMetrics();
+        persistScene();
+      });
+
+      elements.noiseToggle.addEventListener("click", () => {
+        state.noise.active = !state.noise.active;
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseAmpRange.addEventListener("input", event => {
+        state.noise.amp = round(Number(event.target.value) / 1000, 3);
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseAmpNumber.addEventListener("change", event => {
+        state.noise.amp = round(clamp(Number(event.target.value) || 0, 0, 1), 3);
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseLowRange.addEventListener("input", event => {
+        const ratio = Number(event.target.value) / 1000;
+        let lowFreq = round(ratioToFreq(ratio), 2);
+        if (lowFreq >= state.noise.highFreq) {
+          lowFreq = Math.max(FREQ_MIN, state.noise.highFreq - 1);
+        }
+        state.noise.lowFreq = lowFreq;
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseLowNumber.addEventListener("change", event => {
+        let value = clamp(Number(event.target.value) || FREQ_MIN, FREQ_MIN, FREQ_MAX);
+        if (value >= state.noise.highFreq) {
+          value = Math.max(FREQ_MIN, state.noise.highFreq - 1);
+        }
+        state.noise.lowFreq = round(value, 2);
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseHighRange.addEventListener("input", event => {
+        const ratio = Number(event.target.value) / 1000;
+        let highFreq = round(ratioToFreq(ratio), 2);
+        if (highFreq <= state.noise.lowFreq) {
+          highFreq = Math.min(FREQ_MAX, state.noise.lowFreq + 1);
+        }
+        state.noise.highFreq = highFreq;
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.noiseHighNumber.addEventListener("change", event => {
+        let value = clamp(Number(event.target.value) || FREQ_MAX, FREQ_MIN, FREQ_MAX);
+        if (value <= state.noise.lowFreq) {
+          value = Math.min(FREQ_MAX, state.noise.lowFreq + 1);
+        }
+        state.noise.highFreq = round(value, 2);
+        markCustom();
+        syncNoiseControls();
+        syncAudio();
+        persistScene();
+      });
+
+      elements.saveSceneButton.addEventListener("click", saveScene);
+      elements.loadSceneButton.addEventListener("click", loadSavedScene);
+      elements.resetAllButton.addEventListener("click", resetAll);
+      elements.allOnButton.addEventListener("click", armAll);
+      elements.allOffButton.addEventListener("click", muteAll);
+      elements.panicButton.addEventListener("click", panicStop);
+
+      document.addEventListener("keydown", event => {
+        if (event.repeat) {
+          return;
+        }
+
+        const target = event.target;
+        const tagName = target && target.tagName ? target.tagName.toLowerCase() : "";
+        if (tagName === "input" || tagName === "textarea") {
+          return;
+        }
+
+        if (event.code === "Space") {
+          event.preventDefault();
+          if (state.started) {
+            stopAudio();
+          } else {
+            startAudio();
+          }
+        }
+
+        if (event.key.toLowerCase() === "m") {
+          event.preventDefault();
+          panicStop();
+        }
+      });
+    }
+
+    function initialize() {
+      buildPresetButtons();
+      buildChannelCards();
+      wireGlobalControls();
+      syncAllControls();
+      updateMetrics();
+      drawScope();
+
+      if (state.presetName && !PRESETS[state.presetName]) {
+        state.presetName = "Custom";
+      }
+
+      setStatus(
+        "Audio idle",
+        "idle",
+        "Open this HTML file in a browser and click Start Audio when you are ready to drive the speaker."
+      );
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
