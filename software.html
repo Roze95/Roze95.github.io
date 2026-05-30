@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online software — Georgi Gary Rozenman</title>
+<meta name="description" content="Browser-based tools by Georgi Gary Rozenman: walking-droplet tracker and related lab software.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">Georgi Gary <span>Rozenman</span></a>
+    <nav class="main">
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="publications.html">Publications</a>
+      <a href="teaching.html">Teaching</a>
+      <a href="code.html">Code</a>
+      <a href="software.html" class="active">Online software</a>
+      <a href="cv.html">CV</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section>
+      <h1>Online software</h1>
+      <p class="lead">
+        Browser-based tools developed in the lab of Prof.&nbsp;John&nbsp;Bush
+        (MIT Department of Mathematics). Each tool runs entirely in your
+        browser &mdash; no installation, no upload of your video to any server.
+      </p>
+    </section>
+
+    <section>
+      <h2>Droplet Tracker — Standalone (v3)</h2>
+      <p>
+        Interactive tracker for walking-droplet experiments. Load a video,
+        define the region of interest, and track the droplet trajectory
+        frame-by-frame; export results as CSV for downstream analysis in
+        MATLAB or Python.
+      </p>
+      <p>
+        <a class="btn" href="tools/droplet-tracker-v3.html" target="_blank" rel="noopener">Launch tracker &rarr;</a>
+      </p>
+      <p class="note">
+        Works best in a recent Chrome, Firefox, or Safari. Your video stays
+        on your machine.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; <span id="yr"></span> Georgi Gary Rozenman</span>
+    <span>MIT Department of Mathematics &middot; Cambridge, MA</span>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
