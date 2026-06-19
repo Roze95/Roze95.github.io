@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walker Tracker v3.5 // Smart + Rotate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#04060c;
+  --bg1:#070b18;
+  --panel:rgba(11,17,32,.72);
+  --panel-edge:rgba(0,229,255,.18);
+  --ink:#dff2ff;
+  --muted:#7fa3c4;
+  --line:rgba(0,229,255,.14);
+  --grid:rgba(0,229,255,.07);
+  --accent:#00e5ff;
+  --accent-dim:rgba(0,229,255,.55);
+  --accent2:#ff2dd1;
+  --accent2-dim:rgba(255,45,209,.55);
+  --accent3:#8affc1;
+  --danger:#ff3b6a;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:"JetBrains Mono","SF Mono",Consolas,monospace;
+  color:var(--ink);
+  padding:18px;
+  min-height:100vh;
+  background:
+    radial-gradient(1200px 480px at 12% -10%,rgba(0,229,255,.10),transparent 60%),
+    radial-gradient(900px 420px at 92% 110%,rgba(255,45,209,.10),transparent 60%),
+    linear-gradient(180deg,var(--bg0),var(--bg1));
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center,black 30%,transparent 80%);
+  opacity:.55;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+.app{position:relative;z-index:1;max-width:1420px;margin:0 auto;display:grid;gap:14px}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--panel-edge);
+  border-radius:14px;
+  padding:14px 16px;
+  backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,.04) inset,
+    0 10px 38px rgba(0,0,0,.55),
+    0 0 44px rgba(0,229,255,.05);
+  position:relative;
+}
+.card::after{
+  content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(0,229,255,.35),transparent 28%,transparent 72%,rgba(255,45,209,.28));
+  padding:1px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+
+.head{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.head h1{
+  margin:0 0 6px;
+  font-family:"Orbitron",sans-serif;
+  font-size:1.55rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;
+  background:linear-gradient(90deg,#00e5ff 0%,#8affc1 50%,#ff2dd1 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(0,229,255,.25));
+}
+.head .vtag{
+  display:inline-block;margin-left:10px;padding:2px 8px;border-radius:999px;
+  border:1px solid var(--accent2);color:var(--accent2);font-size:.6rem;letter-spacing:2px;
+  background:rgba(255,45,209,.08);text-shadow:0 0 8px rgba(255,45,209,.4);vertical-align:middle;
+}
+.head p{margin:0;color:var(--muted);font-size:.82rem;letter-spacing:1.4px}
+.logo{display:grid;justify-items:end;gap:6px}
+.logo img{width:280px;height:56px;object-fit:contain;border:1px solid var(--line);border-radius:8px;padding:6px;background:rgba(0,0,0,.5)}
+.logo small{max-width:340px;text-align:right;color:var(--muted);font-size:.72rem;letter-spacing:.8px}
+
+.controls{display:grid;gap:12px}
+.r1{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center}
+.r2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 10px;align-items:center}
+.ralgo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px;align-items:center}
+.rrot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px;align-items:center}
+.r2 .field,.ralgo .field,.rrot .field{display:flex;align-items:center;gap:8px}
+.r3{display:grid;grid-template-columns:auto auto auto auto 1fr;gap:10px;align-items:center}
+
+label{font-size:.72rem;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase;white-space:nowrap}
+input[type=text],input[type=number],select{
+  font:inherit;font-size:.88rem;
+  border:1px solid var(--line);border-radius:7px;padding:8px 10px;
+  background:rgba(0,0,0,.45);color:var(--ink);
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+input[type=text]{width:100%}
+input[type=number]{width:96px}
+input[type=checkbox]{accent-color:var(--accent);width:18px;height:18px;cursor:pointer}
+input[type=number]:disabled{opacity:.4;cursor:not-allowed}
+input[readonly]{opacity:.75}
+select{
+  appearance:none;-webkit-appearance:none;padding-right:28px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+select option{background:var(--bg1);color:var(--ink)}
+input[type=text]:focus,input[type=number]:focus,select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 14px rgba(0,229,255,.28),inset 0 0 8px rgba(0,229,255,.08);
+  background:rgba(0,20,30,.6);
+}
+
+button,.filebtn{
+  font:inherit;font-size:.76rem;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  border:1px solid var(--accent);border-radius:8px;padding:9px 14px;
+  background:rgba(0,229,255,.08);color:var(--accent);
+  cursor:pointer;white-space:nowrap;transition:all .18s;
+  text-shadow:0 0 8px rgba(0,229,255,.4);
+  box-shadow:0 0 12px rgba(0,229,255,.12),inset 0 0 12px rgba(0,229,255,.04);
+}
+button:hover:not(:disabled),.filebtn:hover{
+  background:rgba(0,229,255,.18);
+  box-shadow:0 0 22px rgba(0,229,255,.45),inset 0 0 16px rgba(0,229,255,.1);
+  transform:translateY(-1px);
+}
+button:disabled{opacity:.32;cursor:not-allowed;filter:grayscale(.55)}
+.alt{border-color:var(--accent2);color:var(--accent2);background:rgba(255,45,209,.06);
+  text-shadow:0 0 8px rgba(255,45,209,.4);
+  box-shadow:0 0 12px rgba(255,45,209,.12),inset 0 0 12px rgba(255,45,209,.04);}
+.alt:hover:not(:disabled){background:rgba(255,45,209,.18);
+  box-shadow:0 0 22px rgba(255,45,209,.45),inset 0 0 16px rgba(255,45,209,.1);}
+.danger{border-color:var(--danger);color:var(--danger);background:rgba(255,59,106,.07);
+  text-shadow:0 0 8px rgba(255,59,106,.4);
+  box-shadow:0 0 12px rgba(255,59,106,.12);}
+.danger:hover:not(:disabled){background:rgba(255,59,106,.2);
+  box-shadow:0 0 22px rgba(255,59,106,.45);}
+
+.hid{position:absolute;left:-9999px}
+.status{
+  font-size:.78rem;color:var(--muted);min-height:1.2em;letter-spacing:.5px;
+  padding:6px 10px;border-left:2px solid var(--accent-dim);
+  background:linear-gradient(90deg,rgba(0,229,255,.05),transparent);
+  border-radius:0 6px 6px 0;
+}
+.status.bad{color:var(--danger);border-left-color:var(--danger);background:linear-gradient(90deg,rgba(255,59,106,.08),transparent);text-shadow:0 0 8px rgba(255,59,106,.35)}
+
+.grid{display:grid;grid-template-columns:1.05fr 1fr;gap:14px}
+.col{display:grid;gap:14px}
+.panel h2{
+  margin:0 0 10px;
+  font-family:"Orbitron",sans-serif;font-size:.8rem;
+  color:var(--accent);letter-spacing:3px;text-transform:uppercase;font-weight:600;
+  text-shadow:0 0 10px rgba(0,229,255,.35);
+  display:flex;align-items:center;gap:10px;
+}
+.panel h2::before{
+  content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px var(--accent);
+}
+.wrap{
+  border:1px solid var(--line);border-radius:10px;overflow:auto;
+  background:
+    radial-gradient(ellipse at top left,rgba(0,229,255,.03),transparent 60%),
+    rgba(0,0,0,.55);
+  box-shadow:inset 0 0 24px rgba(0,229,255,.04);
+}
+canvas{display:block;width:100%;height:auto;background:transparent}
+.note{margin-top:6px;color:var(--muted);font-size:.72rem;letter-spacing:.6px;opacity:.75}
+.note strong{color:var(--accent2)}
+
+@media (max-width:1100px){
+  .head{grid-template-columns:1fr}
+  .logo{justify-items:start}.logo small{text-align:left}
+  .r1{grid-template-columns:1fr}
+  .r2{grid-template-columns:1fr 1fr}
+  .ralgo{grid-template-columns:1fr}
+  .rrot{grid-template-columns:1fr 1fr}
+  .r3{grid-template-columns:1fr 1fr}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="card head">
+    <div>
+      <h1>Walker Tracker <span class="vtag">v3.5 · smart+rotate</span></h1>
+      <p>// median-background subtraction + weighted-centroid droplet localization · pre-track frame rotation</p>
+    </div>
+    <div class="logo">
+      <img id="logo" src="logo1.png" alt="Logo">
+      <small>Created by Dr. Georgi Gary Rozenman in the laboratory of Prof. John Bush</small>
+    </div>
+  </section>
+
+  <section class="card controls">
+    <div class="r1">
+      <label for="videoPath">Video File</label>
+      <input id="videoPath" type="text" readonly placeholder="// no file selected">
+      <label class="filebtn" for="videoFile">Browse</label>
+      <input id="videoFile" class="hid" type="file" accept="video/mp4,video/avi,video/*">
+      <button id="convertBtn" class="alt" disabled>Convert + Load</button>
+      <button id="saveBtn" class="alt" disabled>Export CSV</button>
+    </div>
+    <div class="r2">
+      <div class="field"><label for="startF">Start Frame</label><input id="startF" type="number" min="1" step="1" value="1"></div>
+      <div class="field"><label for="endF">End Frame</label><input id="endF" type="number" min="1" step="1" value="1000"></div>
+      <div class="field"><label for="avgF">Avg Window</label><input id="avgF" type="number" min="1" step="1" value="3"></div>
+      <div class="field"><label for="fps">Frame Rate</label><input id="fps" type="number" min="1" step="0.1" value="30"></div>
+    </div>
+    <div class="ralgo">
+      <div class="field"><label for="algo">Algorithm</label>
+        <select id="algo">
+          <option value="smart" selected>Smart (BG subtract + centroid)</option>
+          <option value="diff">Frame-difference + centroid</option>
+          <option value="bright">Brightest pixel (legacy v2)</option>
+        </select>
+      </div>
+      <div class="field"><label for="bgN">BG Samples</label><input id="bgN" type="number" min="3" step="1" value="21"></div>
+      <div class="field"><label for="peakFrac">Centroid Frac</label><input id="peakFrac" type="number" min="0.1" max="0.95" step="0.05" value="0.5"></div>
+    </div>
+    <div class="rrot">
+      <div class="field"><label for="rotateChk">Rotate</label><input id="rotateChk" type="checkbox"></div>
+      <div class="field"><label for="rotateDeg">Angle (°)</label><input id="rotateDeg" type="number" min="-180" max="180" step="0.5" value="0" disabled></div>
+    </div>
+    <div class="r3">
+      <button id="startBtn">Start Tracking</button>
+      <button id="stopBtn" class="danger" disabled>Stop</button>
+      <button id="okRoi" class="alt" disabled>Confirm ROI</button>
+      <button id="cancelRoi" class="alt" disabled>Cancel ROI</button>
+      <div id="status" class="status">// select a video and press Start Tracking.</div>
+    </div>
+    <div class="note">
+      <strong>Smart</strong> builds a per-pixel median background from N sampled frames (rejects static bright spots),
+      then locates the droplet by weighted centroid on the background-subtracted ROI.
+      <strong>Frame-difference</strong> uses |current − previous| instead of a median model (lighter, no prebuild).
+      <strong>Centroid Frac</strong> is the fraction of the peak used as threshold.
+      <strong>Rotate</strong> spins every frame about its center before tracking (positive = clockwise, negatives allowed)
+      so 1D motion can be aligned to the x-axis; the frame keeps its original size, so corners are cropped. Tracked
+      coordinates and the exported CSV are in this rotated frame.
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="col">
+      <article class="card panel"><h2>Frame View &middot; ROI + Droplet</h2><div class="wrap"><canvas id="frame" width="960" height="540"></canvas></div><div class="note">Drag a square ROI, then press Enter or Confirm ROI.</div></article>
+      <article class="card panel"><h2>Displacement</h2><div class="wrap"><canvas id="disp" width="720" height="260"></canvas></div></article>
+      <article class="card panel"><h2>Velocity &middot; v_x / v_y</h2><div class="wrap"><canvas id="vel" width="720" height="260"></canvas></div></article>
+    </div>
+    <div class="col">
+      <article class="card panel"><h2>Droplet Trajectory</h2><div class="wrap"><canvas id="traj" width="720" height="260"></canvas></div></article>
+      <article class="card panel"><h2>Deviation</h2><div class="wrap"><canvas id="dev" width="720" height="260"></canvas></div></article>
+      <article class="card panel"><h2>Histogram</h2><div class="wrap"><canvas id="hist" width="720" height="260"></canvas></div></article>
+    </div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const c={frame:$("frame"),traj:$("traj"),dev:$("dev"),disp:$("disp"),hist:$("hist"),vel:$("vel")};
+const g={frame:c.frame.getContext("2d"),traj:c.traj.getContext("2d"),dev:c.dev.getContext("2d"),disp:c.disp.getContext("2d"),hist:c.hist.getContext("2d"),vel:c.vel.getContext("2d")};
+const ui={file:$("videoFile"),path:$("videoPath"),startF:$("startF"),endF:$("endF"),avgF:$("avgF"),fps:$("fps"),algo:$("algo"),bgN:$("bgN"),peakFrac:$("peakFrac"),rotate:$("rotateChk"),rotateDeg:$("rotateDeg"),start:$("startBtn"),stop:$("stopBtn"),convert:$("convertBtn"),save:$("saveBtn"),okRoi:$("okRoi"),cancelRoi:$("cancelRoi"),status:$("status"),logo:$("logo")};
+const multiThreadCoreCandidates=[{label:"multi-thread jsDelivr",corePath:"https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"},{label:"multi-thread unpkg",corePath:"https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"}];
+const singleThreadCoreCandidates=[{label:"single-thread jsDelivr",corePath:"https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js",mainName:"main"},{label:"single-thread unpkg",corePath:"https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js",mainName:"main"}];
+ui.logo.onerror=()=>ui.logo.style.display="none";
+
+const THEME={grid:"rgba(0,229,255,0.07)",axis:"rgba(0,229,255,0.35)",text:"#7fa3c4",cyan:"#00e5ff",magenta:"#ff2dd1",green:"#8affc1",dotFill:"#ff2dd1",dotStroke:"#ffffff",roi:"rgba(0,229,255,0.95)",roiFill:"rgba(0,229,255,0.10)"};
+
+const video=document.createElement("video");video.preload="auto";video.muted=true;video.playsInline=true;video.setAttribute("playsinline","");
+const proc=document.createElement("canvas");const pctx=proc.getContext("2d",{willReadFrequently:true});
+
+const s={
+  file:null,url:null,ffmpeg:null,ffmpegLoaded:false,
+  processing:false,active:false,running:false,selecting:false,
+  roi:null,roiBase:null,roiStart:null,roiResolve:null,roiReject:null,
+  x:[],y:[],vx:[],vy:[],
+  fps:30,start:1,end:1000,avg:3,
+  roiSize:0,maxJump:0,xp:0,yp:0,curr:0,
+  sumX:0,sumY:0,lastPlotAt:0,
+  // v3 additions
+  algo:"smart",
+  // v3.5: pre-track frame rotation (crop-to-original, rotate about center)
+  rotate:false,rotateDeg:0,
+  bg:null,bgW:0,bgH:0,
+  prevLum:null,           // previous full-frame luminance, for frame-differencing algo
+  peakFrac:0.5,
+  lastPeak:0
+};
+const PLOT_THROTTLE_MS=110;
+
+const status=(m,b=false)=>{ui.status.textContent=m;ui.status.classList.toggle("bad",b)};
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const num=(el,name,flt=false)=>{const v=flt?parseFloat(el.value):parseInt(el.value,10);if(!Number.isFinite(v)||v<=0)throw new Error(name+" must be > 0.");return v};
+const sanitizeName=name=>name.replace(/[^\w.\-]/g,"_");
+
+function arrMin(a){if(!a.length)return NaN;let m=a[0];for(let i=1;i<a.length;i++)if(a[i]<m)m=a[i];return m}
+function arrMax(a){if(!a.length)return NaN;let m=a[0];for(let i=1;i<a.length;i++)if(a[i]>m)m=a[i];return m}
+function arrMinMax(a){if(!a.length)return[NaN,NaN];let mn=a[0],mx=a[0];for(let i=1;i<a.length;i++){const v=a[i];if(v<mn)mn=v;else if(v>mx)mx=v}return[mn,mx]}
+function arrMinMax2(a,b){let mn=Infinity,mx=-Infinity;for(let i=0;i<a.length;i++){const v=a[i];if(v<mn)mn=v;if(v>mx)mx=v}for(let i=0;i<b.length;i++){const v=b[i];if(v<mn)mn=v;if(v>mx)mx=v}if(!isFinite(mn))return[NaN,NaN];return[mn,mx]}
+
+const clearCanvas=cv=>{const x=cv.getContext("2d");x.clearRect(0,0,cv.width,cv.height)};
+const clearAll=()=>[c.traj,c.dev,c.disp,c.hist,c.vel].forEach(clearCanvas);
+const range=(mn,mx,sym=false)=>{if(!Number.isFinite(mn)||!Number.isFinite(mx))return[-1,1];if(mn===mx){const p=Math.max(1,Math.abs(mn)*.2);return[mn-p,mx+p]}if(sym){const m=Math.max(Math.abs(mn),Math.abs(mx))*1.12;return[-m,m]}const d=(mx-mn)*.08;return[mn-d,mx+d]};
+
+function mm(a,w){
+  if(w<=1||a.length<2)return a.slice();
+  const n=a.length,r=new Array(n),l=Math.floor((w-1)/2),h=w-l-1;
+  let sum=0,cnt=0,lo=0,hi=-1;
+  for(let i=0;i<n;i++){
+    const nlo=Math.max(0,i-l),nhi=Math.min(n-1,i+h);
+    while(hi<nhi){hi++;sum+=a[hi];cnt++}
+    while(lo<nlo){sum-=a[lo];cnt--;lo++}
+    r[i]=sum/cnt;
+  }
+  return r;
+}
+
+function hist(vals,bins=20){
+  if(!vals.length)return{counts:new Array(bins).fill(0),edges:[]};
+  const[mnR,mxR]=arrMinMax(vals);let mn=mnR,mx=mxR;
+  if(mn===mx){mn-=.5;mx+=.5}
+  const w=(mx-mn)/bins,counts=new Array(bins).fill(0),edges=[];
+  for(let i=0;i<=bins;i++)edges.push(mn+i*w);
+  for(const v of vals){let k=Math.floor((v-mn)/w);k=clamp(k,0,bins-1);counts[k]++}
+  return{counts,edges,min:mn,max:mx};
+}
+
+function axes(ctx,cv,xl,yl){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const p={l:56,r:18,t:14,b:34},W=cv.width,H=cv.height;
+  ctx.fillStyle="rgba(0,0,0,0.35)";ctx.fillRect(p.l,p.t,W-p.l-p.r,H-p.t-p.b);
+  ctx.strokeStyle=THEME.grid;ctx.lineWidth=1;ctx.beginPath();
+  for(let i=0;i<=4;i++){const y=p.t+i*(H-p.t-p.b)/4;ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y)}
+  for(let i=0;i<=6;i++){const x=p.l+i*(W-p.l-p.r)/6;ctx.moveTo(x,p.t);ctx.lineTo(x,H-p.b)}
+  ctx.stroke();
+  ctx.strokeStyle=THEME.axis;ctx.lineWidth=1.1;ctx.strokeRect(p.l+.5,p.t+.5,W-p.l-p.r-1,H-p.t-p.b-1);
+  ctx.fillStyle=THEME.text;ctx.font='11px "JetBrains Mono",monospace';
+  if(xl)ctx.fillText(xl,W/2-ctx.measureText(xl).width/2,H-10);
+  if(yl){ctx.save();ctx.translate(15,H/2+ctx.measureText(yl).width/2);ctx.rotate(-Math.PI/2);ctx.fillText(yl,0,0);ctx.restore()}
+  return p;
+}
+
+function plotY(cv,series,opt){
+  const ctx=cv.getContext("2d"),p=axes(ctx,cv,opt.x||"frame",opt.y||"");
+  const W=cv.width-p.l-p.r,H=cv.height-p.t-p.b,[mn,mx]=opt.yr;
+  const xMax=Math.max(1,opt.xMax||1);
+  const x=v=>p.l+v/xMax*W,y=v=>p.t+(1-(v-mn)/(mx-mn))*H;
+  series.forEach(s0=>{
+    if(!s0.d.length)return;
+    ctx.save();ctx.shadowBlur=8;ctx.shadowColor=s0.c;
+    ctx.beginPath();ctx.strokeStyle=s0.c;ctx.lineWidth=1.8;ctx.lineJoin="round";
+    for(let i=0;i<s0.d.length;i++){const X=x(i),Y=y(s0.d[i]);if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y)}
+    ctx.stroke();ctx.restore();
+  });
+}
+
+function plotTraj(){
+  const X=s.x,Y=s.y,p=axes(g.traj,c.traj,"x (px)","y (px)");
+  if(!X.length)return;
+  const[xMin,xMax]=arrMinMax(X),[yMin,yMax]=arrMinMax(Y);
+  const rx=range(xMin,xMax),ry=range(yMin,yMax);
+  const cx=(rx[0]+rx[1])/2,cy=(ry[0]+ry[1])/2,span=Math.max(rx[1]-rx[0],ry[1]-ry[0],1)*1.08;
+  const xr=[cx-span/2,cx+span/2],yr=[cy-span/2,cy+span/2];
+  const W=c.traj.width-p.l-p.r,H=c.traj.height-p.t-p.b,plot=Math.min(W,H);
+  const ox=p.l+(W-plot)/2,oy=p.t+(H-plot)/2,scale=plot/span;
+  const fx=v=>ox+(v-xr[0])*scale,fy=v=>oy+(v-yr[0])*scale;
+  g.traj.save();g.traj.shadowBlur=10;g.traj.shadowColor=THEME.cyan;
+  g.traj.beginPath();g.traj.strokeStyle=THEME.cyan;g.traj.lineWidth=1.8;g.traj.lineJoin="round";
+  for(let i=0;i<X.length;i++){const xx=fx(X[i]),yy=fy(Y[i]);if(i===0)g.traj.moveTo(xx,yy);else g.traj.lineTo(xx,yy)}
+  g.traj.stroke();g.traj.restore();
+  const lx=fx(X[X.length-1]),ly=fy(Y[Y.length-1]);
+  g.traj.save();g.traj.fillStyle=THEME.magenta;g.traj.shadowBlur=12;g.traj.shadowColor=THEME.magenta;
+  g.traj.beginPath();g.traj.arc(lx,ly,4,0,2*Math.PI);g.traj.fill();g.traj.restore();
+}
+
+function plotDev(){
+  if(!s.x.length){clearCanvas(c.dev);return}
+  const n=s.x.length,mx=s.sumX/n,my=s.sumY/n;
+  const xd=new Array(n),yd=new Array(n);
+  for(let i=0;i<n;i++){xd[i]=s.x[i]-mx;yd[i]=s.y[i]-my}
+  const[mn,mxv]=arrMinMax2(xd,yd);
+  plotY(c.dev,[{d:xd,c:THEME.magenta},{d:yd,c:THEME.cyan}],{x:"frame",y:"deviation (px)",xMax:n-1,yr:range(mn,mxv,true)});
+}
+
+function plotDisp(){
+  if(!s.x.length){clearCanvas(c.disp);return}
+  const n=s.x.length,x0=s.x[0],y0=s.y[0],d=new Array(n);
+  let mx=0;
+  for(let i=0;i<n;i++){const v=Math.hypot(s.x[i]-x0,s.y[i]-y0);d[i]=v;if(v>mx)mx=v}
+  plotY(c.disp,[{d,c:THEME.green}],{x:"frame",y:"distance (px)",xMax:n-1,yr:range(0,mx)});
+}
+
+function plotHist(){
+  clearCanvas(c.hist);if(!s.x.length)return;
+  const n=s.x.length,mx=s.sumX/n,my=s.sumY/n;
+  const xd=new Array(n),yd=new Array(n);
+  for(let i=0;i<n;i++){xd[i]=s.x[i]-mx;yd[i]=s.y[i]-my}
+  const hx=hist(xd,20),hy=hist(yd,20);
+  let maxC=1;for(let i=0;i<20;i++){if(hx.counts[i]>maxC)maxC=hx.counts[i];if(hy.counts[i]>maxC)maxC=hy.counts[i]}
+  const p=axes(g.hist,c.hist,"deviation bin","count");
+  const W=c.hist.width-p.l-p.r,H=c.hist.height-p.t-p.b,bw=W/20;
+  const yy=v=>p.t+(1-v/maxC)*H;
+  for(let i=0;i<20;i++){
+    const x=p.l+i*bw;
+    const h1=H*hx.counts[i]/maxC,h2=H*hy.counts[i]/maxC;
+    g.hist.fillStyle="rgba(255,45,209,0.42)";g.hist.fillRect(x,yy(hx.counts[i]),bw*.9,h1);
+    g.hist.fillStyle="rgba(0,229,255,0.42)";g.hist.fillRect(x+bw*.1,yy(hy.counts[i]),bw*.9,h2);
+  }
+  g.hist.fillStyle=THEME.magenta;g.hist.fillRect(p.l+8,p.t+8,12,3);
+  g.hist.fillStyle=THEME.text;g.hist.font='11px "JetBrains Mono",monospace';
+  g.hist.fillText("x deviation",p.l+26,p.t+12);
+  g.hist.fillStyle=THEME.cyan;g.hist.fillRect(p.l+128,p.t+8,12,3);
+  g.hist.fillStyle=THEME.text;g.hist.fillText("y deviation",p.l+146,p.t+12);
+}
+
+function plotVel(){
+  if(!s.vx.length&&!s.vy.length){clearCanvas(c.vel);return}
+  const vxS=s.avg>1?mm(s.vx,s.avg):s.vx,vyS=s.avg>1?mm(s.vy,s.avg):s.vy;
+  const[mn,mx]=arrMinMax2(vxS,vyS);
+  plotY(c.vel,[{d:vxS,c:THEME.magenta},{d:vyS,c:THEME.cyan}],{x:"frame",y:"velocity (px/s)",xMax:Math.max(vxS.length,vyS.length)-1,yr:range(mn,mx,true)});
+}
+
+const redraw=()=>{plotTraj();plotDev();plotDisp();plotHist();plotVel()};
+function maybeRedraw(){const t=performance.now();if(t-s.lastPlotAt<PLOT_THROTTLE_MS)return;s.lastPlotAt=t;redraw()}
+
+function syncButtons(){
+  ui.file.disabled=s.running||s.processing;
+  ui.start.disabled=s.running||s.processing;
+  ui.stop.disabled=!s.running;
+  ui.convert.disabled=s.processing||!s.file;
+  ui.save.disabled=s.running||s.processing||s.x.length===0;
+  ui.rotate.disabled=s.running||s.processing;
+  ui.rotateDeg.disabled=s.running||s.processing||!ui.rotate.checked;
+}
+function resetTrackingData(){s.x=[];s.y=[];s.vx=[];s.vy=[];s.sumX=0;s.sumY=0;s.curr=0;s.lastPlotAt=0;s.prevLum=null;clearAll();syncButtons()}
+function fitToVideo(){const w=Math.max(1,Math.floor(video.videoWidth||960)),h=Math.max(1,Math.floor(video.videoHeight||540));c.frame.width=w;c.frame.height=h;proc.width=w;proc.height=h}
+function mediaAdvice(){return" If this file is AVI or a non-H.264 MP4, click Convert + Load or use a *_h264.mp4 file."}
+function mediaError(prefix){const code=video.error&&video.error.code?video.error.code:"unknown";return prefix+" (browser media error "+code+")."+mediaAdvice()}
+async function waitForVideoReady(target,msg,timeout=8000){if(video.readyState>=target)return;await new Promise((res,rej)=>{let done=false;const events=["loadedmetadata","loadeddata","canplay","canplaythrough","durationchange","seeked"];const finish=fn=>{if(done)return;done=true;off();fn();};const ok=()=>{if(video.readyState>=target)finish(res)};const bad=()=>finish(()=>rej(new Error(mediaError(msg))));const slow=()=>finish(()=>rej(new Error(msg+"."+mediaAdvice())));const off=()=>{clearTimeout(timer);for(const ev of events)video.removeEventListener(ev,ok);video.removeEventListener("error",bad)};const timer=setTimeout(slow,timeout);for(const ev of events)video.addEventListener(ev,ok);video.addEventListener("error",bad,{once:true});ok()})}
+async function ensureVideo(){if(video.readyState<1||!video.videoWidth||!video.videoHeight){video.load();await waitForVideoReady(1,"Could not read video metadata")}await waitForVideoReady(2,"Could not decode the first video frame")}
+async function settleFrame(){await waitForVideoReady(2,"Could not decode a video frame");await new Promise(r=>requestAnimationFrame(r))}
+async function seekFrame(f){const t=clamp((Math.max(1,f)-1)/s.fps,0,Number.isFinite(video.duration)?Math.max(0,video.duration-.001):1e12);if(Math.abs(video.currentTime-t)>=1e-4){await new Promise((res,rej)=>{let done=false;const finish=fn=>{if(done)return;done=true;off();fn();};const ok=()=>finish(res);const bad=()=>finish(()=>rej(new Error(mediaError("Seek failed"))));const slow=()=>finish(()=>rej(new Error("Seek timed out."+mediaAdvice())));const off=()=>{clearTimeout(timer);video.removeEventListener("seeked",ok);video.removeEventListener("error",bad)};const timer=setTimeout(slow,8000);video.addEventListener("seeked",ok,{once:true});video.addEventListener("error",bad,{once:true});video.currentTime=t})}await settleFrame()}
+
+// v3.5: draw the current video frame into a context, optionally rotated about its center.
+// "Crop to original size": canvas keeps W x H, frame spins around the center, corners clip to black.
+// Every sampler (display, luminance, brightest-pixel) routes through here so the whole pipeline
+// — background model, detection, ROI, plots and exported coordinates — works in one consistent
+// rotated frame.
+function drawVideoRotated(ctx,W,H){
+  const deg=s.rotate?s.rotateDeg:0;
+  if(!deg){ctx.drawImage(video,0,0,W,H);return}
+  ctx.save();
+  // Fill black first: the corner triangles aren't covered by the rotated frame, and on the
+  // processing canvas (which we never clear) they would otherwise retain stale pixels.
+  ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+  ctx.translate(W/2,H/2);
+  ctx.rotate(deg*Math.PI/180); // canvas y points down, so positive = clockwise
+  ctx.drawImage(video,-W/2,-H/2,W,H);
+  ctx.restore();
+}
+function applyRotationFromUI(){
+  s.rotate=!!ui.rotate.checked;
+  const d=parseFloat(ui.rotateDeg.value);
+  s.rotateDeg=Number.isFinite(d)?d:0;
+}
+function onRotateChange(){
+  applyRotationFromUI();
+  syncButtons();
+  // Live preview: re-render the current frame so the angle can be dialed in by eye,
+  // but never fight an in-progress run or an active ROI draft.
+  if(s.running||s.processing||s.selecting)return;
+  if(video.readyState>=2){try{drawFrame();}catch(e){}}
+}
+
+function drawFrame(dot=null,roi=null){
+  if(video.readyState<2)throw new Error("Video frame is not ready for drawing yet.");
+  drawVideoRotated(g.frame,c.frame.width,c.frame.height);
+  if(roi){g.frame.save();g.frame.strokeStyle=THEME.roi;g.frame.lineWidth=2;g.frame.setLineDash([7,4]);g.frame.shadowBlur=10;g.frame.shadowColor=THEME.cyan;g.frame.strokeRect(roi.x,roi.y,roi.w,roi.h);g.frame.restore()}
+  if(dot){g.frame.save();g.frame.fillStyle=THEME.dotFill;g.frame.strokeStyle=THEME.dotStroke;g.frame.lineWidth=1.5;g.frame.shadowBlur=12;g.frame.shadowColor=THEME.magenta;g.frame.beginPath();g.frame.arc(dot.x,dot.y,7,0,2*Math.PI);g.frame.fill();g.frame.stroke();g.frame.restore()}
+}
+
+function pOnCanvas(e){const r=c.frame.getBoundingClientRect();return{x:clamp((e.clientX-r.left)/r.width*c.frame.width,0,c.frame.width),y:clamp((e.clientY-r.top)/r.height*c.frame.height,0,c.frame.height)}}
+function square(a,b){const dx=b.x-a.x,dy=b.y-a.y,side=Math.max(Math.abs(dx),Math.abs(dy));let x=dx>=0?a.x:a.x-side,y=dy>=0?a.y:a.y-side;x=clamp(x,0,c.frame.width-side);y=clamp(y,0,c.frame.height-side);return{x:Math.round(x),y:Math.round(y),w:Math.round(side),h:Math.round(side)}}
+function cleanupROI(){c.frame.onmousedown=null;c.frame.onmousemove=null;c.frame.onmouseup=null;window.onkeydown=null}
+function finishROI(ok,msg){if(!s.selecting)return;cleanupROI();s.selecting=false;ui.okRoi.disabled=true;ui.cancelRoi.disabled=true;const rs=s.roiResolve,rj=s.roiReject;s.roiResolve=null;s.roiReject=null;if(ok&&s.roi&&s.roi.w>1)rs(s.roi);else rj(new Error(msg||"ROI canceled."))}
+function drawRoiDraft(){if(!s.roiBase)return;g.frame.putImageData(s.roiBase,0,0);if(s.roi&&s.roi.w>1){g.frame.save();g.frame.fillStyle=THEME.roiFill;g.frame.strokeStyle=THEME.roi;g.frame.lineWidth=2;g.frame.shadowBlur=10;g.frame.shadowColor=THEME.cyan;g.frame.fillRect(s.roi.x,s.roi.y,s.roi.w,s.roi.h);g.frame.strokeRect(s.roi.x,s.roi.y,s.roi.w,s.roi.h);g.frame.restore()}}
+function pickROI(){return new Promise((resolve,reject)=>{s.selecting=true;s.roi=null;s.roiStart=null;s.roiResolve=resolve;s.roiReject=reject;ui.okRoi.disabled=true;ui.cancelRoi.disabled=false;status("// draw a square ROI, then press Enter or Confirm ROI.");drawFrame();s.roiBase=g.frame.getImageData(0,0,c.frame.width,c.frame.height);let drag=false;c.frame.onmousedown=e=>{if(!s.selecting)return;drag=true;s.roiStart=pOnCanvas(e);s.roi={x:s.roiStart.x,y:s.roiStart.y,w:1,h:1};ui.okRoi.disabled=true;drawRoiDraft()};c.frame.onmousemove=e=>{if(!s.selecting||!drag||!s.roiStart)return;const p=pOnCanvas(e);s.roi=square(s.roiStart,p);ui.okRoi.disabled=!(s.roi.w>4&&s.roi.h>4);drawRoiDraft()};c.frame.onmouseup=()=>drag=false;window.onkeydown=e=>{if(!s.selecting)return;if(e.key==="Enter"&&s.roi&&s.roi.w>4)finishROI(true);if(e.key==="Escape")finishROI(false,"ROI canceled.")}})}
+
+// --- v3: luminance extraction + background modeling ---
+
+function extractLuminance(W,H){
+  // reads full frame from video into proc and returns per-pixel luminance as Uint8Array
+  drawVideoRotated(pctx,W,H);
+  const data=pctx.getImageData(0,0,W,H).data;
+  const P=W*H,lum=new Uint8Array(P);
+  for(let i=0,j=0;i<data.length;i+=4,j++){
+    // 0.299 R + 0.587 G + 0.114 B (Rec.601)
+    lum[j]=(77*data[i]+150*data[i+1]+29*data[i+2])>>8;
+  }
+  return lum;
+}
+
+// Median of an odd (or even) count of Uint8 values. Uses a 256-bucket histogram — O(n+256) per pixel.
+// Allocated once outside the per-pixel loop.
+function medianOfBuckets(hist,total){
+  const mid=total>>1;
+  let cum=0;
+  for(let v=0;v<256;v++){cum+=hist[v];if(cum>mid)return v}
+  return 255;
+}
+
+async function buildBackground(startF,endF,numSamples){
+  const W=proc.width,H=proc.height,P=W*H;
+  numSamples=Math.max(3,Math.min(numSamples|0,endF-startF+1));
+  // Collect sample luminance frames spread uniformly across [startF, endF].
+  const samples=[];
+  for(let k=0;k<numSamples;k++){
+    if(!s.active)throw new Error("Canceled during background build.");
+    const frac=numSamples===1?0:k/(numSamples-1);
+    const f=Math.round(startF+frac*(endF-startF));
+    await seekFrame(f);
+    samples.push(extractLuminance(W,H));
+    status("// building background model  "+(k+1)+" / "+numSamples+"  ("+Math.round((k+1)/numSamples*100)+"%)");
+    if(k%2===0)await new Promise(r=>setTimeout(r,0)); // yield periodically
+  }
+  // Per-pixel median via 256-bucket histogram (robust to outliers, O(P * (N+256)) total).
+  // For typical frame sizes this is fast and avoids per-pixel Array.sort allocations.
+  const bg=new Uint8Array(P);
+  const buckets=new Uint16Array(256);
+  for(let i=0;i<P;i++){
+    // Clear buckets (256 writes)
+    for(let v=0;v<256;v++)buckets[v]=0;
+    for(let k=0;k<numSamples;k++)buckets[samples[k][i]]++;
+    bg[i]=medianOfBuckets(buckets,numSamples);
+    if((i&0xFFFF)===0){
+      // every ~65K pixels, report progress and yield
+      const pct=Math.round(i/P*100);
+      status("// computing per-pixel median  "+pct+"%");
+      if(i>0)await new Promise(r=>setTimeout(r,0));
+    }
+  }
+  // Release sample memory
+  samples.length=0;
+  s.bg=bg;s.bgW=W;s.bgH=H;
+  status("// background model ready ("+numSamples+" samples, "+W+"x"+H+")");
+}
+
+// --- v3 detection variants ---
+
+function detectBright(){
+  // Legacy v2: brightest pixel inside ROI window.
+  const rs=s.roiSize,W=proc.width,H=proc.height;
+  const rx=Math.round(clamp(s.xp-rs/2,0,W-rs-1)),ry=Math.round(clamp(s.yp-rs/2,0,H-rs-1));
+  drawVideoRotated(pctx,W,H);
+  const pix=pctx.getImageData(rx,ry,rs,rs).data;
+  let best=-1,bx=0,by=0;
+  for(let i=0;i<pix.length;i+=4){
+    const lum=.299*pix[i]+.587*pix[i+1]+.114*pix[i+2];
+    if(lum>best){best=lum;const p=i>>2;bx=p%rs;by=(p-bx)/rs}
+  }
+  let x=bx+rx,y=by+ry;
+  if(Math.hypot(x-s.xp,y-s.yp)>s.maxJump){x=Math.round((s.xp+x)/2);y=Math.round((s.yp+y)/2)}
+  s.lastPeak=best;
+  return{x,y,roi:{x:rx,y:ry,w:rs,h:rs}};
+}
+
+// Generic "signal map" centroid detector.
+// Given a per-pixel signal (e.g. |frame - bg|), find the ROI, locate the peak,
+// and return the intensity-weighted centroid of pixels above (peakFrac * peak).
+function peakCentroidFromSignal(signal,W,H){
+  const rs=s.roiSize;
+  const rx=Math.round(clamp(s.xp-rs/2,0,W-rs-1)),ry=Math.round(clamp(s.yp-rs/2,0,H-rs-1));
+  // Pass 1: find peak within ROI
+  let peak=0;
+  for(let yy=0;yy<rs;yy++){
+    const row=(ry+yy)*W+rx;
+    for(let xx=0;xx<rs;xx++){
+      const v=signal[row+xx];
+      if(v>peak)peak=v;
+    }
+  }
+  s.lastPeak=peak;
+  // If signal is essentially noise, hold previous position.
+  const NOISE_FLOOR=6;
+  if(peak<NOISE_FLOOR){
+    return{x:Math.round(s.xp),y:Math.round(s.yp),roi:{x:rx,y:ry,w:rs,h:rs},held:true};
+  }
+  // Pass 2: intensity-weighted centroid of pixels above threshold.
+  const thr=Math.max(NOISE_FLOOR,peak*s.peakFrac);
+  let sumW=0,sumXW=0,sumYW=0;
+  for(let yy=0;yy<rs;yy++){
+    const row=(ry+yy)*W+rx;
+    const gy=ry+yy;
+    for(let xx=0;xx<rs;xx++){
+      const v=signal[row+xx];
+      if(v>=thr){
+        const gx=rx+xx;
+        // soft weighting: square the excess above threshold -> localizes on the bright core
+        const w=(v-thr+1);
+        sumW+=w;sumXW+=w*gx;sumYW+=w*gy;
+      }
+    }
+  }
+  let x=s.xp,y=s.yp;
+  if(sumW>0){x=sumXW/sumW;y=sumYW/sumW}
+  if(Math.hypot(x-s.xp,y-s.yp)>s.maxJump){
+    // Damp large jumps toward previous position
+    x=(s.xp+x)/2;y=(s.yp+y)/2;
+  }
+  return{x,y,roi:{x:rx,y:ry,w:rs,h:rs},held:false};
+}
+
+function detectSmart(){
+  const W=proc.width,H=proc.height,P=W*H;
+  const lum=extractLuminance(W,H);
+  // |current - background|
+  const sig=new Uint8Array(P);
+  const bg=s.bg;
+  for(let i=0;i<P;i++){
+    const d=lum[i]-bg[i];
+    sig[i]=d<0?-d:d;
+  }
+  return peakCentroidFromSignal(sig,W,H);
+}
+
+function detectDiff(){
+  const W=proc.width,H=proc.height,P=W*H;
+  const lum=extractLuminance(W,H);
+  if(!s.prevLum){
+    s.prevLum=lum;
+    // First frame — fall back to brightest
+    return detectBright();
+  }
+  const sig=new Uint8Array(P);
+  for(let i=0;i<P;i++){
+    const d=lum[i]-s.prevLum[i];
+    sig[i]=d<0?-d:d;
+  }
+  s.prevLum=lum;
+  return peakCentroidFromSignal(sig,W,H);
+}
+
+function detect(){
+  switch(s.algo){
+    case "bright": return detectBright();
+    case "diff":   return detectDiff();
+    case "smart":
+    default:       return s.bg?detectSmart():detectBright();
+  }
+}
+
+function appendVelocity(){
+  const n=s.x.length;
+  if(n<2){s.vx=[];s.vy=[];return}
+  s.vx.push((s.x[n-1]-s.x[n-2])*s.fps);
+  s.vy.push((s.y[n-1]-s.y[n-2])*s.fps);
+}
+
+function revokeVideoUrl(){if(s.url){URL.revokeObjectURL(s.url);s.url=null}}
+async function loadSelectedSource(source,label){revokeVideoUrl();video.pause();video.removeAttribute("src");video.load();s.url=URL.createObjectURL(source);video.src=s.url;await ensureVideo();fitToVideo();await seekFrame(1);drawFrame();if(Number.isFinite(video.duration)&&video.duration>0){const fps=num(ui.fps,"Frame Rate",true),mx=Math.max(1,Math.floor(video.duration*fps));if(num(ui.endF,"End Frame")>mx)ui.endF.value=String(mx)}
+  s.bg=null;s.prevLum=null; // invalidate bg on new source
+  status(label||"// video loaded. Set frame range and start tracking.")
+}
+async function loadFfmpeg(){if(s.ffmpegLoaded&&s.ffmpeg)return s.ffmpeg;if(!window.FFmpeg||!window.FFmpeg.createFFmpeg)throw new Error("ffmpeg library failed to load. Internet access is required the first time.");const {createFFmpeg}=window.FFmpeg;const hasSharedArrayBuffer=typeof SharedArrayBuffer!=="undefined";const candidates=hasSharedArrayBuffer?multiThreadCoreCandidates:singleThreadCoreCandidates;let lastError=null;for(const candidate of candidates){try{status(hasSharedArrayBuffer?"// loading FFmpeg core...":"// loading single-thread FFmpeg core...");const ff=createFFmpeg({log:false,corePath:candidate.corePath,...(candidate.mainName?{mainName:candidate.mainName}:{})});await ff.load();s.ffmpeg=ff;s.ffmpegLoaded=true;return ff}catch(err){lastError=err}}throw lastError||new Error("Unable to load ffmpeg core. Internet access is required the first time.")}
+function getConvertArgs(inputName,outputName){return["-i",inputName,"-map","0:v:0","-c:v","libx264","-pix_fmt","yuv420p","-preset","medium","-crf","18","-movflags","+faststart","-an",outputName]}
+async function convertAndLoad(){if(!s.file||s.running||s.processing)return;let ff=null,inName="",outName="";s.processing=true;syncButtons();try{ff=await loadFfmpeg();status("// converting "+s.file.name+" to browser-safe H.264...");const {fetchFile}=window.FFmpeg;inName="in_"+Date.now()+"_"+sanitizeName(s.file.name);outName=s.file.name.replace(/\.[^/.]+$/,"")+"_h264.mp4";ff.FS("writeFile",inName,await fetchFile(s.file));await ff.run(...getConvertArgs(inName,outName));const data=ff.FS("readFile",outName);const blob=new Blob([data.buffer],{type:"video/mp4"});await loadSelectedSource(blob,"// converted and loaded "+outName+". Set frame range and start tracking.");ui.path.value=s.file.name+" -> "+outName}catch(e){clearCanvas(c.frame);status(e&&e.message?e.message:"Conversion failed.",true)}finally{if(ff){try{if(outName)ff.FS("unlink",outName)}catch(e){}try{if(inName)ff.FS("unlink",inName)}catch(e){}}s.processing=false;syncButtons()}}
+
+async function startTrack(){
+  if(s.running||s.processing)return;
+  try{
+    if(!s.file)throw new Error("Please select a valid video file.");
+    s.start=num(ui.startF,"Start Frame");
+    s.end=num(ui.endF,"End Frame");
+    s.avg=num(ui.avgF,"Frames to Average");
+    s.fps=num(ui.fps,"Frame Rate",true);
+    s.algo=ui.algo.value;
+    s.peakFrac=clamp(parseFloat(ui.peakFrac.value)||0.5,0.1,0.95);
+    applyRotationFromUI(); // freeze rotation for the whole run; controls lock while running
+    const bgN=Math.max(3,parseInt(ui.bgN.value,10)||21);
+    if(s.end<s.start)throw new Error("End Frame must be >= Start Frame.");
+    await ensureVideo();fitToVideo();
+    if(Number.isFinite(video.duration)&&video.duration>0){
+      const maxF=Math.max(1,Math.floor(video.duration*s.fps));
+      if(s.start>maxF)throw new Error("Start Frame exceeds video length.");
+      s.end=Math.min(s.end,maxF);ui.endF.value=String(s.end);
+    }
+    resetTrackingData();
+    s.running=true;s.active=true;syncButtons();
+
+    // ROI pick first — use start frame.
+    status("// preparing first frame for ROI selection...");
+    await seekFrame(s.start);
+    const roi=await pickROI();
+    s.roiSize=Math.max(2,Math.round(roi.w));
+    s.maxJump=Math.max(1,Math.min(roi.w,roi.h)/2);
+    s.xp=roi.x+roi.w/2;s.yp=roi.y+roi.h/2;
+
+    // Build background model for "smart" algorithm.
+    if(s.algo==="smart"){
+      status("// building background model...");
+      await buildBackground(s.start,s.end,bgN);
+    } else {
+      s.bg=null;
+    }
+
+    status("// tracking in progress ("+s.algo+")...");
+    s.curr=s.start-1;
+    const t0=performance.now();
+    let yieldAccum=0;
+    for(let f=s.start;f<=s.end&&s.active;f++){
+      s.curr=f;
+      await seekFrame(f);
+      const r=detect();
+      s.x.push(r.x);s.y.push(r.y);
+      s.sumX+=r.x;s.sumY+=r.y;
+      s.xp=r.x;s.yp=r.y;
+      appendVelocity();
+      drawFrame({x:r.x,y:r.y},r.roi);
+      maybeRedraw();
+      yieldAccum++;
+      if(yieldAccum>=8){yieldAccum=0;await new Promise(r=>setTimeout(r,0))}
+      if((f-s.start)%8===0||f===s.end){
+        const elapsed=(performance.now()-t0)/1000;
+        const done=f-s.start+1,total=s.end-s.start+1;
+        const rate=done/Math.max(.001,elapsed);
+        const eta=rate>0?((total-done)/rate):0;
+        const tag=r.held?" [held]":"";
+        status("// "+s.algo+"  "+f+" / "+s.end+"  ·  "+s.x.length+" pts  ·  peak "+(s.lastPeak|0)+"  ·  "+rate.toFixed(1)+" fps  ·  ETA "+eta.toFixed(1)+"s"+tag);
+        syncButtons();
+      }
+    }
+    redraw();
+    if(!s.active)status("// tracking stopped. Data retained for export.");
+    else status("// tracking complete. Ready to export MATLAB CSV.");
+  }catch(e){
+    status(e.message||"Tracking failed.",true);
+  }finally{
+    s.running=false;s.active=false;cleanupROI();s.selecting=false;
+    ui.okRoi.disabled=true;ui.cancelRoi.disabled=true;syncButtons();
+  }
+}
+
+function stopTrack(){s.active=false;if(s.selecting)finishROI(false,"ROI canceled by user.");status("// stopping...")}
+
+function saveData(){
+  if(!s.x.length||!s.y.length){status("No tracking data available to export.",true);return}
+  const n=s.x.length,xm=s.sumX/n,ym=s.sumY/n,x0=s.x[0],y0=s.y[0];
+  const disp=new Array(n),xd=new Array(n),yd=new Array(n),time=new Array(n);
+  for(let i=0;i<n;i++){disp[i]=Math.hypot(s.x[i]-x0,s.y[i]-y0);xd[i]=s.x[i]-xm;yd[i]=s.y[i]-ym;time[i]=i/s.fps}
+  const vxS=s.avg>1?mm(s.vx,s.avg):s.vx.slice(),vyS=s.avg>1?mm(s.vy,s.avg):s.vy.slice();
+  const vx=[NaN,...vxS],vy=[NaN,...vyS];
+  while(vx.length<n)vx.push(NaN);while(vy.length<n)vy.push(NaN);
+  if(vx.length>n)vx.length=n;if(vy.length>n)vy.length=n;
+  const rows=["frame,time_s,x_px,y_px,v_x_px_per_s,v_y_px_per_s,displacement_px,x_deviation_px,y_deviation_px,frame_rate_fps"];
+  for(let i=0;i<n;i++)rows.push([s.start+i,time[i],s.x[i],s.y[i],vx[i],vy[i],disp[i],xd[i],yd[i],s.fps].join(","));
+  const base=s.file?s.file.name.replace(/\.[^/.]+$/,""):"tracking";
+  const name=base+"_trackingData_matlab.csv";
+  const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"});
+  const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+  status("// tracking data exported to "+name+" (MATLAB-friendly CSV).");
+}
+
+async function onFile(){const f=ui.file.files&&ui.file.files[0];if(!f||s.running)return;s.file=f;ui.path.value=f.name;resetTrackingData();s.processing=true;syncButtons();try{await loadSelectedSource(f,"// video loaded. Set frame range and start tracking.");const ext=f.name.toLowerCase();if(ext.endsWith(".avi"))status("// AVI loaded. If seeking is unstable, Convert + Load will make an H.264 copy.")}catch(e){clearCanvas(c.frame);status((e&&e.message?e.message:"Could not load video.")+" Click Convert + Load to transcode it in this page.",true)}finally{s.processing=false;syncButtons()}}
+
+ui.file.addEventListener("change",onFile);
+ui.start.addEventListener("click",startTrack);
+ui.stop.addEventListener("click",stopTrack);
+ui.convert.addEventListener("click",convertAndLoad);
+ui.save.addEventListener("click",saveData);
+ui.okRoi.addEventListener("click",()=>finishROI(true));
+ui.cancelRoi.addEventListener("click",()=>finishROI(false,"ROI canceled."));
+ui.rotate.addEventListener("change",onRotateChange);
+ui.rotateDeg.addEventListener("input",onRotateChange);
+clearAll();
+syncButtons();
+const h264=video.canPlayType('video/mp4; codecs="avc1.42E01E"');
+if(!h264)status("// this browser may not support MP4/H.264 decoding reliably. If native loading fails, use Convert + Load or open this page in Chrome or Edge.",true);
+else status("// select a video and press Start Tracking.");
+})();
+</script>
+</body>
+</html>
