@@ -286,8 +286,18 @@ tr.brk:hover td { background: var(--bg-soft); }
 .hqa-brochure .txt { flex: 1; min-width: 0; }
 .hqa-brochure p { margin: 0 0 14px; font-size: .96rem; }
 
+.hqa-credit {
+  flex-basis: 100%;
+  text-align: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: .8rem;
+  color: var(--muted);
+}
+
 @media (max-width: 700px) {
   .hqa-hero { padding: 66px 0 56px; }
+  .hqa-rooms span { display: block; margin: 4px 0; }
   .hqa-eyebrow { letter-spacing: .26em; text-indent: .26em; font-size: .66rem; }
   .hqa-stats { grid-template-columns: repeat(2, 1fr); }
   .hqa-stats div:nth-child(3) { border-left: 0; }
@@ -603,6 +613,7 @@ tr.brk:hover td { background: var(--bg-soft); }
   <div class="wrap">
     <span>HQA 2026 &middot; Hydrodynamic Quantum Analogs</span>
     <span>MIT &middot; Cambridge, MA &middot; August 10–11, 2026</span>
+    <span class="hqa-credit">Photo credit: P.&nbsp;Nachbin</span>
   </div>
 </footer>
 
