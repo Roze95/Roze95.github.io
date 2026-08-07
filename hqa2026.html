@@ -112,53 +112,6 @@
   color: rgba(255,255,255,.62);
 }
 
-/* ---------- stat strip ---------- */
-.hqa-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--bg-soft);
-  margin: 40px 0 46px;
-  overflow: hidden;
-}
-.hqa-stats div { padding: 18px 12px; text-align: center; border-left: 1px solid var(--line); }
-.hqa-stats div:first-child { border-left: 0; }
-.hqa-stats .n {
-  display: block;
-  font-size: 1.85rem;
-  font-weight: 700;
-  color: var(--mit-red);
-  line-height: 1.1;
-}
-.hqa-stats .l {
-  font-family: -apple-system, system-ui, sans-serif;
-  font-size: .72rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-/* ---------- topic cards ---------- */
-.hqa-topics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.hqa-topic {
-  border: 1px solid var(--line);
-  border-top: 3px solid var(--mit-red);
-  border-radius: 0 0 8px 8px;
-  padding: 18px 20px;
-  background: #fff;
-  transition: box-shadow .18s, transform .18s;
-}
-.hqa-topic:hover { box-shadow: 0 6px 22px rgba(0,0,0,.07); transform: translateY(-2px); }
-.hqa-topic h3 { margin: 0 0 8px; font-size: 1.02rem; color: var(--ink); }
-.hqa-topic p {
-  margin: 0;
-  font-size: .93rem;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
 /* ---------- day tabs ---------- */
 .hqa-tabs {
   display: flex;
@@ -299,10 +252,7 @@ tr.brk:hover td { background: var(--bg-soft); }
   .hqa-hero { padding: 66px 0 56px; }
   .hqa-rooms span { display: block; margin: 4px 0; }
   .hqa-eyebrow { letter-spacing: .26em; text-indent: .26em; font-size: .66rem; }
-  .hqa-stats { grid-template-columns: repeat(2, 1fr); }
-  .hqa-stats div:nth-child(3) { border-left: 0; }
-  .hqa-stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
-  .hqa-topics, .hqa-speakers { grid-template-columns: 1fr; }
+  .hqa-speakers { grid-template-columns: 1fr; }
   .hqa-tabs { flex-direction: column; }
   table.hqa-prog, table.hqa-prog tbody, table.hqa-prog tr, table.hqa-prog td { display: block; width: auto; }
   table.hqa-prog thead { display: none; }
@@ -348,28 +298,19 @@ tr.brk:hover td { background: var(--bg-soft); }
 
   <div class="wrap">
 
-    <div class="hqa-stats">
-      <div><span class="n">2</span><span class="l">Days</span></div>
-      <div><span class="n">35</span><span class="l">Talks</span></div>
-      <div><span class="n">15</span><span class="l">Institutions</span></div>
-      <div><span class="n">6</span><span class="l">Countries</span></div>
-    </div>
-
     <section>
       <h2>About the meeting</h2>
       <p class="lead">
-        HQA 2026 brings the hydrodynamic-quantum-analogs community to MIT for two
-        days of talks on walking droplets, pilot-wave hydrodynamics, and the
-        classical wave systems that reproduce quantum-like behavior.
+        HQA 2026 brings the US-based hydrodynamic-quantum-analogs community to MIT
+        for two days of talks on pilot-wave hydrodynamics and related systems. We
+        also welcome the international community via Zoom.
       </p>
       <p>
-        The meeting spans experiment, simulation, and theory: bouncing and walking
-        droplets on a vibrating bath, wave-mediated collective dynamics, stochastic
-        and non-Markovian pilot-wave models, analogs of Aharonov&ndash;Bohm and
-        multi-slit interference, and foundational questions about what such
-        classical systems can and cannot say about quantum mechanics. Talks run
+        The meeting encompasses experimental, numerical and theoretical work
+        directed towards exploring the potential and limitations of classical
+        pilot-wave systems as a basis for understanding quantum systems. Talks run
         from 9am to early evening on both days, with a conference dinner at PAGU
-        on the Monday evening.
+        on Monday evening.
       </p>
       <div class="callout">
         <strong>When &amp; where.</strong> Monday&ndash;Tuesday, August&nbsp;10&ndash;11,&nbsp;2026 &middot;
@@ -377,86 +318,6 @@ tr.brk:hover td { background: var(--bg-soft); }
         <strong>All lectures will be in 2-449.</strong> <strong>Lunches will be in 2-290.</strong><br>
         The complete schedule below is reproduced from the
         <a href="files/HQA2026-brochure.pdf" target="_blank" rel="noopener">conference brochure</a>.
-      </div>
-    </section>
-
-    <section>
-      <h2>Topics</h2>
-      <p>Themes running through the two-day program:</p>
-      <div class="hqa-topics">
-
-        <div class="hqa-topic">
-          <h3>Pilot-wave hydrodynamics</h3>
-          <p>
-            Walking and bouncing droplets on a Faraday bath &mdash; dynamics beyond
-            resonance, drop&ndash;bath impacts, tunable global forcing, motion on
-            noisy surfaces, and pilot-wave dynamics in three dimensions.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Collective dynamics &amp; active matter</h3>
-          <p>
-            Wave-particle active matter, ensembles of walking droplets, collective
-            pilot-wave dynamics in experiment and simulation, and the oscillatory
-            Cheerios effect between bouncing drops.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Stochastic &amp; non-Markovian dynamics</h3>
-          <p>
-            Stochastic pilot-wave models, the influence of path memory on walker
-            transport, non-Markovian branched flow, and Lorenz-like reductions of
-            the walker system.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Analogs of quantum interference</h3>
-          <p>
-            Hydrodynamic realizations of the Aharonov&ndash;Bohm effect, the Kennard
-            phase, triple-slit diffraction, and single-particle diffraction within
-            pilot-wave models.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Topology, localization &amp; transport</h3>
-          <p>
-            Topological transport and emergent localization in hydrodynamic analogs,
-            wave quantization in periodic media, and routes toward general-relativity
-            analogs.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Foundations &amp; realist approaches</h3>
-          <p>
-            Stochastic electrodynamics as a realist account of quantum phenomena,
-            what Bell&rsquo;s theorem really means, and static and Lorenz-model Bell
-            tests with walkers.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Mathematical frameworks</h3>
-          <p>
-            A Lorentz-covariant Lagrangian framework for pilot-wave dynamics,
-            quantum graphs, quantum mechanics on Riemannian manifolds, and the
-            orbital dynamics and energetics of wave-propelled particles.
-          </p>
-        </div>
-
-        <div class="hqa-topic">
-          <h3>Waves beyond the droplet</h3>
-          <p>
-            Strong nonlinear resonances of water waves in confined domains, acoustic
-            pilot-wave dynamics, and hydrodynamic analogs applied to optical beam
-            transport.
-          </p>
-        </div>
-
       </div>
     </section>
 
