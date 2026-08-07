@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HQA 2026 — Hydrodynamic Quantum Analogs, MIT</title>
+<meta name="description" content="HQA 2026 — Hydrodynamic Quantum Analogs, MIT, Cambridge, Massachusetts, August 10–11, 2026. Full program, speakers, and conference brochure.">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* ============================================================
+   HQA 2026 — page-scoped styles
+   ============================================================ */
+.hqa-hero {
+  position: relative;
+  margin-top: -44px;              /* pull under the header, cancel main padding */
+  padding: 92px 0 78px;
+  color: #fff;
+  text-align: center;
+  overflow: hidden;
+  background: #0d1b2a;
+}
+.hqa-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url('images/hqa2026-cover.jpg') center/cover no-repeat;
+  transform: scale(1.04);
+  filter: saturate(1.15) contrast(1.02);
+}
+.hqa-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(8,14,24,.30) 0%, rgba(8,14,24,.52) 52%, rgba(8,14,24,.72) 100%),
+    linear-gradient(180deg, rgba(8,14,24,.62) 0%, rgba(8,14,24,.12) 34%, rgba(8,14,24,.70) 100%);
+}
+.hqa-hero .wrap { position: relative; z-index: 2; }
+
+.hqa-eyebrow {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .74rem;
+  letter-spacing: .42em;
+  text-indent: .42em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.82);
+  margin: 0 0 18px;
+}
+.hqa-rule {
+  width: 96px; height: 1px; margin: 0 auto 20px;
+  background: rgba(255,255,255,.5);
+}
+.hqa-hero h1 {
+  font-size: clamp(3.1rem, 12vw, 5.6rem);
+  line-height: .95;
+  letter-spacing: .012em;
+  margin: 0 0 16px;
+  color: #fff;
+  text-shadow: 0 2px 26px rgba(0,0,0,.7), 0 1px 4px rgba(0,0,0,.5);
+}
+.hqa-eyebrow, .hqa-place, .hqa-host { text-shadow: 0 1px 8px rgba(0,0,0,.65); }
+.hqa-place {
+  font-style: italic;
+  font-size: 1.24rem;
+  color: rgba(255,255,255,.9);
+  margin: 0 0 26px;
+}
+.hqa-when {
+  display: inline-block;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .92rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 999px;
+  padding: 9px 22px;
+  backdrop-filter: blur(3px);
+  background: rgba(255,255,255,.08);
+}
+.hqa-cta { margin: 30px 0 0; }
+.hqa-cta .btn { margin: 0 6px 10px; }
+.hqa-cta .btn.light { background: #fff; color: #0d1b2a; }
+.hqa-cta .btn.light:hover { background: #f0f0ee; }
+.hqa-cta .btn.outline {
+  background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6);
+}
+.hqa-cta .btn.outline:hover { background: rgba(255,255,255,.14); }
+.hqa-host {
+  margin: 30px 0 0;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .3em;
+  text-indent: .3em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.62);
+}
+
+/* ---------- stat strip ---------- */
+.hqa-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  margin: 40px 0 46px;
+  overflow: hidden;
+}
+.hqa-stats div { padding: 18px 12px; text-align: center; border-left: 1px solid var(--line); }
+.hqa-stats div:first-child { border-left: 0; }
+.hqa-stats .n {
+  display: block;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--mit-red);
+  line-height: 1.1;
+}
+.hqa-stats .l {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- topic cards ---------- */
+.hqa-topics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.hqa-topic {
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--mit-red);
+  border-radius: 0 0 8px 8px;
+  padding: 18px 20px;
+  background: #fff;
+  transition: box-shadow .18s, transform .18s;
+}
+.hqa-topic:hover { box-shadow: 0 6px 22px rgba(0,0,0,.07); transform: translateY(-2px); }
+.hqa-topic h3 { margin: 0 0 8px; font-size: 1.02rem; color: var(--ink); }
+.hqa-topic p {
+  margin: 0;
+  font-size: .93rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* ---------- day tabs ---------- */
+.hqa-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 22px;
+  font-family: -apple-system, system-ui, sans-serif;
+}
+.hqa-tabs button {
+  flex: 1;
+  font: inherit;
+  font-size: .95rem;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  transition: all .15s;
+}
+.hqa-tabs button strong { display: block; color: var(--ink); font-size: 1.02rem; }
+.hqa-tabs button[aria-selected="true"] {
+  background: var(--mit-red);
+  border-color: var(--mit-red);
+  color: rgba(255,255,255,.85);
+}
+.hqa-tabs button[aria-selected="true"] strong { color: #fff; }
+
+/* no-JS fallback: show every day, hide the tab bar */
+.hqa-tabs { display: none; }
+.js .hqa-tabs { display: flex; }
+.js .hqa-day[hidden] { display: none; }
+.hqa-day > h3 {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .78rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 28px 0 10px;
+}
+.js .hqa-day > h3 { display: none; }
+
+/* ---------- program table ---------- */
+table.hqa-prog { width: 100%; border-collapse: collapse; font-size: .96rem; }
+table.hqa-prog thead th {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 0 10px 8px 0;
+  border-bottom: 2px solid var(--ink);
+}
+table.hqa-prog td {
+  padding: 11px 10px 11px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+table.hqa-prog tr:hover td { background: #fbfbfa; }
+td.t {
+  width: 118px;
+  white-space: nowrap;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .84rem;
+  color: var(--muted);
+  padding-top: 13px;
+}
+td.s { width: 210px; }
+td.s .aff { color: var(--mit-red); font-size: .88rem; }
+td.ti { color: #2a2a2a; }
+tr.brk td {
+  background: var(--bg-soft);
+  text-align: center;
+  font-style: italic;
+  color: var(--muted);
+  font-size: .9rem;
+  padding: 9px 10px;
+}
+tr.brk.major td {
+  font-style: normal;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+tr.brk:hover td { background: var(--bg-soft); }
+
+/* ---------- speakers ---------- */
+.hqa-speakers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 18px;
+  font-size: .95rem;
+}
+.hqa-speakers div { padding: 7px 0; border-bottom: 1px dotted var(--line); }
+.hqa-speakers .aff {
+  display: block;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .76rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- brochure strip ---------- */
+.hqa-brochure {
+  display: flex;
+  gap: 26px;
+  align-items: center;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 26px;
+}
+.hqa-brochure img {
+  width: 190px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  box-shadow: 0 5px 18px rgba(0,0,0,.12);
+  display: block;
+}
+.hqa-brochure .txt { flex: 1; min-width: 0; }
+.hqa-brochure p { margin: 0 0 14px; font-size: .96rem; }
+
+@media (max-width: 700px) {
+  .hqa-hero { padding: 66px 0 56px; }
+  .hqa-eyebrow { letter-spacing: .26em; text-indent: .26em; font-size: .66rem; }
+  .hqa-stats { grid-template-columns: repeat(2, 1fr); }
+  .hqa-stats div:nth-child(3) { border-left: 0; }
+  .hqa-stats div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .hqa-topics, .hqa-speakers { grid-template-columns: 1fr; }
+  .hqa-tabs { flex-direction: column; }
+  table.hqa-prog, table.hqa-prog tbody, table.hqa-prog tr, table.hqa-prog td { display: block; width: auto; }
+  table.hqa-prog thead { display: none; }
+  table.hqa-prog tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  table.hqa-prog td { border: 0; padding: 1px 0; }
+  td.t { padding-top: 0; }
+  tr.brk td { text-align: left; padding: 9px 12px; }
+  .hqa-brochure { flex-direction: column; align-items: flex-start; }
+  .hqa-brochure img { width: 100%; max-width: 240px; }
+}
+
+@media print {
+  .site-header, .hqa-cta, .hqa-tabs, footer { display: none; }
+  .hqa-day[hidden] { display: block !important; }
+  .hqa-hero { color: #000; background: none; padding: 0 0 20px; margin-top: 0; }
+  .hqa-hero::before, .hqa-hero::after { display: none; }
+  .hqa-hero h1, .hqa-place, .hqa-eyebrow, .hqa-when, .hqa-host { color: #000; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">Georgi Gary <span>Rozenman</span></a>
+    <nav class="main">
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="publications.html">Publications</a>
+      <a href="teaching.html">Teaching</a>
+      <a href="code.html">Code</a>
+      <a href="software.html">Online software</a>
+      <a href="hqa2026.html" class="active">HQA&nbsp;2026</a>
+      <a href="cv.html">CV</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <div class="hqa-hero">
+    <div class="wrap">
+      <p class="hqa-eyebrow">Hydrodynamic Quantum Analogs</p>
+      <div class="hqa-rule"></div>
+      <h1>HQA 2026</h1>
+      <p class="hqa-place">Cambridge, Massachusetts</p>
+      <p><span class="hqa-when">MIT &middot; August 10–11, 2026</span></p>
+      <p class="hqa-cta">
+        <a class="btn light" href="files/HQA2026-brochure.pdf" target="_blank" rel="noopener">Conference brochure (PDF) &darr;</a>
+        <a class="btn outline" href="#program">Full program &rarr;</a>
+      </p>
+      <p class="hqa-host">Massachusetts Institute of Technology</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="hqa-stats">
+      <div><span class="n">2</span><span class="l">Days</span></div>
+      <div><span class="n">35</span><span class="l">Talks</span></div>
+      <div><span class="n">15</span><span class="l">Institutions</span></div>
+      <div><span class="n">6</span><span class="l">Countries</span></div>
+    </div>
+
+    <section>
+      <h2>About the meeting</h2>
+      <p class="lead">
+        HQA 2026 brings the hydrodynamic-quantum-analogs community to MIT for two
+        days of talks on walking droplets, pilot-wave hydrodynamics, and the
+        classical wave systems that reproduce quantum-like behavior.
+      </p>
+      <p>
+        The meeting spans experiment, simulation, and theory: bouncing and walking
+        droplets on a vibrating bath, wave-mediated collective dynamics, stochastic
+        and non-Markovian pilot-wave models, analogs of Aharonov&ndash;Bohm and
+        multi-slit interference, and foundational questions about what such
+        classical systems can and cannot say about quantum mechanics. Talks run
+        from 9am to early evening on both days, with a conference dinner at PAGU
+        on the Monday evening.
+      </p>
+      <div class="callout">
+        <strong>When &amp; where.</strong> Monday&ndash;Tuesday, August&nbsp;10&ndash;11,&nbsp;2026 &middot;
+        Massachusetts Institute of Technology, Cambridge,&nbsp;MA. The complete
+        schedule below is reproduced from the
+        <a href="files/HQA2026-brochure.pdf" target="_blank" rel="noopener">conference brochure</a>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Topics</h2>
+      <p>Themes running through the two-day program:</p>
+      <div class="hqa-topics">
+
+        <div class="hqa-topic">
+          <h3>Pilot-wave hydrodynamics</h3>
+          <p>
+            Walking and bouncing droplets on a Faraday bath &mdash; dynamics beyond
+            resonance, drop&ndash;bath impacts, tunable global forcing, motion on
+            noisy surfaces, and pilot-wave dynamics in three dimensions.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Collective dynamics &amp; active matter</h3>
+          <p>
+            Wave-particle active matter, ensembles of walking droplets, collective
+            pilot-wave dynamics in experiment and simulation, and the oscillatory
+            Cheerios effect between bouncing drops.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Stochastic &amp; non-Markovian dynamics</h3>
+          <p>
+            Stochastic pilot-wave models, the influence of path memory on walker
+            transport, non-Markovian branched flow, and Lorenz-like reductions of
+            the walker system.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Analogs of quantum interference</h3>
+          <p>
+            Hydrodynamic realizations of the Aharonov&ndash;Bohm effect, the Kennard
+            phase, triple-slit diffraction, and single-particle diffraction within
+            pilot-wave models.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Topology, localization &amp; transport</h3>
+          <p>
+            Topological transport and emergent localization in hydrodynamic analogs,
+            wave quantization in periodic media, and routes toward general-relativity
+            analogs.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Foundations &amp; realist approaches</h3>
+          <p>
+            Stochastic electrodynamics as a realist account of quantum phenomena,
+            what Bell&rsquo;s theorem really means, and static and Lorenz-model Bell
+            tests with walkers.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Mathematical frameworks</h3>
+          <p>
+            A Lorentz-covariant Lagrangian framework for pilot-wave dynamics,
+            quantum graphs, quantum mechanics on Riemannian manifolds, and the
+            orbital dynamics and energetics of wave-propelled particles.
+          </p>
+        </div>
+
+        <div class="hqa-topic">
+          <h3>Waves beyond the droplet</h3>
+          <p>
+            Strong nonlinear resonances of water waves in confined domains, acoustic
+            pilot-wave dynamics, and hydrodynamic analogs applied to optical beam
+            transport.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="program">
+      <h2>Program</h2>
+
+      <div class="hqa-tabs" role="tablist" aria-label="Conference days">
+        <button role="tab" id="tab-d1" aria-controls="day1" aria-selected="true">
+          <strong>Monday, August 10</strong>Day One &middot; 18 talks
+        </button>
+        <button role="tab" id="tab-d2" aria-controls="day2" aria-selected="false">
+          <strong>Tuesday, August 11</strong>Day Two &middot; 17 talks
+        </button>
+      </div>
+
+      <div class="hqa-day" id="day1" role="tabpanel" aria-labelledby="tab-d1">
+        <h3>Monday, August 10 &middot; Day One</h3>
+        <table class="hqa-prog">
+          <thead>
+            <tr><th>Time</th><th>Speaker</th><th>Title</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="t">9 – 9:45am</td><td class="s">John Bush <span class="aff">(MIT)</span></td><td class="ti">Hydrodynamic quantum analogs</td></tr>
+            <tr><td class="t">9:45 – 10:30</td><td class="s">Pedro Sáenz <span class="aff">(UNC)</span></td><td class="ti">Wave-particle active matter</td></tr>
+            <tr class="brk"><td colspan="3">Coffee Break &middot; 10:30 – 10:45</td></tr>
+            <tr><td class="t">10:45 – 11:15</td><td class="s">Ana Maria Cetto <span class="aff">(UNAM)</span></td><td class="ti">Stochastic electrodynamics: a realist approach to revealing the physics behind quantum phenomena</td></tr>
+            <tr><td class="t">11:15 – 11:45</td><td class="s">Bauyrzhan Primkulov <span class="aff">(Yale)</span></td><td class="ti">Pilot-wave dynamics beyond resonance</td></tr>
+            <tr><td class="t">11:45 – 12:15</td><td class="s">André Nachbin <span class="aff">(WPI)</span></td><td class="ti">2 HQAs: wave-droplet oscillators and quantum graphs</td></tr>
+            <tr class="brk major"><td colspan="3">Lunch &middot; 12:15 – 1pm</td></tr>
+            <tr><td class="t">1 – 1:30</td><td class="s">Paul Milewski <span class="aff">(PSU)</span></td><td class="ti">Strong nonlinear resonances of water waves in confined domains</td></tr>
+            <tr><td class="t">1:30 – 1:45</td><td class="s">Daniel Harris <span class="aff">(Brown)</span></td><td class="ti">Drop-bath impacts</td></tr>
+            <tr><td class="t">1:45 – 2</td><td class="s">Larry Wilen <span class="aff">(Yale)</span></td><td class="ti">Manipulating bouncing droplets with tunable global forcing</td></tr>
+            <tr><td class="t">2 – 2:15</td><td class="s">Saiful Tamim <span class="aff">(UNC)</span></td><td class="ti">Wave-mediated walking of solid particles at a fluid interface</td></tr>
+            <tr><td class="t">2:15 – 2:30</td><td class="s">Johnathan Hoggarth <span class="aff">(Yale)</span></td><td class="ti">Drop generation via stretching of liquid ligaments</td></tr>
+            <tr><td class="t">2:30 – 2:45</td><td class="s">James Day <span class="aff">(MIT)</span></td><td class="ti">Ensembles of walking droplets</td></tr>
+            <tr><td class="t">2:45 – 3:15</td><td class="s">Steven Rodriguez <span class="aff">(ONR)</span></td><td class="ti">Leveraging hydrodynamic analogs in optical beam transport</td></tr>
+            <tr><td class="t">3:15 – 3:45</td><td class="s">Georgi Gary Rozenman <span class="aff">(MIT)</span></td><td class="ti">HQAs of Aharonov–Bohm, Kennard phase and triple-slit diffraction</td></tr>
+            <tr class="brk"><td colspan="3">Coffee Break &middot; 3:45 – 4</td></tr>
+            <tr><td class="t">4 – 4:30</td><td class="s">Arnaud Lazarus <span class="aff">(MIT)</span></td><td class="ti">Engineering quantization of waves in periodic media: towards GR analogs in HQA</td></tr>
+            <tr><td class="t">4:30 – 5:00</td><td class="s">Joel Been <span class="aff">(MIT)</span></td><td class="ti">Analogizing exciton-polaritons with walker wakes</td></tr>
+            <tr><td class="t">5:00 – 5:30</td><td class="s">Austin Blitstein <span class="aff">(UNC)</span></td><td class="ti">Spatiotemporally nonlocal forces in pilot-wave hydrodynamics</td></tr>
+            <tr><td class="t">5:30 – 5:45</td><td class="s">Xinyun Liu <span class="aff">(UNC)</span></td><td class="ti">Collective pilot-wave dynamics: experiments</td></tr>
+            <tr><td class="t">5:45 – 6:00</td><td class="s">Ian Stevenson <span class="aff">(UNC)</span></td><td class="ti">Collective pilot-wave dynamics: simulations and theory</td></tr>
+            <tr class="brk"><td colspan="3">Break — Zoom Social &middot; 6:00 – 6:45pm</td></tr>
+            <tr class="brk major"><td colspan="3">Dinner at PAGU &middot; 7pm</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hqa-day" id="day2" role="tabpanel" aria-labelledby="tab-d2" hidden>
+        <h3>Tuesday, August 11 &middot; Day Two</h3>
+        <table class="hqa-prog">
+          <thead>
+            <tr><th>Time</th><th>Speaker</th><th>Title</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="t">9 – 9:30am</td><td class="s">Matt Durey <span class="aff">(Glasgow)</span></td><td class="ti">Orbital dynamics and energetics of wave-propelled particles</td></tr>
+            <tr><td class="t">9:30 – 10</td><td class="s">Rahil Valani <span class="aff">(Oxford)</span></td><td class="ti">Dynamical origins of HQAs in Lorenz-like models</td></tr>
+            <tr><td class="t">10 – 10:30</td><td class="s">Valeri Frumkin <span class="aff">(BU)</span></td><td class="ti">From topological transport to emergent localization in HQAs</td></tr>
+            <tr class="brk"><td colspan="3">Coffee Break &middot; 10:30 – 10:45</td></tr>
+            <tr><td class="t">10:45 – 11:15</td><td class="s">Giuseppe Pucci <span class="aff">(Calabria)</span></td><td class="ti">Single-particle diffraction with a hydrodynamic pilot-wave model</td></tr>
+            <tr><td class="t">11:15 – 11:30</td><td class="s">Anand Oza <span class="aff">(NJIT)</span></td><td class="ti">Theoretical results on stochastic pilot-wave dynamics</td></tr>
+            <tr><td class="t">11:30 – 11:45</td><td class="s">Ludovico Giorgini <span class="aff">(MIT)</span></td><td class="ti">Stochastic pilot-wave dynamics</td></tr>
+            <tr><td class="t">11:45 – 12pm</td><td class="s">Frane Ljubetic <span class="aff">(UNC)</span></td><td class="ti">Influence of path memory on the stochastic transport of walkers</td></tr>
+            <tr class="brk major"><td colspan="3">Lunch &middot; 12 – 1pm</td></tr>
+            <tr><td class="t">1 – 1:15</td><td class="s">Yves Desille <span class="aff">(Lille)</span></td><td class="ti">Acoustic pilot-wave dynamics</td></tr>
+            <tr><td class="t">1:15 – 1:30</td><td class="s">Zahra Shamsi <span class="aff">(Yale)</span></td><td class="ti">Pilot-wave hydrodynamics on noisy surfaces</td></tr>
+            <tr><td class="t">1:30 – 1:45</td><td class="s">Diego Chavez <span class="aff">(MIT)</span></td><td class="ti">Pilot-wave dynamics in 3D</td></tr>
+            <tr><td class="t">1:45 – 2:00</td><td class="s">Andras Bencze <span class="aff">(BU)</span></td><td class="ti">Non-Markovian branched flow in pilot-wave hydrodynamics</td></tr>
+            <tr><td class="t">2:00 – 2:30</td><td class="s">Dave Darrow <span class="aff">(MIT)</span></td><td class="ti">A Lorentz-covariant Lagrangian framework for pilot-wave dynamics</td></tr>
+            <tr><td class="t">2:30 – 2:45</td><td class="s">Haoyi Wang <span class="aff">(UNC)</span></td><td class="ti">The oscillatory Cheerios effect of bouncing droplets</td></tr>
+            <tr><td class="t">2:45 – 3</td><td class="s">Christopher Griffin <span class="aff">(PSU)</span></td><td class="ti">Quantum mechanics on Riemannian manifolds</td></tr>
+            <tr><td class="t">3 – 3:30</td><td class="s">Adam Kay <span class="aff">(MIT Alum)</span></td><td class="ti">What Bell&rsquo;s theorem really means</td></tr>
+            <tr><td class="t">3:30 – 3:45</td><td class="s">Kosta Papatryfonos <span class="aff">(Lille)</span></td><td class="ti">Static Bell tests with walkers</td></tr>
+            <tr><td class="t">3:45 – 4:15</td><td class="s">Alvaro Lopez <span class="aff">(Madrid)</span></td><td class="ti">Bell tests with a Lorenz model of walkers</td></tr>
+            <tr class="brk major"><td colspan="3">Concluding remarks &middot; 4:15 – 5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Speakers</h2>
+      <div class="hqa-speakers">
+        <div>Joel Been <span class="aff">MIT</span></div>
+        <div>Andras Bencze <span class="aff">Boston University</span></div>
+        <div>Austin Blitstein <span class="aff">UNC</span></div>
+        <div>John Bush <span class="aff">MIT</span></div>
+        <div>Ana Maria Cetto <span class="aff">UNAM</span></div>
+        <div>Diego Chavez <span class="aff">MIT</span></div>
+        <div>Dave Darrow <span class="aff">MIT</span></div>
+        <div>James Day <span class="aff">MIT</span></div>
+        <div>Yves Desille <span class="aff">Lille</span></div>
+        <div>Matt Durey <span class="aff">Glasgow</span></div>
+        <div>Valeri Frumkin <span class="aff">Boston University</span></div>
+        <div>Ludovico Giorgini <span class="aff">MIT</span></div>
+        <div>Christopher Griffin <span class="aff">Penn State</span></div>
+        <div>Daniel Harris <span class="aff">Brown</span></div>
+        <div>Johnathan Hoggarth <span class="aff">Yale</span></div>
+        <div>Adam Kay <span class="aff">MIT Alum</span></div>
+        <div>Arnaud Lazarus <span class="aff">MIT</span></div>
+        <div>Xinyun Liu <span class="aff">UNC</span></div>
+        <div>Frane Ljubetic <span class="aff">UNC</span></div>
+        <div>Alvaro Lopez <span class="aff">Madrid</span></div>
+        <div>Paul Milewski <span class="aff">Penn State</span></div>
+        <div>André Nachbin <span class="aff">WPI</span></div>
+        <div>Anand Oza <span class="aff">NJIT</span></div>
+        <div>Kosta Papatryfonos <span class="aff">Lille</span></div>
+        <div>Bauyrzhan Primkulov <span class="aff">Yale</span></div>
+        <div>Giuseppe Pucci <span class="aff">Calabria</span></div>
+        <div>Steven Rodriguez <span class="aff">ONR</span></div>
+        <div>Georgi Gary Rozenman <span class="aff">MIT</span></div>
+        <div>Pedro Sáenz <span class="aff">UNC</span></div>
+        <div>Zahra Shamsi <span class="aff">Yale</span></div>
+        <div>Ian Stevenson <span class="aff">UNC</span></div>
+        <div>Saiful Tamim <span class="aff">UNC</span></div>
+        <div>Rahil Valani <span class="aff">Oxford</span></div>
+        <div>Haoyi Wang <span class="aff">UNC</span></div>
+        <div>Larry Wilen <span class="aff">Yale</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Brochure</h2>
+      <div class="hqa-brochure">
+        <img src="images/hqa2026-cover.jpg" alt="HQA 2026 brochure cover — a walking droplet on a Faraday wave field imaged in false color">
+        <div class="txt">
+          <p>
+            The full conference brochure contains the complete two-day schedule as
+            printed, together with the cover art and acknowledgements.
+          </p>
+          <p>
+            <a class="btn" href="files/HQA2026-brochure.pdf" target="_blank" rel="noopener">Download brochure (PDF) &darr;</a>
+          </p>
+          <p class="note" style="margin-bottom:0;">
+            Brochure design by G.&nbsp;G.&nbsp;Rozenman.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Acknowledgements</h2>
+      <p>
+        We gratefully acknowledge the financial support of the
+        <strong>Office of Naval Research</strong>.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; <span id="yr"></span> Georgi Gary Rozenman</span>
+    <span>MIT Department of Mathematics &middot; Cambridge, MA</span>
+  </div>
+</footer>
+
+<script>
+  document.documentElement.classList.add('js');
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.hqa-tabs button'));
+    function show(i) {
+      tabs.forEach(function (t, j) {
+        t.setAttribute('aria-selected', i === j ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = (i !== j);
+      });
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { show(i); });
+    });
+    show(0);
+  })();
+</script>
+
+</body>
+</html>

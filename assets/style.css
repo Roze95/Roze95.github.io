@@ -58,12 +58,13 @@ body {
 .brand span { color: var(--mit-red); }
 nav.main {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.89rem;
 }
 nav.main a {
   text-decoration: none;
   color: var(--muted);
-  margin-left: 18px;
+  white-space: nowrap;
+  margin-left: 14px;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
   transition: color .15s, border-color .15s;
