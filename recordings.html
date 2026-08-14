@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HQA 2026 — Session recordings</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+/* ============================================================
+   HQA 2026 — recordings page
+   ============================================================ */
+
+/* ---------- gate ---------- */
+.gate {
+  min-height: 78vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+/* the hidden attribute must beat the display:flex above */
+[hidden] { display: none !important; }
+.gate-card {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  padding: 38px 32px;
+}
+.gate-lock {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.gate-card h1 { font-size: 1.4rem; margin: 0 0 6px; }
+.gate-card .sub {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .88rem;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.gate-card input[type="password"] {
+  width: 100%;
+  font: inherit;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: .18em;
+  padding: 11px 14px;
+  border: 1px solid #d5d5d2;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+}
+.gate-card input[type="password"]:focus {
+  outline: none;
+  border-color: var(--mit-red);
+  box-shadow: 0 0 0 3px rgba(163,31,52,.13);
+}
+.gate-card button {
+  width: 100%;
+  margin-top: 12px;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .95rem;
+  background: var(--mit-red);
+  color: #fff;
+  border: 0;
+  border-radius: 7px;
+  padding: 11px 18px;
+  cursor: pointer;
+}
+.gate-card button:hover { background: #861628; }
+.gate-err {
+  margin: 14px 0 0;
+  min-height: 1.2em;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .86rem;
+  color: var(--mit-red);
+}
+.gate-back {
+  margin: 18px 0 0;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .84rem;
+}
+
+/* ---------- page head ---------- */
+.rec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 34px;
+}
+.rec-head h1 { font-size: 1.7rem; margin: 0; }
+.rec-head .meta {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .84rem;
+  color: var(--muted);
+}
+
+/* ---------- day heading ---------- */
+.rec-day {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .76rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 7px;
+  margin: 46px 0 22px;
+}
+.rec-day:first-of-type { margin-top: 0; }
+
+/* ---------- session card ---------- */
+.rec-session { margin-bottom: 34px; }
+.rec-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #10161f;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rec-frame iframe,
+.rec-frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+/* placeholder shown until a video is dropped in */
+.rec-frame .pending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255,255,255,.62);
+  font-family: -apple-system, system-ui, sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+.rec-frame .pending .ico { font-size: 1.7rem; opacity: .8; }
+.rec-frame .pending .txt { font-size: .87rem; letter-spacing: .04em; }
+.rec-frame .pending .hint { font-size: .76rem; color: rgba(255,255,255,.4); }
+
+.rec-meta { margin-top: 12px; }
+.rec-meta h2 {
+  font-size: 1.05rem;
+  margin: 0 0 3px;
+  padding: 0;
+  border: 0;
+}
+.rec-meta .when {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .82rem;
+  color: var(--muted);
+}
+.rec-meta .talks {
+  margin: 7px 0 0;
+  font-size: .93rem;
+  color: #2a2a2a;
+  line-height: 1.55;
+}
+.rec-meta .talks li { margin-bottom: 2px; }
+.rec-meta .talks .who { color: var(--mit-red); }
+
+@media (max-width: 640px) {
+  .gate { min-height: 66vh; }
+  .rec-head h1 { font-size: 1.45rem; }
+}
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- ============ password gate ============ -->
+  <div class="wrap gate" id="gate">
+    <div class="gate-card">
+      <div class="gate-lock">&#128274;</div>
+      <h1>Session recordings</h1>
+      <p class="sub">HQA 2026 &middot; MIT, August 10&ndash;11, 2026</p>
+      <form id="gate-form" autocomplete="off">
+        <input type="password" id="gate-input" placeholder="Password"
+               aria-label="Password" autocomplete="current-password">
+        <button type="submit">Unlock</button>
+      </form>
+      <p class="gate-err" id="gate-err" role="alert"></p>
+      <p class="gate-back"><a href="hqa2026.html">&larr; Back to HQA 2026</a></p>
+    </div>
+  </div>
+
+  <!-- ============ protected content ============ -->
+  <div class="wrap" id="vault" hidden>
+
+    <div class="rec-head">
+      <h1>Session recordings</h1>
+      <span class="meta">HQA 2026 &middot; MIT, August 10&ndash;11, 2026 &middot;
+        <a href="hqa2026.html">Back to programme</a></span>
+    </div>
+
+    <!-- ===================== DAY ONE ===================== -->
+    <h2 class="rec-day">Day One &middot; Monday, August 10</h2>
+
+    <!-- ---- Session 1 ----
+         TO ADD A VIDEO: replace the <div class="pending"> block below with either
+           <iframe src="https://player.vimeo.com/video/XXXXXXXX" allowfullscreen></iframe>
+         or
+           <video src="files/session1.mp4" controls preload="metadata"></video>
+    -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 1</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 1 &mdash; Opening</h2>
+        <span class="when">Monday, 9:00 &ndash; 10:30am</span>
+        <ul class="talks clean">
+          <li><span class="who">John Bush</span> &mdash; Hydrodynamic quantum analogs</li>
+          <li><span class="who">Pedro Sáenz</span> &mdash; Wave-particle active matter</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---- Session 2 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 2</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 2 &mdash; Late morning</h2>
+        <span class="when">Monday, 10:45am &ndash; 12:15pm</span>
+        <ul class="talks clean">
+          <li><span class="who">Ana Maria Cetto</span> &mdash; Stochastic electrodynamics: a realist approach to revealing the physics behind quantum phenomena</li>
+          <li><span class="who">Bauyrzhan Primkulov</span> &mdash; Pilot-wave dynamics beyond resonance</li>
+          <li><span class="who">André Nachbin</span> &mdash; 2 HQAs: wave-droplet oscillators and quantum graphs</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---- Session 3 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 3</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 3 &mdash; Early afternoon</h2>
+        <span class="when">Monday, 1:00 &ndash; 3:45pm</span>
+        <ul class="talks clean">
+          <li><span class="who">Paul Milewski</span> &mdash; Strong nonlinear resonances of water waves in confined domains</li>
+          <li><span class="who">Daniel Harris</span> &mdash; Drop-bath impacts</li>
+          <li><span class="who">Larry Wilen</span> &mdash; Manipulating bouncing droplets with tunable global forcing</li>
+          <li><span class="who">Saiful Tamim</span> &mdash; Wave-mediated walking of solid particles at a fluid interface</li>
+          <li><span class="who">Johnathan Hoggarth</span> &mdash; Drop generation via stretching of liquid ligaments</li>
+          <li><span class="who">James Day</span> &mdash; Ensembles of walking droplets</li>
+          <li><span class="who">Steven Rodriguez</span> &mdash; Leveraging hydrodynamic analogs in optical beam transport</li>
+          <li><span class="who">Georgi Gary Rozenman</span> &mdash; HQAs of Aharonov–Bohm, Kennard phase and triple-slit diffraction</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---- Session 4 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 4</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 4 &mdash; Late afternoon</h2>
+        <span class="when">Monday, 4:00 &ndash; 6:00pm</span>
+        <ul class="talks clean">
+          <li><span class="who">Arnaud Lazarus</span> &mdash; Engineering quantization of waves in periodic media &amp; Towards GR analogs in HQA</li>
+          <li><span class="who">Joel Been</span> &mdash; Analogizing exciton-polaritons with walker wakes</li>
+          <li><span class="who">Austin Blitstein</span> &mdash; Spatiotemporally nonlocal forces in pilot-wave hydrodynamics</li>
+          <li><span class="who">Xinyun Liu</span> &mdash; Collective pilot-wave dynamics: experiments</li>
+          <li><span class="who">Ian Stevenson</span> &mdash; Collective pilot-wave dynamics: simulations and theory</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ===================== DAY TWO ===================== -->
+    <h2 class="rec-day">Day Two &middot; Tuesday, August 11</h2>
+
+    <!-- ---- Session 5 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 5</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 5 &mdash; Opening</h2>
+        <span class="when">Tuesday, 9:00 &ndash; 10:30am</span>
+        <ul class="talks clean">
+          <li><span class="who">Matt Durey</span> &mdash; Orbital dynamics and energetics of wave-propelled particles</li>
+          <li><span class="who">Rahil Valani</span> &mdash; Dynamical origins of HQAs in Lorenz-like models</li>
+          <li><span class="who">Valeri Frumkin</span> &mdash; From topological transport to emergent localization in HQAs</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---- Session 6 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 6</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 6 &mdash; Late morning</h2>
+        <span class="when">Tuesday, 10:45am &ndash; 12:00pm</span>
+        <ul class="talks clean">
+          <li><span class="who">Giuseppe Pucci</span> &mdash; Single-particle diffraction with a hydrodynamic pilot-wave model</li>
+          <li><span class="who">Anand Oza</span> &mdash; Theoretical results on stochastic pilot-wave dynamics</li>
+          <li><span class="who">Ludovico Giorgini</span> &mdash; Stochastic pilot-wave dynamics</li>
+          <li><span class="who">Frane Ljubetic</span> &mdash; Influence of path memory on the stochastic transport of walkers</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---- Session 7 ---- -->
+    <section class="rec-session">
+      <div class="rec-frame">
+        <div class="pending">
+          <span class="ico">&#127909;</span>
+          <span class="txt">Recording not yet uploaded</span>
+          <span class="hint">Session 7</span>
+        </div>
+      </div>
+      <div class="rec-meta">
+        <h2>Session 7 &mdash; Afternoon &amp; closing</h2>
+        <span class="when">Tuesday, 1:00 &ndash; 5:00pm</span>
+        <ul class="talks clean">
+          <li><span class="who">Yves Desille</span> &mdash; Acoustic pilot-wave dynamics</li>
+          <li><span class="who">Zahra Shamsi</span> &mdash; Pilot-wave hydrodynamics on noisy surfaces</li>
+          <li><span class="who">Diego Chavez</span> &mdash; Pilot-wave dynamics in 3D</li>
+          <li><span class="who">Andras Bencze</span> &mdash; Non-Markovian branched flow in pilot-wave hydrodynamics</li>
+          <li><span class="who">Dave Darrow</span> &mdash; A Lorentz-covariant Lagrangian framework for pilot-wave dynamics</li>
+          <li><span class="who">Haoyi Wang</span> &mdash; The oscillatory Cheerios effect of bouncing droplets</li>
+          <li><span class="who">Christopher Griffin</span> &mdash; Quantum mechanics on Riemannian manifolds</li>
+          <li><span class="who">Adam Kay</span> &mdash; What Bell&rsquo;s theorem really means</li>
+          <li><span class="who">Kosta Papatryfonos</span> &mdash; Static Bell tests with walkers</li>
+          <li><span class="who">Alvaro Lopez</span> &mdash; Bell tests with a Lorenz model of walkers</li>
+          <li>Concluding remarks</li>
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>HQA 2026 &middot; Hydrodynamic Quantum Analogs</span>
+    <span>MIT &middot; Cambridge, MA &middot; August 10–11, 2026</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // SHA-256 of the current passphrase. Change it by running:
+  //   printf 'newpassword' | shasum -a 256
+  // and pasting the result here.
+  var HASH = '96cae35ce8a9b0244178bf28e4966c2ce1b8385723a96a6b838858cdd6ca0a1e';
+  var KEY  = 'hqa2026-recordings';
+
+  var gate  = document.getElementById('gate');
+  var vault = document.getElementById('vault');
+  var form  = document.getElementById('gate-form');
+  var input = document.getElementById('gate-input');
+  var err   = document.getElementById('gate-err');
+
+  function open() {
+    gate.hidden = true;
+    vault.hidden = false;
+  }
+
+  function sha256(str) {
+    var bytes = new TextEncoder().encode(str);
+    return crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
+      return Array.prototype.map
+        .call(new Uint8Array(buf), function (b) { return b.toString(16).padStart(2, '0'); })
+        .join('');
+    });
+  }
+
+  // stay unlocked for the rest of the browser session
+  try {
+    if (sessionStorage.getItem(KEY) === HASH) open();
+  } catch (e) {}
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    err.textContent = '';
+    sha256(input.value).then(function (digest) {
+      if (digest === HASH) {
+        try { sessionStorage.setItem(KEY, HASH); } catch (e) {}
+        open();
+      } else {
+        err.textContent = 'Incorrect password.';
+        input.value = '';
+        input.focus();
+      }
+    });
+  });
+
+  input.focus();
+})();
+</script>
+
+</body>
+</html>
