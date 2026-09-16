@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture N — TITLE | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture N: TITLE.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture N</p>
+    <h1>TITLE</h1>
+    <p class="lecmeta">
+      <span>DAY, MONTH D, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §X.Y</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/LNN.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>…</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1 · Section title</h2>
+    <p>Prose. Inline math like $\mat A \vec x = \vec b$ works; display math goes in
+    \[ ... \] and the cse085.sty macros are already defined.</p>
+    \[
+      \mat A = \frac{1}{h}\begin{bmatrix} -1 & 1 \\ & \ddots & \ddots \end{bmatrix}
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>…</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · subtitle</span>
+      <p>…</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · subtitle</span>
+      <p>…</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>…</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §X.Y.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="LPREV.html"><span class="arw">←</span> Lecture N−1</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="LNEXT.html">Lecture N+1 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

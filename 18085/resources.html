@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resources — 18.085 Fall 2026</title>
+<meta name="description" content="Curated supplementary materials for MIT 18.085: textbook companions, video lectures, deeper references per arc, and computing tools.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="index.html">Home</a>
+      <a href="lectures.html">Lectures</a>
+      <a href="psets.html">Problem sets</a>
+      <a href="resources.html" class="active">Resources</a>
+      <a href="../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <section>
+    <p class="eyebrow">Supplementary — none of it required</p>
+    <h1>Resources</h1>
+    <p class="lead">The typed lecture notes and Strang's book are sufficient to do well in
+    this subject. Everything below is for when you want a second voice on a topic, a proof
+    the lecture skipped, or a harder problem to chew on.</p>
+  </section>
+
+  <section>
+    <h2>The text and its companion site</h2>
+
+    <div class="res">
+      <a href="https://math.mit.edu/~gs/cse/"><strong>Computational Science and Engineering</strong></a>
+      <span class="who">— G. Strang, Wellesley–Cambridge Press.</span>
+      <span class="why">The course text. The companion site carries the full table of
+      contents, two free sample sections (§1.1 <em>Four Special Matrices</em> — read it
+      before Lecture 2 — and §4.1 <em>Fourier Series for Periodic Functions</em>), and dozens
+      of MATLAB codes organised by chapter. Start here before anything else on this page.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://math.mit.edu/~gs/"><strong>Gilbert Strang's page</strong></a>
+      <span class="who">— MIT Mathematics.</span>
+      <span class="why">Links to his other texts, including the finite-element supplement
+      that is useful around Lectures 15–18, and to every one of his video series.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Video lectures</h2>
+
+    <div class="res">
+      <a href="https://ocw.mit.edu/courses/18-085-computational-science-and-engineering-i-fall-2008/"><strong>18.085, Fall 2008</strong></a>
+      <span class="who">— Strang, MIT OpenCourseWare.</span>
+      <span class="why">The whole subject on video, taught by the author of the book.
+      Ordering and emphasis differ from ours in places, so use it topic by topic rather than
+      as a parallel course. Assignments and exams come with solutions.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/"><strong>18.06 Linear Algebra</strong></a>
+      <span class="who">— Strang, MIT OpenCourseWare.</span>
+      <span class="why">If the first three weeks feel fast, this is the prerequisite done
+      properly. Lectures on column space, elimination, projection and eigenvalues map almost
+      one-to-one onto our Lectures 1–8.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab"><strong>Essence of Linear Algebra</strong></a>
+      <span class="who">— 3Blue1Brown.</span>
+      <span class="why">Fifteen short animated episodes. Watch chapters 3–4 (linear
+      transformations, composition) alongside Lecture 1 — they are the geometric picture
+      behind “matrix multiplication is composition”, and they are the fastest way to stop
+      seeing a matrix as a grid of numbers.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Arc 1 — Linear algebra and discretisation <span class="tag">Lectures 1–11</span></h2>
+
+    <div class="res">
+      <a href="https://people.maths.ox.ac.uk/trefethen/text.html"><strong>Numerical Linear Algebra</strong></a>
+      <span class="who">— Trefethen &amp; Bau, SIAM.</span>
+      <span class="why">Forty short lectures, beautifully written. Lectures 7–10 are the
+      cleanest account of <em>QR</em> and Gram–Schmidt you will find, and Lectures 11–12 do
+      least squares. Read these around our Lectures 10–11.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://faculty.washington.edu/rjl/fdmbook/"><strong>Finite Difference Methods for Ordinary and Partial Differential Equations</strong></a>
+      <span class="who">— R. J. LeVeque, SIAM.</span>
+      <span class="why">The reference for everything we do with difference stencils, boundary
+      conditions and truncation error, with far more care about convergence and stability
+      than we have time for. The author posts exercises with MATLAB code, chapter by chapter.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/"><strong>18.335 Introduction to Numerical Methods</strong></a>
+      <span class="who">— MIT OpenCourseWare, and the live
+      <a href="https://github.com/mitmath/18335">course repository</a>.</span>
+      <span class="why">Where 18.085 goes next if you like the linear-algebra half:
+      conditioning, floating point, QR and eigenvalue algorithms, Krylov methods. The repo's
+      lecture notes are current and free.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Arc 2 — Equilibrium and finite elements <span class="tag">Lectures 12–18</span></h2>
+
+    <div class="res">
+      <a href="https://math.mit.edu/~gs/cse/"><strong>Strang, chapters 2–3</strong></a>
+      <span class="who">— plus the MATLAB codes on the same page.</span>
+      <span class="why">The A<sup>T</sup>CA framework, springs and masses, trusses, and 1D
+      finite elements are the core of these chapters, and the posted codes let you assemble
+      the stiffness matrix yourself rather than reading about it.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://ocw.mit.edu/courses/18-086-mathematical-methods-for-engineers-ii-spring-2006/"><strong>18.086 Mathematical Methods for Engineers II</strong></a>
+      <span class="who">— Strang, MIT OpenCourseWare.</span>
+      <span class="why">The sequel: initial-value problems, iterative solvers, network flows,
+      optimisation. Useful now for its treatment of time-stepping, which we only touch in
+      Lecture 14.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Arc 3 — Fourier methods <span class="tag">Lectures 19–26</span></h2>
+
+    <div class="res">
+      <a href="https://math.mit.edu/~gs/cse/"><strong>Strang, chapter 4</strong></a>
+      <span class="who">— §4.1 is free on the companion site.</span>
+      <span class="why">Fourier series for periodic functions, the DFT, convolution. Read
+      §4.1 the weekend before Lecture 19.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://github.com/mitmath/18335"><strong>18.335 notes on the FFT</strong></a>
+      <span class="who">— S. G. Johnson (author of FFTW) and successors.</span>
+      <span class="why">If you want to know why the FFT is $O(n\log n)$ and what a real
+      implementation worries about — cache, radix choice, numerical stability — this is the
+      short, authoritative account. Pairs with Lecture 21.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://people.maths.ox.ac.uk/trefethen/spectral.html"><strong>Spectral Methods in MATLAB</strong></a>
+      <span class="who">— L. N. Trefethen, SIAM.</span>
+      <span class="why">Forty short programs showing what happens when you replace finite
+      differences by global trigonometric or polynomial interpolation. The natural sequel to
+      our Fourier arc, and every program is a page long.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Computing</h2>
+
+    <div class="res">
+      <a href="https://lectures.scientific-python.org/"><strong>Scientific Python Lectures</strong></a>
+      <span class="who">— the NumPy / SciPy / Matplotlib ecosystem, from scratch.</span>
+      <span class="why">If you are taking the Python track and have not used
+      <code>numpy</code> seriously, work through “Getting started” in the first week. The
+      sparse-array chapter matters from Lecture 2 onward — our matrices are banded and you
+      should not be storing the zeros.</span>
+    </div>
+
+    <div class="res">
+      <a href="https://www.chebfun.org/"><strong>Chebfun</strong></a>
+      <span class="who">— open-source MATLAB package, no toolboxes required.</span>
+      <span class="why">Computes with functions instead of samples, to about 15 digits. Not
+      needed for any assignment, but it is the most direct way to <em>see</em> what
+      discretisation costs you: solve the same boundary-value problem with our difference
+      matrix and with Chebfun, and compare.</span>
+    </div>
+
+    <div class="res">
+      <strong>Sanity habits</strong>
+      <span class="why">Check every difference scheme by halving $h$ and watching the error
+      ratio — 2 for first order, 4 for second. Check every matrix you assemble on the
+      smallest case you can do by hand ($n = 3$ or $4$). Most lost points on this subject's
+      computational problems come from skipping one of these two.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Practice under exam conditions</h2>
+    <p>The OCW 18.085 page above carries a decade of Strang's problem sets and exams
+    <em>with solutions</em>. Use them the way you would use a past paper: work the problem
+    cold, on paper, with one sheet of notes and a clock, and only then open the solution.
+    Reading solutions is not practice.</p>
+    <div class="note">A caution: those solutions are public and widely circulated. This
+    term's sets keep the problem architecture you would recognise but change every number,
+    so a memorised solution is worth nothing on Gradescope.</div>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

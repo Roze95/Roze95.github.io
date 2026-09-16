@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 1 — Matrices, Linearity, and Finite Differences | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 1: matrices as linear functions, superposition, differentiation as an operator, forward/backward/centred differences, and the second-difference matrix.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 1</p>
+    <h1>Matrices, Linearity, and Finite Differences</h1>
+    <p class="lecmeta">
+      <span>Wednesday, September 9, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.1–1.2</span>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Explain <em>why</em> matrix multiplication is defined the way it is, and read a matrix–vector product both by rows and by columns.</li>
+      <li>State the superposition property and recognise differentiation as a linear operator.</li>
+      <li>Derive forward, backward, and centred difference formulas and give their order of accuracy from Taylor series.</li>
+      <li>Assemble the second-difference operator as a product of two first-difference matrices.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>What this course is about</h2>
+    <p>18.085 is about one move, performed over and over: take a continuous problem you
+    cannot solve — a differential equation, an equilibrium, a signal — replace it by a
+    finite problem a computer <em>can</em> solve, and then understand what was gained and
+    what was lost.</p>
+    <p>Almost every continuous problem in this class is <em>linear</em>, and almost every
+    finite replacement is a <em>matrix</em>. So the course really has two halves that keep
+    meeting: the linear algebra of structured matrices, and the physics and analysis of the
+    problems those matrices came from. Today we start at the join.</p>
+  </section>
+
+  <section>
+    <h2>1 · Matrices are compact notation for linear functions</h2>
+
+    <p>A matrix is not primarily a grid of numbers; it is a bookkeeping device for a linear
+    function. Take two independent variables $x_1, x_2$ and the pair of outputs</p>
+    \[
+      y_1 = 1\,x_1 + 2\,x_2, \qquad y_2 = -3\,x_1 + 4\,x_2 ,
+    \]
+    <p>which we write as</p>
+    \[
+      \begin{bmatrix} y_1 \\ y_2 \end{bmatrix}
+      = \begin{bmatrix} 1 & 2 \\ -3 & 4 \end{bmatrix}
+        \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}.
+    \]
+
+    <p>Read that product <strong>by rows</strong> and you get the two scalar equations back:
+    row $i$ dotted with $\vec x$ gives $y_i$. Read it <strong>by columns</strong> and you get
+    something more useful:</p>
+    \[
+      \begin{bmatrix} 1 & 2 \\ -3 & 4 \end{bmatrix}
+      \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+      = \begin{bmatrix} 1 \\ -3 \end{bmatrix} x_1
+      + \begin{bmatrix} 2 \\ 4 \end{bmatrix} x_2 .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>$\mat A \vec x$ is a <em>linear combination of the columns of $\mat A$</em>, with
+      the entries of $\vec x$ as coefficients. The set of all such outputs is the column
+      space. Almost every solvability question in this course is really the question
+      “is $\vec b$ in the column space of $\mat A$?”</p>
+    </div>
+
+    <h3>Matrix–matrix multiplication is composition</h3>
+    <p>Now feed $\vec y$ into a second linear function, this time landing in $\R^3$:</p>
+    \[
+      z_1 = 0\,y_1 - 1\,y_2, \quad
+      z_2 = 3\,y_1 + 0\,y_2, \quad
+      z_3 = -2\,y_1 + 1\,y_2,
+      \qquad\text{i.e.}\qquad
+      \vec z = \begin{bmatrix} 0 & -1 \\ 3 & 0 \\ -2 & 1 \end{bmatrix} \vec y .
+    \]
+    <p>Can we get $\vec z$ directly from $\vec x$? Substitute $y_1 = x_1 + 2x_2$ and
+    $y_2 = -3x_1 + 4x_2$:</p>
+    \[
+      z_1 = 0(x_1 + 2x_2) - 1(-3x_1 + 4x_2)
+      = \bigl(0\cdot 1 + (-1)(-3)\bigr) x_1 + \bigl(0\cdot 2 + (-1)\cdot 4\bigr) x_2
+      = 3x_1 - 4x_2 ,
+    \]
+    <p>and similarly $z_2 = 3x_1 + 6x_2$, $z_3 = -5x_1 + 0\,x_2$. In matrix form</p>
+    \[
+      \begin{bmatrix} 0 & -1 \\ 3 & 0 \\ -2 & 1 \end{bmatrix}
+      \begin{bmatrix} 1 & 2 \\ -3 & 4 \end{bmatrix}
+      = \begin{bmatrix} 3 & -4 \\ 3 & 6 \\ -5 & 0 \end{bmatrix}.
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>The rule “row of the first times column of the second” is not a convention someone
+      chose. It is exactly what falls out of substituting one linear function into another.
+      Matrix multiplication <em>is</em> composition of linear maps — which also explains why
+      the inner dimensions must agree, and why $\mat A\mat B \neq \mat B \mat A$ in general
+      (doing two things in the other order is a different thing).</p>
+    </div>
+
+    <h3>Solving is running the function backwards</h3>
+    <p>If a linear function takes an input to an output, then solving</p>
+    \[ \mat A \vec x = \vec b \]
+    <p>asks: given the output, what was the input? When that question always has exactly one
+    answer, $\mat A$ is invertible. Much of the first month is about when that happens, what
+    to do when it does not, and how to answer it at a cost that scales acceptably.</p>
+  </section>
+
+  <section>
+    <h2>2 · Superposition: why linearity is worth so much</h2>
+    <p>A function $f$ is linear precisely when</p>
+    \[ f(a\vec x + b\vec y) = a\,f(\vec x) + b\,f(\vec y) \]
+    <p>for all scalars $a,b$ and all inputs $\vec x, \vec y$.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Superposition is why linear algebra sits at the heart of applied mathematics: it
+      lets us break a complicated problem into simple pieces, solve the pieces, and add. We
+      will use this again and again in different costumes — eigenvector expansions, Fourier
+      series, Green's functions, finite element bases — and each time it is this one identity.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Differentiation is a linear operator</h2>
+    <p>Differentiation is a linear function whose inputs are themselves functions (a
+    <em>functional</em>, or better, an <em>operator</em>):</p>
+    \[
+      D[x^2] = 2x, \qquad D[e^x] = e^x, \qquad
+      D[\,4x^2 - 5e^x\,] = 8x - 5e^x = 4\,D[x^2] - 5\,D[e^x].
+    \]
+    <p>So we can study differentiation — and therefore differential equations — with the
+    tools of linear algebra.</p>
+    <p>There is one obstruction. The space of functions is infinite-dimensional, while a
+    computer has finite storage and we want answers in finite time.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Discretisation</span>
+      <p>Replace the function $u(x)$ by its values on a finite grid, and the derivative
+      operator by a matrix acting on that vector of values. Everything else in this course is
+      a consequence of choosing that replacement well.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Finite differences</h2>
+    <p>Start from the definition</p>
+    \[ f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}, \]
+    <p>and simply stop short of the limit: keep $h$ finite. Three natural choices:</p>
+    \[
+      \underbrace{f'(x) \approx \frac{f(x+h) - f(x)}{h}}_{\text{forward}},
+      \qquad
+      \underbrace{f'(x) \approx \frac{f(x) - f(x-h)}{h}}_{\text{backward}},
+      \qquad
+      \underbrace{f'(x) \approx \frac{f(x+h) - f(x-h)}{2h}}_{\text{centred}}.
+    \]
+
+    <figure>
+      <svg viewBox="0 0 640 215" width="100%" style="max-width:640px" role="img"
+           aria-label="A smooth curve with three sample points at x minus h, x, and x plus h marked on the horizontal axis.">
+        <line x1="20" y1="190" x2="620" y2="190" stroke="var(--muted)" stroke-width="1.2"/>
+        <polygon points="620,190 612,186.5 612,193.5" fill="var(--muted)"/>
+        <text x="626" y="195" font-size="13" font-style="italic" fill="var(--muted)"
+              font-family="Georgia, serif">x</text>
+        <polyline fill="none" stroke="var(--cse-green)" stroke-width="2.2"
+          stroke-linejoin="round" stroke-linecap="round"
+          points="54.3,97.7 71.4,92.2 88.6,87.0 105.7,82.3 122.9,78.3 140.0,75.4 157.1,73.5
+                  174.3,73.0 191.4,73.7 208.6,75.8 225.7,79.2 242.9,83.9 260.0,89.6 277.1,96.2
+                  294.3,103.6 311.4,111.4 328.6,119.4 345.7,127.3 362.9,134.8 380.0,141.8
+                  397.1,147.9 414.3,153.0 431.4,157.0 448.6,159.6 465.7,160.9 482.9,160.9
+                  500.0,159.6 517.1,157.1 534.3,153.5 551.4,149.1 568.6,144.1"/>
+        <g stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4">
+          <line x1="242.9" y1="83.9"  x2="242.9" y2="190"/>
+          <line x1="311.4" y1="111.4" x2="311.4" y2="190"/>
+          <line x1="380.0" y1="141.8" x2="380.0" y2="190"/>
+        </g>
+        <g fill="var(--cse-blue)">
+          <circle cx="242.9" cy="83.9"  r="4"/>
+          <circle cx="311.4" cy="111.4" r="4"/>
+          <circle cx="380.0" cy="141.8" r="4"/>
+        </g>
+        <g font-size="14" font-style="italic" fill="var(--ink)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="242.9" y="208">x − h</text>
+          <text x="311.4" y="208">x</text>
+          <text x="380.0" y="208">x + h</text>
+        </g>
+      </svg>
+      <figcaption>Three grid points is all a difference formula ever sees.</figcaption>
+    </figure>
+
+    <h3>Error analysis is just Taylor series</h3>
+    <p>Expand</p>
+    \[ f(x+h) = f(x) + h f'(x) + \frac{h^2}{2} f''(x) + \frac{h^3}{6}f'''(x) + \cdots \]
+    <p>and divide:</p>
+    \[
+      \frac{f(x+h) - f(x)}{h} = f'(x) + \underbrace{\frac{h}{2} f''(x) + \cdots}_{\text{error}}
+      = f'(x) + \Oh{h}.
+    \]
+    <p>So forward (and backward) differences are <strong>first-order accurate</strong>. For
+    the centred difference the even-order terms survive and the odd ones cancel:</p>
+    \[
+      \frac{f(x+h) - f(x-h)}{2h} = f'(x) + \frac{h^2}{6} f'''(x) + \cdots = f'(x) + \Oh{h^2}.
+    \]
+
+    <div class="remark">
+      <span class="boxtitle">Remark · The bargain of this course</span>
+      <p>One extra function evaluation bought us a whole order of accuracy. Halving $h$ cuts
+      the forward-difference error in half but the centred error by a factor of four. Nearly
+      every scheme we meet is a trade of this kind — accuracy against cost, stencil width, or
+      stability — and the Taylor expansion is how we price it.</p>
+    </div>
+
+    <h3>Second derivatives</h3>
+    <p>Apply first differences twice: a backward difference of a forward difference,</p>
+    \[
+      f''(x) \approx \frac{f'(x) - f'(x-h)}{h}
+      \approx \frac{\dfrac{f(x+h)-f(x)}{h} - \dfrac{f(x)-f(x-h)}{h}}{h}
+      = \boxed{\ \frac{f(x+h) - 2f(x) + f(x-h)}{h^2}\ }
+    \]
+    <p>which is the three-point centred scheme, and it is $\Oh{h^2}$ accurate. This
+    $1, -2, 1$ stencil is the single most important object in 18.085; we will meet it as a
+    matrix within the hour and keep meeting it until the last lecture.</p>
+  </section>
+
+  <section>
+    <h2>5 · The “infinite matrix” view</h2>
+    <p>If a function is represented by its values on a grid,</p>
+    \[
+      f \;\longleftrightarrow\;
+      \begin{bmatrix} \vdots \\ f(x_0-h) \\ f(x_0) \\ f(x_0+h) \\ \vdots \end{bmatrix},
+    \]
+    <p>then a difference formula is a linear operation on that vector, i.e. a matrix.
+    Backward differences, $\frac{f(x)-f(x-h)}{h} = \frac1h f(x) - \frac1h f(x-h)$, are</p>
+    \[
+      \mat A = \frac{1}{h}
+      \begin{bmatrix}
+        \ddots & \ddots &        &        \\
+               & -1     & 1      &        \\
+               &        & -1     & 1      \\
+               &        &        & \ddots & \ddots
+      \end{bmatrix},
+    \]
+    <p>and forward differences, $\frac{f(x+h)-f(x)}{h}$, give the same band shifted by one:</p>
+    \[
+      \mat B = \frac{1}{h}
+      \begin{bmatrix}
+        \ddots & \ddots &        &        \\
+        -1     & 1      &        &        \\
+               & -1     & 1      &        \\
+               &        & \ddots & \ddots
+      \end{bmatrix}.
+    \]
+    <p>Multiplying them composes the two operations, and out falls the second difference:</p>
+    \[
+      \mat A \mat B = \frac{1}{h^2}
+      \begin{bmatrix}
+        \ddots & \ddots & \ddots &        \\
+        1      & -2     & 1      &        \\
+               & 1      & -2     & 1      \\
+               &        & \ddots & \ddots & \ddots
+      \end{bmatrix}.
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>The second-difference matrix <em>factors</em>. Writing it as $\mat A\mat B$ — and
+      soon, on a bounded domain with boundary conditions, as $\mat A\T \mat C \mat A$ — is
+      not a curiosity. That factored form is where symmetry, positive definiteness, energy,
+      and the whole framework of equilibrium problems come from.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · The boundary is where the content is</span>
+      <p>These matrices are infinite, which is a fiction. On a real interval the grid stops,
+      and what you assume at the two ends changes the matrix, its invertibility, and the
+      physics it models. That is the next lecture, and it is not a technicality.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time: truncate the grid, impose fixed–fixed, fixed–free, and free–free boundary
+    conditions, and meet Strang's matrices $\Kmat, \Tmat, \Bmat, \Cmat$. The difference
+    between an invertible $\Kmat$ and a singular $\Bmat$ will turn out to be a statement
+    about physics, not about bookkeeping.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.1–1.2.</p>
+  </section>
+
+  <section>
+    <h2>Companion code <span class="tag">not part of the notes</span></h2>
+    <p>Ten lines that reproduce the order-of-accuracy claim above. Run it, halve $h$, and
+    watch the two error columns fall by 2 and by 4.</p>
+    <pre><code>import numpy as np
+f, df = np.sin, np.cos
+x = 1.0
+for h in [1e-1, 5e-2, 2.5e-2, 1.25e-2]:
+    fwd = (f(x+h) - f(x)) / h
+    ctr = (f(x+h) - f(x-h)) / (2*h)
+    print(f"{h:8.5f}  {abs(fwd-df(x)):.3e}  {abs(ctr-df(x)):.3e}")</code></pre>
+    <p>The same in MATLAB:</p>
+    <pre><code>x = 1; 
+for h = [1e-1 5e-2 2.5e-2 1.25e-2]
+    fwd = (sin(x+h) - sin(x)) / h;
+    ctr = (sin(x+h) - sin(x-h)) / (2*h);
+    fprintf('%8.5f  %.3e  %.3e\n', h, abs(fwd-cos(x)), abs(ctr-cos(x)));
+end</code></pre>
+  </section>
+
+  <nav class="pager">
+    <span class="disabled"><span class="arw">←</span> First lecture</span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 2 — posted Sep 13 <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
