@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Education — Georgi Gary Rozenman</title>
+<meta name="description" content="Educational notes and teaching materials by Georgi Gary Rozenman — quantum computing with Qiskit, quantum key distribution, and hydrodynamic quantum analogs.">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.edu-item {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--mit-red);
+  border-radius: 0 8px 8px 0;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  background: #fff;
+  transition: box-shadow .18s;
+}
+.edu-item:hover { box-shadow: 0 5px 20px rgba(0,0,0,.07); }
+.edu-item h3 { margin: 0 0 4px; font-size: 1.08rem; }
+.edu-item h3 a { color: var(--ink); }
+.edu-item h3 a:hover { color: var(--mit-red); text-decoration: none; }
+.edu-item .kicker {
+  display: block;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .74rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.edu-item p { margin: 8px 0 0; font-size: .95rem; color: #2a2a2a; }
+.edu-item .topics {
+  margin: 10px 0 0;
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: .84rem;
+  color: var(--muted);
+}
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1247676867483194"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">Georgi Gary <span>Rozenman</span></a>
+    <nav class="main">
+      <a href="index.html">Home</a>
+      <a href="research.html">Research</a>
+      <a href="publications.html">Publications</a>
+      <a href="teaching.html">Teaching</a>
+      <a href="education.html" class="active">Education</a>
+      <a href="code.html">Code</a>
+      <a href="software.html">Online software</a>
+      <a href="hqa2026.html">HQA&nbsp;2026</a>
+      <a href="18085/">18.085</a>
+      <a href="cv.html">CV</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section>
+      <h1>Education</h1>
+      <p class="lead">
+        Notes and self-contained learning materials, written while building up
+        worked examples from first principles. Free to use for study or teaching.
+      </p>
+    </section>
+
+    <section>
+      <h2>Quantum computing</h2>
+
+      <div class="edu-item">
+        <span class="kicker">Notes &middot; Scripts 01&ndash;07</span>
+        <h3><a href="education/quantum-computing-notes.html">Quantum Computing &mdash; Library Notes</a></h3>
+        <p>
+          Single-qubit foundations built one script at a time, with every circuit
+          drawn and every result checked against the algebra. Gates as deterministic
+          unitaries, measurement as a separate probabilistic projection, and the
+          basis as a choice that decides what you can see &mdash; ending with how
+          those three ideas assemble into BB84.
+        </p>
+        <p class="topics">
+          State vectors &middot; X and Hadamard &middot; R<sub>y</sub>(&theta;) and the Born rule &middot;
+          the invisible Z phase &middot; X-basis measurement &middot; S, T and the third Pauli basis &middot;
+          the four BB84 states &middot; Bloch sphere geometry
+        </p>
+        <p class="topics">
+          Built with Qiskit 2.4.1 + qiskit-aer 0.17.2.
+        </p>
+      </div>
+
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; <span id="yr"></span> Georgi Gary Rozenman</span>
+    <span>MIT Department of Mathematics &middot; Cambridge, MA</span>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

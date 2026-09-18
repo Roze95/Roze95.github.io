@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quantum Computing — Notes (Scripts 01–07)</title>
+<script>
+  MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+  };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 820px;
+    margin: 2.5em auto;
+    padding: 0 1.5em;
+    color: #222;
+    line-height: 1.55;
+  }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+  h2 {
+    margin-top: 2em;
+    color: #1a3a6c;
+    border-bottom: 1px solid #ccd;
+    padding-bottom: 0.2em;
+  }
+  h3 { margin-top: 1.4em; color: #333; }
+  code {
+    background: #f4f4f6;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  pre {
+    background: #f4f4f6;
+    padding: 0.9em 1em;
+    border-radius: 5px;
+    overflow-x: auto;
+    font-size: 0.88em;
+    border-left: 3px solid #1a3a6c;
+  }
+  pre.circuit {
+    background: #0f1419;
+    color: #d4d4d4;
+    border-left: 3px solid #5cb85c;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.95em;
+    line-height: 1.25;
+    text-align: center;
+  }
+  .circuit-label {
+    font-size: 0.85em;
+    color: #555;
+    margin-top: -0.5em;
+    margin-bottom: 1em;
+    font-style: italic;
+  }
+  table {
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+  th, td {
+    border: 1px solid #bbb;
+    padding: 0.4em 0.8em;
+    text-align: left;
+  }
+  th { background: #eef; }
+  .takeaway {
+    background: #fff8dc;
+    border-left: 4px solid #c9a227;
+    padding: 0.7em 1em;
+    margin: 1em 0;
+  }
+  .insight {
+    background: #e8f4ff;
+    border-left: 4px solid #1a73e8;
+    padding: 0.7em 1em;
+    margin: 1em 0;
+  }
+  .nextup {
+    background: #f0e6ff;
+    border-left: 4px solid #7c3aed;
+    padding: 0.7em 1em;
+    margin: 2em 0;
+  }
+  .meta { color: #666; font-size: 0.9em; }
+  .site-back {
+    font-size: 0.88em;
+    margin-bottom: 1.6em;
+  }
+  .site-back a { color: #8a1a2b; text-decoration: none; }
+  .site-back a:hover { text-decoration: underline; }
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1247676867483194"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<p class="site-back"><a href="../education.html">&larr; Education</a></p>
+
+<h1>Quantum Computing — Library Notes</h1>
+<p class="meta">Scripts 01–07 · Single-qubit foundations · Built with Qiskit 2.4.1 + qiskit-aer 0.17.2</p>
+
+<p>This page summarizes the first five scripts of the library. Every script is a single qubit. The goal across the set is to internalize three things: gates are deterministic unitary matrices, measurement is a separate probabilistic projection, and the choice of measurement basis determines what you can see.</p>
+
+<h2>Core machinery (used everywhere)</h2>
+
+<h3>A qubit is a 2-dimensional complex vector</h3>
+<p>$|0\rangle = \binom{1}{0}, \quad |1\rangle = \binom{0}{1}$. A general state is $\alpha|0\rangle + \beta|1\rangle$ with $|\alpha|^2 + |\beta|^2 = 1$.</p>
+
+<h3>A gate is a 2&times;2 unitary matrix</h3>
+<p>It acts on the state vector by ordinary matrix multiplication. No randomness. Every shot, the same operation.</p>
+
+<h3>Measurement is a separate, non-unitary step</h3>
+<p>Z-basis measurement returns <code>0</code> with probability $|\alpha|^2$ and <code>1</code> with probability $|\beta|^2$ (Born rule). All randomness in these scripts comes from this step alone.</p>
+
+<h2>Script 01 — Measure $|0\rangle$</h2>
+<pre>qc = QuantumCircuit(1, 1)
+qc.measure(0, 0)
+# Result: {'0': 1024}
+</pre>
+
+<h3>Circuit</h3>
+<pre class="circuit">     ┌─┐
+  q: ┤M├
+     └╥┘
+c: 1/═╩═
+      0 </pre>
+<p class="circuit-label">One quantum wire <code>q</code>, one classical wire <code>c</code>. The double line is the classical bus; the <code>M</code> box collapses <code>q</code> into bit 0 of <code>c</code>.</p>
+
+<p>No gate applied. Qubits start in $|0\rangle$, measurement returns <code>0</code> deterministically.</p>
+<div class="takeaway"><b>Takeaway:</b> Default state is $|0\rangle$. Born rule on $|0\rangle$: $P(0)=1$.</div>
+
+<h2>Script 02 — X gate</h2>
+<pre>qc.x(0)
+qc.measure(0, 0)
+# Result: {'1': 1024}
+</pre>
+
+<h3>Circuit</h3>
+<pre class="circuit">     ┌───┐┌─┐
+  q: ┤ X ├┤M├
+     └───┘└╥┘
+c: 1/══════╩═
+           0 </pre>
+<p class="circuit-label">$X$ flips $|0\rangle \to |1\rangle$ before measurement.</p>
+
+<p>$X$ is the bit-flip / NOT gate:</p>
+<p>$$X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}, \quad X|0\rangle = |1\rangle$$</p>
+<div class="takeaway"><b>Takeaway:</b> $X$ is deterministic. Output is <code>1</code> on every shot.</div>
+
+<h2>Script 03 — Hadamard</h2>
+<pre>qc.h(0)
+qc.measure(0, 0)
+# Result: {'0': ~512, '1': ~512}
+</pre>
+
+<h3>Circuit</h3>
+<pre class="circuit">     ┌───┐┌─┐
+  q: ┤ H ├┤M├
+     └───┘└╥┘
+c: 1/══════╩═
+           0 </pre>
+<p class="circuit-label">$H$ rotates $|0\rangle$ into $|+\rangle$; the Z-basis measurement then collapses to <code>0</code> or <code>1</code> with equal probability.</p>
+
+<p>$$H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}, \quad H|0\rangle = |+\rangle = \tfrac{1}{\sqrt 2}(|0\rangle + |1\rangle)$$</p>
+<p>Two important properties of $H$:</p>
+<ul>
+  <li><b>Self-inverse:</b> $H^2 = I$. Apply $H$ twice and you get $|0\rangle$ back exactly.</li>
+  <li><b>Change of basis:</b> $H$'s columns are $|+\rangle$ and $|-\rangle$ — it is literally the change-of-basis matrix between the Z basis and the X basis.</li>
+</ul>
+<div class="takeaway"><b>Takeaway:</b> The gate is still deterministic — every qubit ends up in the <em>same</em> state $|+\rangle$. The 50/50 outcome is purely a property of the Z-basis measurement.</div>
+
+<h2>Script 04 — Ry(θ): tunable Born rule</h2>
+<pre>theta = math.pi / 3
+qc.ry(theta, 0)
+qc.measure(0, 0)
+# Predicted P(0)=0.75, P(1)=0.25 → expect ~768/256
+# Observed:  {'0': 788, '1': 236}
+</pre>
+
+<h3>Circuit</h3>
+<pre class="circuit">     ┌─────────┐┌─┐
+  q: ┤ Ry(π/3) ├┤M├
+     └─────────┘└╥┘
+c: 1/════════════╩═
+                 0 </pre>
+<p class="circuit-label">$R_y(\pi/3)$ rotates $|0\rangle$ by 60° around the y-axis. The angle is shown inside the gate box.</p>
+
+<p>$$R_y(\theta) = \begin{pmatrix} \cos(\theta/2) & -\sin(\theta/2) \\ \sin(\theta/2) & \cos(\theta/2) \end{pmatrix}$$</p>
+
+<p>Acting on $|0\rangle$:</p>
+<p>$$R_y(\theta)|0\rangle = \cos(\theta/2)|0\rangle + \sin(\theta/2)|1\rangle, \quad P(0) = \cos^2(\theta/2)$$</p>
+
+<table>
+  <tr><th>θ</th><th>Effect on $|0\rangle$</th><th>Equivalent gate (Z-basis stats)</th></tr>
+  <tr><td>0</td><td>$|0\rangle$</td><td>identity (script 01)</td></tr>
+  <tr><td>π/3</td><td>$P(0)=3/4$</td><td>—</td></tr>
+  <tr><td>π/2</td><td>$|+\rangle$</td><td>like H (script 03)</td></tr>
+  <tr><td>π</td><td>$|1\rangle$</td><td>like X (script 02)</td></tr>
+</table>
+
+<div class="insight">
+  <b>The half-angle isn't a typo.</b> Qubits live in SU(2), which double-covers ordinary 3D rotations (SO(3)). A $2\pi$ rotation introduces a $-1$ phase; you need $4\pi$ to truly return. This factor of 1/2 is geometric, not a convention.
+</div>
+
+<div class="insight">
+  <b>$H \ne R_y(\pi/2)$ as matrices,</b> even though they produce the same result on $|0\rangle$. Strict identity: $H = R_y(\pi/2)\cdot Z$. They diverge when applied to $|1\rangle$.
+</div>
+
+<div class="takeaway"><b>Takeaway:</b> One slider $\theta$ unifies the trivial case, X, and H. The Born rule turns angles into probabilities via $\cos^2$ and $\sin^2$.</div>
+
+<h2>Script 05 — Z gate: the "invisible" phase</h2>
+<pre>Z = [[1,  0],
+     [0, -1]]
+</pre>
+
+<h3>Circuit (canonical case: $Z|+\rangle = |-\rangle$, measured in Z)</h3>
+<pre class="circuit">     ┌───┐┌───┐┌─┐
+  q: ┤ H ├┤ Z ├┤M├
+     └───┘└───┘└╥┘
+c: 1/═══════════╩═
+                0 </pre>
+<p class="circuit-label">First $H$ prepares $|+\rangle$; then $Z$ flips it to $|-\rangle$. The Z-basis measurement reports ~50/50 — identical to running just $H$ alone (script 03). The state changed; the measurement can't see it.</p>
+
+<p>$Z|0\rangle = |0\rangle$, $Z|1\rangle = -|1\rangle$, $Z|+\rangle = |-\rangle$.</p>
+
+<p>The script ran four configurations and printed both the statevector (deterministic) and the Z-basis measurement counts:</p>
+
+<table>
+  <tr><th>State</th><th>Statevector</th><th>Z-basis counts</th></tr>
+  <tr><td>$|0\rangle$</td><td>(1, 0)</td><td>all 0</td></tr>
+  <tr><td>$Z|0\rangle$</td><td>(1, 0)</td><td>all 0</td></tr>
+  <tr><td>$|+\rangle$</td><td>(0.707, +0.707)</td><td>~50/50</td></tr>
+  <tr><td>$|-\rangle = Z|+\rangle$</td><td>(0.707, −0.707)</td><td>~50/50</td></tr>
+</table>
+
+<p>The bottom two rows are different states — the sign on the second amplitude is real — but the Z-basis measurement <em>cannot tell them apart</em>. The Born rule on Z-basis measurement only sees $|\text{amplitude}|^2$, and squaring kills the sign.</p>
+
+<div class="insight">
+  <b>The deep idea.</b> A measurement is a projection onto a chosen basis. Z-basis measurement asks "$|0\rangle$ or $|1\rangle$?" — it cannot ask "$|+\rangle$ or $|-\rangle$?". To detect the phase, you must change the question by changing the basis.
+</div>
+
+<div class="takeaway"><b>Takeaway:</b> Phase information is real but basis-dependent in what it reveals. This is the foundation of QKD: Alice and Bob's basis choices, not their bit values, are what carry the security guarantee.</div>
+
+<h2>Script 06 — Measuring in the X basis</h2>
+<pre>qc.h(0)             # the basis-change trick
+qc.measure(0, 0)
+</pre>
+
+<h3>Circuit (a): measure $|0\rangle$ in the X basis</h3>
+<pre class="circuit">     ┌───┐┌─┐
+  q: ┤ H ├┤M├
+     └───┘└╥┘
+c: 1/══════╩═
+           0 </pre>
+<p class="circuit-label">No state preparation — qubit is just $|0\rangle$. The lone $H$ is the X-basis measurement recipe. Result: 50/50, because $|0\rangle = \tfrac{1}{\sqrt 2}(|+\rangle + |-\rangle)$ has equal weight on both X-basis outcomes.</p>
+
+<h3>Circuit (b): prepare $|+\rangle$, then measure in the X basis</h3>
+<pre class="circuit">     ┌───┐ ░ ┌───┐┌─┐
+  q: ┤ H ├─░─┤ H ├┤M├
+     └───┘ ░ └───┘└╥┘
+c: 1/══════════════╩═
+                   0 </pre>
+<p class="circuit-label">Two $H$'s with a barrier (the dotted line) marking the boundary between <em>state preparation</em> and <em>measurement basis change</em>. Algebraically $H \cdot H = I$, so the qubit reaches the measurement still in $|0\rangle$, giving deterministic <code>0</code>. Conceptually: we prepared $|+\rangle$ and asked an X-basis question — perfect alignment, no randomness.</p>
+
+<p>Hardware can only measure in the Z basis. To measure in the X basis, apply $H$ <em>before</em> <code>measure</code>. Since $H$ is its own inverse and swaps $|+\rangle \leftrightarrow |0\rangle$ and $|-\rangle \leftrightarrow |1\rangle$, this rotates X-basis questions into Z-basis answers.</p>
+
+<p>Compare to script 05: the same four states, now measured in X instead of Z. The roles flip completely.</p>
+
+<table>
+  <tr><th>State</th><th>Z-basis counts (script 05)</th><th>X-basis counts (script 06)</th></tr>
+  <tr><td>$|0\rangle$</td><td>all 0</td><td>~50/50</td></tr>
+  <tr><td>$|1\rangle$</td><td>all 1</td><td>~50/50</td></tr>
+  <tr><td>$|+\rangle$</td><td>~50/50</td><td><b>all 0</b></td></tr>
+  <tr><td>$|-\rangle$</td><td>~50/50</td><td><b>all 1</b></td></tr>
+</table>
+
+<p>The phase that was invisible in script 05 is now the <em>only</em> thing that matters.</p>
+
+<div class="insight">
+  <b>The deep idea, finalized.</b> A quantum measurement is a question with a built-in vocabulary. The basis you choose decides which states get crisp answers and which get coin flips. There is no "true" answer in the absence of a basis choice — the basis is part of the experiment.
+</div>
+
+<h3>Why this is the engine of QKD</h3>
+<p>You now have everything for BB84 at a mechanical level:</p>
+<ol>
+  <li>Alice randomly picks a bit and a basis. She prepares one of four states: $|0\rangle$, $|1\rangle$, $|+\rangle$, $|-\rangle$.</li>
+  <li>Bob randomly picks a basis (Z or X) to measure in.</li>
+  <li>When their bases match (~half the time), Bob's bit equals Alice's bit deterministically — the situation in scripts 01/02/06.</li>
+  <li>When their bases mismatch, Bob gets 50/50 — the situation in scripts 03/05.</li>
+  <li>They publicly compare bases (not bits!) and discard mismatched rounds. Matched rounds form a shared secret key.</li>
+  <li>An eavesdropper Eve doesn't know Alice's basis, so she has to guess. Wrong-basis measurements disturb the state, which Alice and Bob detect as errors during a public sanity-check round.</li>
+</ol>
+
+<h2>Script 07 — Phase gates S, T and the third Pauli basis</h2>
+
+<p>The phase-gate hierarchy is a sequence of halvings, all of them rotations around the Bloch z-axis:</p>
+
+<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}\;\text{(π)} \qquad S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix}\;\text{(π/2)} \qquad T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix}\;\text{(π/4)}$$</p>
+
+<p>Algebraic relationships: $Z = S^2 = T^4$ and $S = T^2$. All three leave $|\text{amplitude}|^2$ unchanged, so all three are invisible in the Z basis.</p>
+
+<p>But $S$ is also invisible in the <b>X</b> basis. $S|+\rangle$ produces a <em>complex</em> relative phase, and $H$ alone can't reveal that. We need a third measurement direction — the Y basis.</p>
+
+<table>
+  <tr><th>Basis</th><th>Reads</th><th>Recipe before <code>measure</code></th></tr>
+  <tr><td>Z</td><td>$|0\rangle$ vs $|1\rangle$</td><td>(nothing)</td></tr>
+  <tr><td>X</td><td>$|+\rangle$ vs $|-\rangle$</td><td>apply $H$</td></tr>
+  <tr><td>Y</td><td>$|+i\rangle$ vs $|-i\rangle$</td><td>apply $S^\dagger$, then $H$</td></tr>
+</table>
+
+<p>The Y-basis recipe works because $H S^\dagger |+i\rangle = |0\rangle$ — the Y-basis question gets rotated into a Z-basis answer, exactly like the X-basis trick from script 06.</p>
+
+<h3>Circuit (a): $S$ gate — prepare $|+i\rangle$, measure in the Y basis</h3>
+<pre class="circuit">     ┌───┐┌───┐ ░ ┌─────┐┌───┐┌─┐
+  q: ┤ H ├┤ S ├─░─┤ Sdg ├┤ H ├┤M├
+     └───┘└───┘ ░ └─────┘└───┘└╥┘
+c: 1/══════════════════════════╩═
+                               0 </pre>
+<p class="circuit-label">Left of the barrier: state prep — $H$ then $S$ produces $S|+\rangle = |+i\rangle$. Right of the barrier: Y-basis measurement recipe ($S^\dagger$, then $H$, then measure). Result: deterministic <code>0</code>. The same state measured in Z or X would give 50/50.</p>
+
+<h3>Circuit (b): $T$ gate — prepare $T|+\rangle$, measure in the X basis</h3>
+<pre class="circuit">     ┌───┐┌───┐ ░ ┌───┐┌─┐
+  q: ┤ H ├┤ T ├─░─┤ H ├┤M├
+     └───┘└───┘ ░ └───┘└╥┘
+c: 1/═══════════════════╩═
+                        0 </pre>
+<p class="circuit-label">$T|+\rangle$ sits at 45° between the +X and +Y axes on the Bloch equator. X-basis measurement gives ~85% <code>0</code> — biased but not deterministic, because the state is half-aligned with the X axis.</p>
+
+<h3>The full result table</h3>
+
+<table>
+  <tr><th>State</th><th>Z basis</th><th>X basis</th><th>Y basis</th></tr>
+  <tr><td>$|+\rangle$</td><td>50/50</td><td><b>100% → 0</b></td><td>50/50</td></tr>
+  <tr><td>$S|+\rangle = |+i\rangle$</td><td>50/50</td><td>50/50</td><td><b>100% → 0</b></td></tr>
+  <tr><td>$T|+\rangle$</td><td>50/50</td><td>~85% → 0</td><td>~85% → 0</td></tr>
+  <tr><td>$Z|+\rangle = |-\rangle$</td><td>50/50</td><td><b>100% → 1</b></td><td>50/50</td></tr>
+</table>
+
+<p>Each Pauli basis "owns" one Bloch axis. To detect a rotation around an axis, measure along that same axis. Look the wrong way and you get the maximally uninformative 50/50.</p>
+
+<div class="insight">
+  <b>The T-gate result is the prettiest math.</b> $T|+\rangle$ sits at 45° between the +X and +Y axes on the Bloch equator, so X and Y both give the same biased answer:
+  $$P(0 \mid \text{X}) = P(0 \mid \text{Y}) = \cos^2(\pi/8) = \frac{2 + \sqrt 2}{4} \approx 0.854$$
+  Sim measured 86% and 85% — within shot noise of the prediction. Continuous Born rule, just along a different axis.
+</div>
+
+<div class="insight">
+  <b>Why $T$ matters: universality.</b> The set $\{H, T\}$ — just two gates — can approximate any single-qubit unitary to arbitrary precision (Solovay–Kitaev). $H$ gives you basis-change capability, $T$ gives you fine-grained z-axis rotation. Combined, they reach any point on the Bloch sphere. Adding $T$ to the Clifford group $\{H, S, \text{CNOT}\}$ promotes it from "classically simulable" to "universal for quantum computation."
+</div>
+
+<div class="takeaway"><b>Takeaway:</b> The Bloch sphere has three orthogonal measurement axes (X, Y, Z), and each gate's effect is most visible in one specific basis. Continuous gates (like $T$) sit between two axes and give partial information in both. This three-axis picture is the geometric backbone of all single-qubit quantum mechanics.</div>
+
+<h2>BB84 — The four states</h2>
+
+<p>BB84 (and Sara's HD-QKD work, in spirit) is built from <em>exactly four states</em>. Two bases × two bit values = four. In the QKD literature these bases are usually called <b>+ (rectilinear)</b> and <b>× (diagonal)</b>, which match the Z basis and X basis from the scripts:</p>
+
+<table>
+  <tr><th>Polarization</th><th>Qubit state</th><th>Basis</th><th>Bit</th><th>Recipe from $\|0\rangle$</th></tr>
+  <tr><td><b>0°</b> (horizontal)</td><td>$|0\rangle$</td><td>+ (Z)</td><td>0</td><td><em>(nothing)</em></td></tr>
+  <tr><td><b>90°</b> (vertical)</td><td>$|1\rangle$</td><td>+ (Z)</td><td>1</td><td><code>X</code></td></tr>
+  <tr><td><b>45°</b> (diagonal)</td><td>$|+\rangle$</td><td>× (X)</td><td>0</td><td><code>H</code></td></tr>
+  <tr><td><b>135°</b> (anti-diagonal, or −45°)</td><td>$|-\rangle$</td><td>× (X)</td><td>1</td><td><code>H</code>, then <code>Z</code></td></tr>
+</table>
+
+<h3>The four prep circuits</h3>
+
+<pre class="circuit">                         ┌───┐
+  q: ─────         q: ────┤ X ├────
+                          └───┘
+       |0⟩, 0°              |1⟩, 90°
+
+     ┌───┐              ┌───┐┌───┐
+  q: ┤ H ├          q: ─┤ H ├┤ Z ├─
+     └───┘              └───┘└───┘
+       |+⟩, 45°            |-⟩, 135°
+</pre>
+<p class="circuit-label">All four BB84 states. Same starting point ($|0\rangle$), four different gate sequences, four different polarization angles.</p>
+
+<h3>Geometric picture</h3>
+
+<p>Place the four states on a clock face. The two bases sit at right angles to each other in real polarization space:</p>
+
+<pre class="circuit">           90°  (|1⟩)
+            │
+   135°─────┼─────45°
+   (|-⟩)    │     (|+⟩)
+            │
+            0°  (|0⟩)
+</pre>
+
+<p>The Pauli gates have clean geometric meanings:</p>
+<ul>
+  <li><code>X</code> flips top–bottom: 0° ↔ 90° &nbsp; ($|0\rangle \leftrightarrow |1\rangle$). Bit-flip within the + basis.</li>
+  <li><code>Z</code> flips left–right: 45° ↔ 135° &nbsp; ($|+\rangle \leftrightarrow |-\rangle$). Bit-flip within the × basis.</li>
+  <li><code>H</code> swaps the two axes: 0° ↔ 45°, 90° ↔ 135°. The basis-change gate.</li>
+</ul>
+
+<div class="insight">
+  <b>The polarization "factor of 2".</b> $|0\rangle$ and $|1\rangle$ are 180° apart on the Bloch sphere, but only 90° apart in real polarization. Same with $|+\rangle$ vs $|-\rangle$. This is the <em>same</em> factor of 2 you saw in $R_y(\theta)$ — the SU(2) double cover of SO(3). Polarization rotations live in real 3D space (SO(3)); qubit states live in its double cover (SU(2)).
+</div>
+
+<div class="insight">
+  <b>Memory hook for the bit-flip rules.</b> Each Pauli is the bit-flip <em>of its own basis</em>:
+  <ul>
+    <li><code>X</code> is the bit-flip of the Z basis ($|0\rangle \leftrightarrow |1\rangle$) — used to make the bit-1 state in the + basis.</li>
+    <li><code>Z</code> is the bit-flip of the X basis ($|+\rangle \leftrightarrow |-\rangle$) — used <em>after</em> $H$ to make the bit-1 state in the × basis.</li>
+  </ul>
+  So the symmetric recipe is: pick your basis (no gate or $H$), then optionally apply that basis's bit-flip ($X$ or $Z$).
+</div>
+
+<div class="takeaway"><b>Takeaway:</b> BB84 is a 1-qubit protocol that recycles four prep recipes you already know — <code>identity</code>, <code>X</code>, <code>H</code>, <code>HZ</code> — applied with random bit and basis choices each round. Everything else (sifting, error checking, key extraction) is classical post-processing.</div>
+
+<h2>Cross-cutting principles</h2>
+<ol>
+  <li><b>Gates are deterministic.</b> The 2&times;2 unitary maps every input state to one specific output state. No randomness.</li>
+  <li><b>Measurements are probabilistic.</b> All "quantum randomness" comes from the measurement step, not the gate.</li>
+  <li><b>The basis is a choice.</b> The same physical state gives different statistics depending on which basis you measure in. $H$ swaps Z↔X; $S^\dagger H$ swaps Z↔Y.</li>
+  <li><b>Phase is invisible until you switch bases.</b> $|+\rangle$ vs $|-\rangle$ look identical in Z but trivially distinguishable in X. $|+i\rangle$ vs $|-i\rangle$ look identical in both Z and X — you need Y.</li>
+  <li><b>The Bloch sphere is real.</b> Three orthogonal axes (X, Y, Z), three measurement bases, and any single-qubit state is one point on the surface.</li>
+</ol>
+
+<div class="nextup">
+  <b>Next up — Script 08.</b> Three reasonable directions, picking one when we resume:
+  <ul>
+    <li><b>Toy BB84 simulation:</b> stitch scripts 03/05/06 into a multi-round key-exchange protocol with Alice, Bob, and an optional eavesdropper. The natural 1-qubit capstone before moving to 2 qubits.</li>
+    <li><b>Universal gate construction:</b> show that combinations of $H$ and $T$ approximate an arbitrary rotation, with a small Solovay–Kitaev-style demo.</li>
+    <li><b>Bloch sphere visualization:</b> plot states on a 3D sphere to make the X/Y/Z axes geometrically real (uses <code>qiskit.visualization</code>).</li>
+  </ul>
+</div>
+
+</body>
+</html>
