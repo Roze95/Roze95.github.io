@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 3 — Finite Differences and Boundary Conditions | 18.085</title>
+<meta name="description" content="18.085 Fall 2026: the elastic rod, force balance and −Cu″ = f, discretisation on a finite grid, and the four boundary-condition matrices K, T, B, C.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 3</p>
+    <h1>Finite Differences and Boundary Conditions</h1>
+    <p class="lecmeta">
+      <span>Wednesday, September 16, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.1–1.2</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L02.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Derive the equilibrium equation $-Cu'' = f$ for an elastic rod from a force balance on one small segment.</li>
+      <li>Discretise $-u'' = f$ on a finite grid and read off the interior rows of the resulting matrix.</li>
+      <li>Turn fixed, free, and periodic end conditions into boundary rows, producing $\Kmat, \Tmat, \Bmat, \Cmat$.</li>
+      <li>Exhibit the nullspace of $\Bmat$ and say what it means physically.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Where we left off</h2>
+    <p>Last time we built the second-difference operator as an infinite matrix, and then
+    admitted that this is a fiction: a real computation happens on a finite grid over a finite
+    interval, and the grid has two ends. Today we truncate. What we will find is that the
+    interior of the matrix is the easy part — the $1, -2, 1$ stencil, unchanged — and that all
+    of the modelling lives in the first and last rows.</p>
+    <p>To decide what those rows should be, we need a physical problem, because a mathematical
+    interval does not tell you what is happening at its endpoints. A rod does.</p>
+  </section>
+
+  <section>
+    <h2>1 · A physical example: an elastic rod under tension</h2>
+    <p>Take the one-dimensional deformation of a light elastic rod. The object we are solving
+    for is the displacement field $u(x)$: how far the slice of the rod that sits at coordinate
+    $x$ when the rod is relaxed moves once external forces are applied. The slice that started
+    at $x_0$ ends up at $x_0 + u(x_0)$.</p>
+
+    <figure>
+      <svg viewBox="0 0 620 130" width="100%" style="max-width:620px" role="img"
+           aria-label="A relaxed rod above a loaded rod, showing the slice at x-nought displaced to x-nought plus u of x-nought.">
+        <text x="14" y="34" font-size="13" fill="var(--muted)" font-family="Georgia, serif">relaxed</text>
+        <rect x="90" y="20" width="470" height="20" fill="none" stroke="var(--muted)" stroke-width="1.4"/>
+        <line x1="250" y1="20" x2="250" y2="40" stroke="var(--cse-blue)" stroke-width="2.4"/>
+        <text x="250" y="14" font-size="13" font-style="italic" fill="var(--ink)"
+              text-anchor="middle" font-family="Georgia, serif">x₀</text>
+
+        <text x="14" y="94" font-size="13" fill="var(--muted)" font-family="Georgia, serif">loaded</text>
+        <rect x="90" y="80" width="470" height="20" fill="none" stroke="var(--muted)" stroke-width="1.4"/>
+        <line x1="330" y1="80" x2="330" y2="100" stroke="var(--cse-green)" stroke-width="2.4"/>
+        <text x="336" y="118" font-size="13" font-style="italic" fill="var(--ink)"
+              text-anchor="middle" font-family="Georgia, serif">x₀ + u(x₀)</text>
+
+        <g stroke="var(--cse-green)" stroke-width="1.4">
+          <line x1="250" y1="60" x2="322" y2="60" stroke-dasharray="0"/>
+          <polygon points="330,60 320,56 320,64" fill="var(--cse-green)" stroke="none"/>
+        </g>
+        <line x1="250" y1="40" x2="250" y2="60" stroke="var(--muted)" stroke-width="1"
+              stroke-dasharray="3 3"/>
+      </svg>
+      <figcaption>The displacement field records where each slice went.</figcaption>
+    </figure>
+
+    <p><strong>Goal.</strong> Given the distribution of forces along the rod, $f(x)$, calculate
+    the resulting displacement $u(x)$.</p>
+
+    <h3>A linear stress–strain relation</h3>
+    <p>Assume the material responds linearly. Look at a tiny segment between $x$ and
+    $x + \Dh$. It has been stretched by $u(x+\Dh) - u(x)$, and the tension it carries is
+    proportional to that stretch per unit length:</p>
+    \[
+      T(x) = C\,\frac{u(x + \Dh) - u(x)}{\Dh}.
+    \]
+    <p>Taking $\Dh \to 0$, the displacement $u(x)$ induces a tension in the rod given by</p>
+    \[ T(x) = C\,u'(x). \]
+
+    <div class="remark">
+      <span class="boxtitle">Remark · What $C$ hides</span>
+      <p>$C$ is a “tension constant” — Young's modulus for the material combined with the
+      cross-sectional area of the rod, and whatever else is needed to convert a strain into a
+      force. For now it is a single number, and we will set it to $1$. It matters that it sits
+      <em>between</em> the two derivative steps below; when we return to this structure in the
+      springs-and-masses lecture, that middle slot is where the material properties live.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Force balance gives the equilibrium equation</h2>
+    <p>Now introduce the external forces and draw the free-body diagram of a small segment.
+    Three things act on it: the tension pulling out at the right face, the tension pulling out
+    at the left face, and the applied load $f$ spread over a length $\Dh$.</p>
+
+    <p>Nothing is accelerating — this is a statics problem — so the three contributions sum to
+    zero:</p>
+    \[
+      T(x+\Dh) + f\,\Dh - T(x) = 0
+      \qquad\Longrightarrow\qquad
+      -\left( \frac{T(x+\Dh) - T(x)}{\Dh} \right) = f(x).
+    \]
+    <p>In the continuous limit this is $-T'(x) = f(x)$, and substituting $T = Cu'$ gives the
+    equation we will be discretising for the rest of the lecture:</p>
+    \[ \boxed{\ -C\,u''(x) = f(x)\ } \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Two first-order steps, not one second-order step</span>
+      <p>The chain is
+      $\text{displacement} \xrightarrow{\ \text{differentiate},\ \times C\ } \text{tension}
+      \xrightarrow{\ \text{differentiate, negate}\ } \text{load}$.
+      The second derivative is not primitive here; it is the composition of two first
+      differences with the material constant in between. This is the factored structure
+      promised at the end of Lecture&nbsp;2, and keeping it visible is what will eventually
+      make the matrices symmetric.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Fixed–fixed ends: the matrix $\Kmat$</h2>
+    <p>Let us discretise using finite differences, starting with fixed boundary conditions.
+    Take $C = 1$. The elastic rod is fixed between $x = 0$ and $x = 1$, and neither end of the
+    rod can be displaced.</p>
+
+    <figure>
+      <svg viewBox="0 0 640 175" width="100%" style="max-width:640px" role="img"
+           aria-label="A grid of six nodes from u-nought to u-five between two fixed walls, with four downward loads f1 to f4 at the interior nodes.">
+        <!-- walls -->
+        <g stroke="var(--muted)" stroke-width="1.4">
+          <line x1="60" y1="55" x2="60" y2="125"/>
+          <line x1="580" y1="55" x2="580" y2="125"/>
+        </g>
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="48" y1="61" x2="60" y2="49"/><line x1="48" y1="79" x2="60" y2="67"/>
+          <line x1="48" y1="97" x2="60" y2="85"/><line x1="48" y1="115" x2="60" y2="103"/>
+          <line x1="48" y1="133" x2="60" y2="121"/>
+          <line x1="580" y1="49" x2="592" y2="61"/><line x1="580" y1="67" x2="592" y2="79"/>
+          <line x1="580" y1="85" x2="592" y2="97"/><line x1="580" y1="103" x2="592" y2="115"/>
+          <line x1="580" y1="121" x2="592" y2="133"/>
+        </g>
+        <!-- rod -->
+        <line x1="60" y1="90" x2="580" y2="90" stroke="var(--muted)" stroke-width="1.6"/>
+        <!-- loads -->
+        <g stroke="var(--cse-red)" stroke-width="1.8">
+          <line x1="164" y1="30" x2="164" y2="78"/><polygon points="164,86 159,74 169,74" fill="var(--cse-red)" stroke="none"/>
+          <line x1="268" y1="30" x2="268" y2="78"/><polygon points="268,86 263,74 273,74" fill="var(--cse-red)" stroke="none"/>
+          <line x1="372" y1="30" x2="372" y2="78"/><polygon points="372,86 367,74 377,74" fill="var(--cse-red)" stroke="none"/>
+          <line x1="476" y1="30" x2="476" y2="78"/><polygon points="476,86 471,74 481,74" fill="var(--cse-red)" stroke="none"/>
+        </g>
+        <g font-size="13" font-style="italic" fill="var(--cse-red)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="164" y="24">f₁</text><text x="268" y="24">f₂</text>
+          <text x="372" y="24">f₃</text><text x="476" y="24">f₄</text>
+        </g>
+        <!-- nodes -->
+        <g fill="var(--cse-blue)">
+          <circle cx="60" cy="90" r="4.5"/><circle cx="164" cy="90" r="4.5"/>
+          <circle cx="268" cy="90" r="4.5"/><circle cx="372" cy="90" r="4.5"/>
+          <circle cx="476" cy="90" r="4.5"/><circle cx="580" cy="90" r="4.5"/>
+        </g>
+        <g font-size="13" font-style="italic" fill="var(--ink)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="60" y="112">u₀ = 0</text><text x="164" y="112">u₁</text>
+          <text x="268" y="112">u₂</text><text x="372" y="112">u₃</text>
+          <text x="476" y="112">u₄</text><text x="580" y="112">u₅ = 0</text>
+        </g>
+        <!-- axis labels -->
+        <g font-size="12" fill="var(--muted)" text-anchor="middle" font-family="Georgia, serif">
+          <text x="60" y="152">0</text><text x="164" y="152">x₁</text>
+          <text x="268" y="152">x₂</text><text x="372" y="152">x₃</text>
+          <text x="476" y="152">x₄</text><text x="580" y="152">1</text>
+        </g>
+        <!-- h bracket -->
+        <g stroke="var(--muted)" stroke-width="1">
+          <line x1="268" y1="163" x2="372" y2="163"/>
+          <line x1="268" y1="159" x2="268" y2="167"/>
+          <line x1="372" y1="159" x2="372" y2="167"/>
+        </g>
+        <text x="320" y="175" font-size="12" font-style="italic" fill="var(--muted)"
+              text-anchor="middle" font-family="Georgia, serif">h</text>
+      </svg>
+      <figcaption>Six nodes, four unknowns. The ends are known, not absent.</figcaption>
+    </figure>
+
+    <p>The grid has spacing $h$, the nodes are $x_j = jh$, and the two end values $u_0$ and
+    $u_5$ are known — both are zero. The unknowns are the four interior values
+    $u_1, u_2, u_3, u_4$, and the data are the loads $f_1, \ldots, f_4$ at those nodes.</p>
+
+    <p>Using the three-point centred difference scheme for $u''$ from last lecture,</p>
+    \[
+      -u''(x) \simeq \frac{-u(x-h) + 2u(x) - u(x+h)}{h^2},
+    \]
+    <p>and given our discrete grid, this translates to</p>
+    \[
+      \frac{1}{h^2}
+      \begin{bmatrix}
+        2 & -1 &    &    \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+          &    & -1 &  2
+      \end{bmatrix}
+      \begin{bmatrix} u_1 \\ u_2 \\ u_3 \\ u_4 \end{bmatrix}
+      =
+      \begin{bmatrix} f_1 \\ f_2 \\ f_3 \\ f_4 \end{bmatrix}.
+    \]
+
+    <h3>Where each row came from</h3>
+    <p>The interior rows — rows 2 and 3 — follow directly from the finite difference formula.
+    Nothing happens to them; they are the infinite matrix of the previous lecture, copied.</p>
+    <p>The boundary rows are the content. Take the first one. We have $u_1 = u(h)$,
+    $u_2 = u(2h)$, and $u_0 = u(0) = 0$ because the end is fixed. So</p>
+    \[
+      -u''(h) \simeq \frac{-u_0 + 2u_1 - u_2}{h^2} = \frac{1}{h^2}\bigl( 2u_1 - u_2 \bigr),
+    \]
+    <p>and the same argument at the other end, using $u_5 = 0$, produces the last row.</p>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · The corner entry is not a truncation</span>
+      <p>The $u_0$ term did not vanish because we ran out of grid and threw it away. It
+      vanished because $u_0$ is <em>known</em> and its known value happens to be zero. Keep the
+      two facts separate in your head — which nodes are unknowns, and what the known ones equal
+      — and the boundary rows stop being mysterious.</p>
+    </div>
+
+    <p>This is the first of the four special matrices we will use all semester:</p>
+    \[
+      \Kmat =
+      \begin{bmatrix}
+        2 & -1 &    &    \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+          &    & -1 &  2
+      \end{bmatrix},
+      \qquad\text{fixed–fixed, and the system is}\qquad
+      \frac{1}{h^2}\,\Kmat\,\vec u = \vec f .
+    \]
+    <p>Throughout the course the letters $\Kmat, \Tmat, \Bmat, \Cmat$ name the
+    <em>integer</em> arrays; the factor $1/h^2$ rides outside.</p>
+  </section>
+
+  <section>
+    <h2>4 · A free end: the matrix $\Tmat$</h2>
+    <p>Now release the end at $x = 0$ and keep the end at $x = 1$ fixed. At the free end there
+    are no constraints on the rod, so there is no internal tension coming in there:</p>
+    \[ T(x=0) = 0 \qquad\Longrightarrow\qquad u'(0) = 0. \]
+
+    <p>Two things change. First, since $x = 0$ is now a free end, $u_0$ is an unknown to be
+    solved for rather than a given value — the system grows by one row and one column, and the
+    load $f_0$ at that node joins the right-hand side. Second, $u_5 = 0$ is still known; that is
+    the fixed condition at the far end. The finite difference discretisation now reads</p>
+    \[
+      \frac{1}{h^2}
+      \begin{bmatrix}
+        1 & -1 &    &    &    \\
+       -1 &  2 & -1 &    &    \\
+          & -1 &  2 & -1 &    \\
+          &    & -1 &  2 & -1 \\
+          &    &    & -1 &  2
+      \end{bmatrix}
+      \begin{bmatrix} u_0 \\ u_1 \\ u_2 \\ u_3 \\ u_4 \end{bmatrix}
+      =
+      \begin{bmatrix} f_0 \\ f_1 \\ f_2 \\ f_3 \\ f_4 \end{bmatrix},
+      \qquad
+      \Tmat =
+      \begin{bmatrix}
+        1 & -1 &    &    &    \\
+       -1 &  2 & -1 &    &    \\
+          & -1 &  2 & -1 &    \\
+          &    & -1 &  2 & -1 \\
+          &    &    & -1 &  2
+      \end{bmatrix}.
+    \]
+
+    <p>The first row is the one that corresponds to the free end. Here we take the second
+    difference one-sidedly, as a difference of first derivatives, and then use the boundary
+    condition:</p>
+    \[
+      -u''(0) \simeq \frac{u'(0) - u'(h)}{h} = -\frac{u'(h)}{h}
+      = -\frac{1}{h}\left( \frac{u_1 - u_0}{h} \right)
+      = \frac{1}{h^2}\bigl( u_0 - u_1 \bigr),
+    \]
+    <p>where the middle equality is exactly the statement $u'(0) = 0$ imposed by the free end.
+    That is the row $\begin{bmatrix} 1 & -1 & 0 & 0 & 0 \end{bmatrix}$.</p>
+  </section>
+
+  <section>
+    <h2>5 · Free at both ends: the matrix $\Bmat$</h2>
+    <p>Apply the same one-sided argument at <em>both</em> ends and a $1$ appears in each corner.
+    The resulting finite difference matrix is</p>
+    \[
+      \frac{1}{h^2}
+      \begin{bmatrix}
+        1 & -1 &    &    \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+          &    & -1 &  1
+      \end{bmatrix},
+      \qquad
+      \Bmat =
+      \begin{bmatrix}
+        1 & -1 &    &    \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+          &    & -1 &  1
+      \end{bmatrix}.
+    \]
+
+    <p>This matrix is non-invertible, or singular. It has a non-trivial nullspace: every
+    vector</p>
+    \[
+      \vec u = a \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix}
+      \qquad\text{solves}\qquad \Bmat \vec u = \vec 0 ,
+    \]
+    <p>as you can check row by row — each row of $\Bmat$ sums to zero, so a constant vector is
+    annihilated by all four of them.</p>
+
+    <p>Physically, these solutions correspond to shifting the rod uniformly in space, which is
+    allowed precisely because the rod is free at both ends. Nothing is holding it anywhere, so
+    if $\vec u$ is an equilibrium displacement then so is $\vec u$ plus a constant: slide the
+    whole rod one centimetre to the right and every internal tension is unchanged.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Invertibility is a statement about physics</span>
+      <p>$\Kmat$ is invertible and $\Bmat$ is not, and the reason is not arithmetic. A rod held
+      at both ends has exactly one equilibrium for a given load, so the map from displacement to
+      load can be run backwards. A rod held at neither end has no preferred position at all, so
+      that map cannot be run backwards — and the ambiguity is not vague, it is the explicit
+      vector $(1,1,1,1)$. The nullspace of a matrix is a list of the things your model failed to
+      pin down.</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · The other half of the question</span>
+      <p>If $\Bmat$ cannot be inverted, which loads $\vec f$ can a free–free rod support at all?
+      That is the question of whether $\vec f$ lies in the space of vectors reachable as
+      $\Bmat \vec u$. Naming the subspaces that answer questions of this shape is what the
+      bases-and-projection lecture is for.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Periodic ends: the matrix $\Cmat$</h2>
+    <p>The last option is to let the configuration repeat: the same rod, the same loads, over
+    and over, forever. Periodic boundary conditions are a little contrived in this context of a
+    stiff rod, but in general they are very useful for physics modelling.</p>
+
+    <p>Because $u$ and $f$ repeat from cell to cell, the grid closes up on itself: the neighbour
+    to the left of the first node is the last node, and the neighbour to the right of the last
+    node is the first. Due to the periodicity, the finite differences wrap around:</p>
+    \[
+      \frac{1}{h^2}
+      \begin{bmatrix}
+        2 & -1 &    & -1 \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+       -1 &    & -1 &  2
+      \end{bmatrix},
+      \qquad
+      \Cmat =
+      \begin{bmatrix}
+        2 & -1 &    & -1 \\
+       -1 &  2 & -1 &    \\
+          & -1 &  2 & -1 \\
+       -1 &    & -1 &  2
+      \end{bmatrix}.
+    \]
+    <p>Every row still has the same three entries $-1, 2, -1$; the two rows that used to be
+    short have had their missing $-1$ put back on the far side.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Circulant</span>
+      <p>$\Cmat$ is a <em>circulant</em> matrix: every row is the same, just shifted in
+      position. We will discuss circulant matrices in much more detail during the Fourier
+      section of the course, where that single structural fact turns out to diagonalise them
+      completely.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · A question worth asking now</span>
+      <p>Look at the row sums of $\Cmat$. Do they tell you anything about whether $\Cmat$ shares
+      $\Bmat$'s difficulty — and if so, what is the rod free to do this time?</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>7 · The four matrices side by side</h2>
+    <div class="tablewrap">
+    <table class="sched">
+      <thead>
+        <tr><th></th><th>End at $x=0$</th><th>End at $x=1$</th><th>First row</th><th>Last row</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="n">$\Kmat$</td><td>fixed, $u(0)=0$</td><td>fixed, $u(1)=0$</td>
+            <td>$\begin{bmatrix} 2 & -1 \end{bmatrix}$</td>
+            <td>$\begin{bmatrix} -1 & 2 \end{bmatrix}$</td></tr>
+        <tr><td class="n">$\Tmat$</td><td>free, $u'(0)=0$</td><td>fixed, $u(1)=0$</td>
+            <td>$\begin{bmatrix} 1 & -1 \end{bmatrix}$</td>
+            <td>$\begin{bmatrix} -1 & 2 \end{bmatrix}$</td></tr>
+        <tr><td class="n">$\Bmat$</td><td>free, $u'(0)=0$</td><td>free, $u'(1)=0$</td>
+            <td>$\begin{bmatrix} 1 & -1 \end{bmatrix}$</td>
+            <td>$\begin{bmatrix} -1 & 1 \end{bmatrix}$</td></tr>
+        <tr><td class="n">$\Cmat$</td><td colspan="2">periodic: the cell $[0,1]$ repeats</td>
+            <td>$\begin{bmatrix} 2 & -1 & \cdots & -1 \end{bmatrix}$</td>
+            <td>$\begin{bmatrix} -1 & \cdots & -1 & 2 \end{bmatrix}$</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Four physical situations, one interior stencil, four different pairs of boundary rows.
+    $\Kmat$ and $\Tmat$ come from rods that are held somewhere; $\Bmat$ comes from a rod that is
+    held nowhere; $\Cmat$ comes from a rod with no ends at all. Almost every matrix in this
+    course is one of these four, a variant of one of them, or built out of them.</p>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time we stop building matrices and start solving with them: Gaussian elimination,
+    written as a factorisation $\mat A = \mat L\mat U$. The two worked examples will be
+    elimination on $\Tmat$ and on $\Kmat$ — and the symmetry we were careful to preserve today
+    will show up there as $\Kmat = \mat L\mat D\mat L\T$.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.1–1.2.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L01.html"><span class="arw">←</span> Lecture 2</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 4 — not yet posted <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
