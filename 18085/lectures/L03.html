@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 4 — Elimination and the LU Decomposition | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 4: Gaussian elimination as a factorisation, A = LU, worked elimination on T and K, symmetry as LDL-transpose, and the resistor and RC ladders that explain the pivots.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 4</p>
+    <h1>Elimination and the <em>LU</em> Decomposition</h1>
+    <p class="lecmeta">
+      <span>Monday, September 21, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.3</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L03.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Carry out Gaussian elimination on a small system and finish it by back substitution.</li>
+      <li>Write a single row operation as multiplication by a lower triangular matrix, and read off $\mat A = \mat L\mat U$.</li>
+      <li>Eliminate on $\Tmat$ and on $\Kmat$ and write down the resulting $\mat L$ and $\mat U$.</li>
+      <li>Explain why a symmetric matrix comes out of elimination as $\mat L\mat D\mat L\T$.</li>
+      <li>Read elimination on a resistor ladder as node elimination, a pivot as the conductance that is left, and one $\mat L\mat U$ as the factorisation reused at every step of a transient.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>From building matrices to solving with them</h2>
+    <p>Last lecture produced four matrices. None of them is any use until we can answer
+    $\mat A\vec x = \vec b$. Today's answer is the one every piece of numerical software
+    actually uses, and the point of the lecture is that it is not really an algorithm — it is
+    a <em>factorisation</em>. Once you see elimination as $\mat A = \mat L\mat U$, the
+    arithmetic you did by hand becomes a reusable object.</p>
+  </section>
+
+  <section>
+    <h2>1 · Gaussian elimination: two views of one calculation</h2>
+
+    <p>The standard technique for a general linear system is Gaussian elimination. Here it is
+    twice: once as the variable elimination you already know, once as row reduction of a
+    matrix.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 34px;margin:28px 0">
+      <div>
+        <p class="boxtitle" style="text-align:center">Variable elimination</p>
+        \[
+          \begin{aligned}
+            x + 3y &= -3 \\
+            -2x + y &= -8
+          \end{aligned}
+        \]
+        <p style="text-align:center;margin:0">$\Big\downarrow$</p>
+        <p style="font-family:var(--sans);font-size:0.82rem;color:var(--muted);text-align:center;margin:2px 0 0">cancel
+        out the $x$ term in the second equation</p>
+        \[
+          \begin{aligned}
+            x + 3y &= -3 \\
+            7y &= -14
+          \end{aligned}
+        \]
+      </div>
+      <div>
+        <p class="boxtitle" style="text-align:center">Matrix row reduction</p>
+        \[
+          \begin{bmatrix} 1 & 3 \\ -2 & 1\end{bmatrix}
+          \begin{bmatrix} x \\ y \end{bmatrix}
+          = \begin{bmatrix} -3 \\ -8 \end{bmatrix}
+        \]
+        <p style="text-align:center;margin:0">$\Big\downarrow$</p>
+        <p style="font-family:var(--sans);font-size:0.82rem;color:var(--muted);text-align:center;margin:2px 0 0">make
+        the matrix <span style="color:var(--cse-red)">upper triangular</span></p>
+        \[
+          \begin{bmatrix} 1 & 3 \\ 0 & 7\end{bmatrix}
+          \begin{bmatrix} x \\ y \end{bmatrix}
+          = \begin{bmatrix} -3 \\ -14 \end{bmatrix}
+        \]
+      </div>
+    </div>
+
+    <p>Either way, the last equation now involves one unknown, so we solve upwards —
+    <strong>back substitution</strong>:</p>
+    \[
+      7y = -14 \ \Longrightarrow\ y = -2,
+      \qquad x + 3(-2) = -3 \ \Longrightarrow\ x = 3 .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · The general idea</span>
+      <p>Given a system $\mat A\vec x = \vec b$, do row operations on $\mat A$ (and on
+      $\vec b$) to obtain an <strong>upper triangular</strong> system, which can then be
+      solved by back substitution. The two columns above are the same calculation; the
+      right-hand one just stops writing the letters $x$ and $y$ down.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · The <em>LU</em> decomposition: elimination as matrix multiplication</h2>
+
+    <p>The <em>LU</em> decomposition is the matrix representation of Gaussian elimination. To
+    get there, notice that the row operation we just performed is itself a matrix
+    multiplication. Start from</p>
+    \[
+      \underbrace{\begin{bmatrix} 1 & 3 \\ -2 & 1\end{bmatrix}}_{\mat A}
+      \begin{bmatrix} x \\ y \end{bmatrix}
+      = \underbrace{\begin{bmatrix} -3 \\ -8 \end{bmatrix}}_{\vec b}
+    \]
+    <p>and multiply both sides on the left by the matrix that adds twice the first row to the
+    second:</p>
+    \[
+      \underbrace{\begin{bmatrix} 1 & 0 \\ 2 & 1\end{bmatrix}}_{\mat L\inv}
+      \underbrace{\begin{bmatrix} 1 & 3 \\ -2 & 1\end{bmatrix}}_{\mat A}
+      \begin{bmatrix} x \\ y \end{bmatrix}
+      = \underbrace{\begin{bmatrix} 1 & 0 \\ 2 & 1\end{bmatrix}}_{\mat L\inv}
+      \begin{bmatrix} -3 \\ -8 \end{bmatrix}
+      \quad\Longrightarrow\quad
+      \underbrace{\begin{bmatrix} 1 & 3 \\ 0 & 7\end{bmatrix}}_{\mat U}
+      \begin{bmatrix} x \\ y \end{bmatrix}
+      = \underbrace{\begin{bmatrix} -3 \\ -14 \end{bmatrix}}_{\mat L\inv \vec b} .
+    \]
+    <p>So the whole elimination is the single statement</p>
+    \[
+      \mat L\inv \mat A = \mat U
+      \qquad\Longleftrightarrow\qquad
+      \boxed{\ \mat A = \mat L\mat U\ }
+    \]
+    <p>Note that the inverse of a lower triangular matrix is still lower triangular, so
+    $\mat L$ is lower triangular too. Here inverting the step just flips the sign of the
+    multiplier, giving
+    $\mat L = \left[\begin{smallmatrix} 1 & 0 \\ -2 & 1\end{smallmatrix}\right]$, and
+    indeed</p>
+    \[
+      \begin{bmatrix} 1 & 0 \\ -2 & 1\end{bmatrix}
+      \begin{bmatrix} 1 & 3 \\ 0 & 7\end{bmatrix}
+      = \begin{bmatrix} 1 & 3 \\ -2 & -6+7\end{bmatrix}
+      = \begin{bmatrix} 1 & 3 \\ -2 & 1\end{bmatrix} = \mat A .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · What the factorisation buys you</span>
+      <p>$\mat L$ is a record of the elimination steps and $\mat U$ is the triangular system
+      they produced. Solving $\mat A\vec x = \vec b$ becomes two triangular solves:
+      $\mat L\vec c = \vec b$ forwards, then $\mat U\vec x = \vec c$ backwards. The expensive
+      part — the elimination — depended only on $\mat A$, so a second right-hand side is
+      nearly free.</p>
+    </div>
+
+    <h3>More than one step</h3>
+    <p>Larger matrices need several row operations. Applying them one after another to
+    $\mat A\vec x = \vec b$ gives</p>
+    \[
+      \underbrace{\bigl(\mat L_n\inv \cdots \mat L_1\inv\bigr)}_{\text{gives an upper triangular }\mat U}
+      \mat A\,\vec x = \bigl(\mat L_n\inv \cdots \mat L_1\inv\bigr)\vec b ,
+    \]
+    <p>so that $\mat L_n\inv \cdots \mat L_1\inv \mat A = \mat U$, and therefore</p>
+    \[
+      \mat A = \bigl(\mat L_1 \cdots \mat L_n\bigr)\mat U = \mat L\mat U .
+    \]
+    <p>The individual matrices $\mat L_j$ and $\mat L_j\inv$ for any single row operation are
+    simple to write down and to invert. For example,</p>
+    \[
+      \mat L_j\inv =
+      \begin{bmatrix}
+        1 & & & \\
+        0 & 1 & & \\
+        \vdots & \ell_j & \ddots & \\
+        0 & 0 & \cdots & 1
+      \end{bmatrix},
+      \qquad
+      \mat L_j =
+      \begin{bmatrix}
+        1 & & & \\
+        0 & 1 & & \\
+        \vdots & -\ell_j & \ddots & \\
+        0 & 0 & \cdots & 1
+      \end{bmatrix}
+    \]
+    <p>— just a change in sign of the factor.</p>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Do not assemble $\mat L$ by guessing</span>
+      <p>The inverse of a product of several $\mat L_j$ is not necessarily as simple as
+      putting the various $-\ell_j$ together in their various positions. It depends on the
+      order in which the steps were taken. Work a $3\times 3$ case out by hand before you
+      trust the pattern — this is on the problem set.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Worked example: free–fixed centred differences, $\Tmat$</h2>
+
+    <p>Take the free–fixed second-difference matrix from last lecture, here at size $4$:</p>
+    \[
+      \Tmat =
+      \begin{bmatrix}
+         1 & -1 &    &    \\
+        -1 &  2 & -1 &    \\
+           & -1 &  2 & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \ \longrightarrow\
+      \begin{bmatrix}
+         1 & -1 &    &    \\
+         0 &  1 & -1 &    \\
+           & -1 &  2 & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \quad \ell_{21} = 1
+    \]
+    \[
+      \longrightarrow\
+      \begin{bmatrix}
+         1 & -1 &    &    \\
+         0 &  1 & -1 &    \\
+           &  0 &  1 & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \quad \ell_{32} = 1
+      \qquad \longrightarrow\
+      \begin{bmatrix}
+         1 & -1 &    &    \\
+         0 &  1 & -1 &    \\
+           &  0 &  1 & -1 \\
+           &    &  0 &  1
+      \end{bmatrix}
+      \quad \ell_{43} = 1 .
+    \]
+    <p>Every pivot came out equal to $1$ and every multiplier equal to $1$, so</p>
+    \[
+      \mat L =
+      \begin{bmatrix}
+         1 &    &    &   \\
+        -1 &  1 &    &   \\
+           & -1 &  1 &   \\
+           &    & -1 & 1
+      \end{bmatrix},
+      \qquad
+      \mat U =
+      \begin{bmatrix}
+         1 & -1 &    &    \\
+           &  1 & -1 &    \\
+           &    &  1 & -1 \\
+           &    &    &  1
+      \end{bmatrix},
+      \qquad \Tmat = \mat L\mat U .
+    \]
+
+    <p>Look at those two factors. $\mat U$ is exactly $\mat L\T$, and both are bidiagonal: a
+    single first difference. The second-difference matrix has come apart into two
+    first-difference matrices — which is precisely how we built it in Lecture&nbsp;2, now
+    recovered by elimination rather than by construction.</p>
+  </section>
+
+  <section>
+    <h2>4 · Worked example: fixed–fixed centred differences, $\Kmat$</h2>
+
+    <p>Now the fixed–fixed matrix, where the corner entries are $2$ instead of $1$ and the
+    arithmetic is less tidy:</p>
+    \[
+      \Kmat =
+      \begin{bmatrix}
+         2 & -1 &    &    \\
+        -1 &  2 & -1 &    \\
+           & -1 &  2 & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \ \longrightarrow\
+      \begin{bmatrix}
+         2 & -1 &    &    \\
+         0 & \tfrac{3}{2} & -1 &    \\
+           & -1 &  2 & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \quad \ell_{21} = \tfrac{1}{2}
+    \]
+    \[
+      \longrightarrow\
+      \begin{bmatrix}
+         2 & -1 &    &    \\
+         0 & \tfrac{3}{2} & -1 &    \\
+           &  0 & \tfrac{4}{3} & -1 \\
+           &    & -1 &  2
+      \end{bmatrix}
+      \quad \ell_{32} = \tfrac{2}{3}
+      \qquad \longrightarrow\
+      \begin{bmatrix}
+         2 & -1 &    &    \\
+         0 & \tfrac{3}{2} & -1 &    \\
+           &  0 & \tfrac{4}{3} & -1 \\
+           &    &  0 & \tfrac{5}{4}
+      \end{bmatrix}
+      \quad \ell_{43} = \tfrac{3}{4} ,
+    \]
+    <p>the last of which is $\mat U$. Collecting the multipliers with their signs flipped,</p>
+    \[
+      \mat L =
+      \begin{bmatrix}
+         1 &    &    &   \\
+        -\tfrac{1}{2} &  1 &    &   \\
+           & -\tfrac{2}{3} &  1 &   \\
+           &    & -\tfrac{3}{4} & 1
+      \end{bmatrix},
+      \qquad
+      \mat U =
+      \begin{bmatrix}
+         2 & -1 &    &    \\
+           & \tfrac{3}{2} & -1 &    \\
+           &    & \tfrac{4}{3} & -1 \\
+           &    &    & \tfrac{5}{4}
+      \end{bmatrix}.
+    \]
+
+    <div class="remark">
+      <span class="boxtitle">Remark · The pivots are not random</span>
+      <p>The pivots came out $2,\ \tfrac{3}{2},\ \tfrac{4}{3},\ \tfrac{5}{4}$ — the pattern
+      $\tfrac{k+1}{k}$. What would the next one be if we had eliminated on the $5\times5$
+      version? Structured matrices give structured factorisations, and that is exactly why it
+      is worth knowing that a matrix is $\Kmat$ rather than just “some tridiagonal
+      matrix”.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Symmetry survives: $\Kmat = \mat L\mat D\mat L\T$</h2>
+
+    <p>The $\mat L$ and $\mat U$ above do not look like transposes of each other, but they
+    nearly are: $\mat U$ is $\mat L\T$ with the rows rescaled. So extract a factor from each
+    row of $\mat U$ to make the diagonal entries equal to $1$:</p>
+    \[
+      \mat U =
+      \underbrace{\begin{bmatrix}
+         2 &    &    &    \\
+           & \tfrac{3}{2} &    &    \\
+           &    & \tfrac{4}{3} &    \\
+           &    &    & \tfrac{5}{4}
+      \end{bmatrix}}_{\mat D}
+      \underbrace{\begin{bmatrix}
+         1 & -\tfrac{1}{2} &    &    \\
+           &  1 & -\tfrac{2}{3} &    \\
+           &    &  1 & -\tfrac{3}{4} \\
+           &    &    &  1
+      \end{bmatrix}}_{\text{this is } \mat L\T} .
+    \]
+    <p>Therefore</p>
+    \[
+      \boxed{\ \Kmat = \mat L\mat D\mat L\T\ }
+    \]
+    <p>The $\mat L\mat D\mat L\T$ form is not surprising, given that we started with a
+    symmetric matrix $\Kmat$. And $\mat L\mat D\mat L\T$ is <em>manifestly</em> symmetric —
+    you do not have to compute anything to see it:</p>
+    \[
+      \bigl(\mat L\mat D\mat L\T\bigr)\T
+      = \bigl(\mat L\T\bigr)\T \mat D\T \mat L\T
+      = \mat L\mat D\mat L\T ,
+    \]
+    <p>using only that $\mat D$ is diagonal, hence its own transpose.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Symmetry in, symmetry out</span>
+      <p>Elimination on a symmetric matrix does not destroy its symmetry; it relocates it.
+      All of the asymmetry of $\mat L\mat U$ was bookkeeping — the scaling of the rows — and
+      pulling that scaling out into $\mat D$ leaves the same triangular factor on both sides.
+      The information that used to be spread over the whole matrix now sits in one triangle
+      and one diagonal.</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Watch the diagonal</span>
+      <p>All four pivots of $\Kmat$ came out positive. That is not an accident either, and it
+      is not just aesthetic: when we get to positive definite matrices later in this arc, the
+      signs of the entries of $\mat D$ will be the test we run.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Physical example: $\Kmat$ and $\Tmat$ as a resistor ladder</h2>
+
+    <p>The same two matrices come out of a circuit, and the circuit explains the pivots. Put
+    four nodes in a line, join each neighbouring pair by a $1\,\Omega$ resistor, ground both
+    ends, and inject a current $b_k$ into node $k$. The unknowns are the node voltages
+    $v_k$.</p>
+
+    <figure>
+      <svg viewBox="0 0 620 248" width="100%" style="max-width:620px" role="img"
+           aria-label="A four-node resistor ladder: five one-ohm resistors in a line with both ends grounded, a current injected into each node, and the leftmost resistor marked as the one to cut to turn K into T.">
+        <!-- ladder wire -->
+        <line x1="30" y1="150" x2="574" y2="150" stroke="var(--ink)" stroke-width="1.3"/>
+        <!-- resistors -->
+        <g fill="var(--bg)" stroke="var(--ink)" stroke-width="1.3">
+          <rect x="168.7" y="137.1" width="49" height="25.8"/>
+          <rect x="277.5" y="137.1" width="49" height="25.8"/>
+          <rect x="386.3" y="137.1" width="49" height="25.8"/>
+          <rect x="495.1" y="137.1" width="49" height="25.8"/>
+        </g>
+        <rect x="59.9" y="137.1" width="49" height="25.8"
+              fill="var(--bg)" stroke="var(--cse-red)" stroke-width="1.7"/>
+        <!-- grounds at both ends -->
+        <g stroke="var(--ink)" stroke-width="1.3">
+          <line x1="30" y1="150" x2="30" y2="184"/>
+          <line x1="12.3" y1="184" x2="47.7" y2="184"/>
+          <line x1="19.1" y1="193.5" x2="40.9" y2="193.5"/>
+          <line x1="25.2" y1="203" x2="34.8" y2="203"/>
+          <line x1="574" y1="150" x2="574" y2="184"/>
+          <line x1="556.3" y1="184" x2="591.7" y2="184"/>
+          <line x1="563.1" y1="193.5" x2="584.9" y2="193.5"/>
+          <line x1="569.2" y1="203" x2="578.8" y2="203"/>
+        </g>
+        <!-- injected currents -->
+        <g stroke="var(--cse-blue)" stroke-width="1.3" fill="var(--cse-blue)">
+          <line x1="138.8" y1="74" x2="138.8" y2="138"/>
+          <polygon points="138.8,144 134.8,134 142.8,134"/>
+          <line x1="247.6" y1="74" x2="247.6" y2="138"/>
+          <polygon points="247.6,144 243.6,134 251.6,134"/>
+          <line x1="356.4" y1="74" x2="356.4" y2="138"/>
+          <polygon points="356.4,144 352.4,134 360.4,134"/>
+          <line x1="465.2" y1="74" x2="465.2" y2="138"/>
+          <polygon points="465.2,144 461.2,134 469.2,134"/>
+        </g>
+        <!-- nodes -->
+        <g fill="var(--cse-blue)">
+          <circle cx="138.8" cy="150" r="4"/>
+          <circle cx="247.6" cy="150" r="4"/>
+          <circle cx="356.4" cy="150" r="4"/>
+          <circle cx="465.2" cy="150" r="4"/>
+        </g>
+        <!-- labels -->
+        <g font-size="14" font-style="italic" fill="var(--cse-blue)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="138.8" y="66">b₁</text>
+          <text x="247.6" y="66">b₂</text>
+          <text x="356.4" y="66">b₃</text>
+          <text x="465.2" y="66">b₄</text>
+        </g>
+        <g font-size="14" font-style="italic" fill="var(--ink)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="138.8" y="178">v₁</text>
+          <text x="247.6" y="178">v₂</text>
+          <text x="356.4" y="178">v₃</text>
+          <text x="465.2" y="178">v₄</text>
+        </g>
+        <g font-size="12.5" fill="var(--cse-red)" text-anchor="end"
+           font-family="Georgia, serif">
+          <text x="119" y="112">cut this one</text>
+          <text x="119" y="127">K → T</text>
+        </g>
+        <text x="302" y="230" font-size="12.5" fill="var(--cse-gray)" text-anchor="middle"
+              font-family="Georgia, serif">every resistor 1 Ω; both ends grounded, v₀ = v₅ = 0</text>
+      </svg>
+      <figcaption>A grounded node is a held end; an open node is a free end.</figcaption>
+    </figure>
+
+    <p>Kirchhoff's current law at node $k$ says that the current injected there leaves
+    through the two resistors touching it, and Ohm's law turns each of those currents into a
+    voltage difference:</p>
+    \[
+      \frac{v_k - v_{k-1}}{1\,\Omega} + \frac{v_k - v_{k+1}}{1\,\Omega} = b_k
+      \qquad\Longleftrightarrow\qquad
+      -v_{k-1} + 2 v_k - v_{k+1} = b_k .
+    \]
+    <p>That is the interior row of $\Kmat$, with $v_0 = v_5 = 0$ at the grounded ends. Cut the
+    resistor at the left end instead and node $1$ has only one resistor attached, so its row
+    loses a term and reads $v_1 - v_2 = b_1$ — the $1$ in the corner of $\Tmat$. This is
+    Lecture&nbsp;3's key idea in electrical dress: a grounded node is a held end, an open node
+    is a free end, and the whole difference is one number in one corner.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · A pivot is the conductance you have left</span>
+      <p>Eliminating node $1$ <em>is</em> deleting node $1$ from the circuit: its equation is
+      used to write $v_1$ in terms of $v_2$, and what remains is the network the other nodes
+      still see. So each pivot is the total conductance at the node being eliminated, looking
+      into whatever is still attached to it.</p>
+    </div>
+
+    <p>Walk that down the ladder of $\Kmat$. Node $1$ sees $1\,$S to ground and $1\,$S to
+    node $2$: pivot $2$. With node $1$ absorbed, node $2$ looks left through <em>two</em> unit
+    resistors in series, worth $\tfrac{1}{2}\,$S, and still sees $1\,$S on its right: pivot
+    $\tfrac{3}{2}$. After $k-1$ eliminations the path to ground on the left is $k$ resistors
+    in series, so</p>
+    \[
+      \text{pivot}_k \;=\; \underbrace{1}_{\text{right}} + \underbrace{\frac{1}{k}}_{\text{left}}
+      \;=\; \frac{k+1}{k} ,
+    \]
+    <p>which is the pattern of the previous remark, now with a reason — and the fifth pivot
+    must be $\tfrac{6}{5}$. For $\Tmat$ the left end is open, so the chain behind node $k$ is
+    a dead end carrying no current and contributing no conductance; every pivot is the single
+    unit conductance on the right, $1$, exactly as the arithmetic gave.</p>
+
+    <p>The triangular solves are physical too. For $\Tmat = \mat L\mat U$ with
+    $\mat U = \mat L\T$, the forward solve $\mat L\vec c = \vec b$ reads
+    $c_k - c_{k-1} = b_k$, so $c_k = b_1 + \cdots + b_k$: with the far end open, every current
+    injected to the left of resistor $k$ has nowhere to go but through it, and $c_k$ is that
+    current. The back solve $\mat L\T\vec v = \vec c$ then reads $v_k - v_{k+1} = c_k$, which
+    is Ohm's law across that resistor. The factors are the ladder's difference matrix
+    $\mat A$ and its transpose, $\Tmat = \mat A\T\mat A$, and elimination has split the
+    problem into conservation first and constitutive law second — the split that will organise
+    the springs-and-masses lecture and everything after it.</p>
+  </section>
+
+  <section>
+    <h2>7 · Physical example: an RC ladder, one factorisation for every time step</h2>
+
+    <p>Hang a capacitor $C$ from each node of the same ladder down to ground, keep both ends
+    of the ladder grounded, and let the injected currents vary in time. Kirchhoff's law at
+    node $k$ now carries a charging term, and in vector form</p>
+    \[
+      C\,\dd{\vec v}{t} + \frac{1}{R}\,\Kmat\vec v = \vec b(t) .
+    \]
+    <p>Step it forward implicitly — evaluate the resistive term at the new time, which is
+    backward Euler, properly in the time-stepping lecture:</p>
+    \[
+      C\,\frac{\vec v^{\,n+1} - \vec v^{\,n}}{\Delta t} + \frac{1}{R}\,\Kmat\vec v^{\,n+1}
+      = \vec b^{\,n+1}
+      \quad\Longrightarrow\quad
+      \boxed{\ \bigl(\eye + \alpha\Kmat\bigr)\vec v^{\,n+1}
+        = \vec v^{\,n} + \frac{\Delta t}{C}\,\vec b^{\,n+1}\ },
+      \quad \alpha = \frac{\Delta t}{RC} .
+    \]
+    <p>Every time step is a solve with the same $\mat M = \eye + \alpha\Kmat$: tridiagonal,
+    symmetric, and with a heavier diagonal than $\Kmat$ itself. Taking $\alpha = 1$, a step of
+    one time constant $RC$,</p>
+    \[
+      \mat M =
+      \begin{bmatrix}
+         3 & -1 &    &    \\
+        -1 &  3 & -1 &    \\
+           & -1 &  3 & -1 \\
+           &    & -1 &  3
+      \end{bmatrix},
+      \qquad
+      \mat M = \mat L\mat D\mat L\T, \quad
+      \mat D = \operatorname{diag}\!\left(3,\ \tfrac{8}{3},\ \tfrac{21}{8},\ \tfrac{55}{21}\right),
+    \]
+    <p>with multipliers $\ell_{21} = \tfrac{1}{3}$, $\ell_{32} = \tfrac{3}{8}$,
+    $\ell_{43} = \tfrac{8}{21}$ in the same convention as above. Symmetric matrix in,
+    $\mat L\mat D\mat L\T$ out, all four pivots positive — one triangle and one diagonal is
+    the whole factorisation.</p>
+
+    <p>Now the point. $\mat M$ is built from the circuit and the step size; the right-hand
+    side $\vec v^{\,n} + (\Delta t/C)\,\vec b^{\,n+1}$ is built from the present state and the
+    input signal. Only the second changes as the simulation runs. So factor $\mat M$
+    <em>once</em>, before the loop, and spend each of the thousand time steps on two
+    triangular solves — which is the “a second right-hand side is nearly free” idea from the
+    beginning of the lecture, now paying for itself a thousand times over.</p>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Never form $\mat M\inv$, and watch $\Delta t$</span>
+      <p>$\mat M\inv$ is a full matrix, while $\mat L$ and $\mat U$ keep the two nonzero
+      diagonals of $\mat M$: forming the inverse throws away the sparsity you started with.
+      And $\alpha$ sits <em>inside</em> $\mat M$, so changing $\Delta t$ means a new matrix
+      and a new factorisation — which is exactly why implicit solvers hold the step fixed for
+      long stretches. Here the factorisation and the solve are both $\Oh{n}$ and the saving is
+      a constant factor; on the two-dimensional grids later in the term the factorisation
+      costs far more than the solve, and re-using it is the difference between a simulation
+      that runs and one that does not.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Elimination answers “solve $\mat A\vec x = \vec b$” mechanically, without ever asking
+    what the columns of $\mat A$ are doing. Next time we ask: reading
+    $\mat A\vec x = \vec b$ as a request to build $\vec b$ out of the columns of $\mat A$,
+    when is that possible, when is it unique, and what changes if we choose a different set of
+    building blocks?</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.3.</p>
+  </section>
+
+  <section>
+    <h2>Companion code <span class="tag">not part of the notes</span></h2>
+    <p>The RC ladder of §7, run for a thousand steps on one factorisation. The factorisation
+    happens on the line before the loop; each step inside it is two triangular solves.</p>
+    <pre><code>import numpy as np
+from scipy.linalg import lu_factor, lu_solve
+
+n = 4
+K = np.diag(2*np.ones(n)) - np.diag(np.ones(n-1), 1) - np.diag(np.ones(n-1), -1)
+M = np.eye(n) + K                      # alpha = 1: one step per time constant RC
+lu, piv = lu_factor(M)                 # factor ONCE, outside the loop
+
+v, b = np.zeros(n), np.ones(n)         # start at rest, constant injected current
+for step in range(1000):
+    v = lu_solve((lu, piv), v + b)     # two triangular solves, nothing more
+print(v)                               # settles on the steady state K v = b</code></pre>
+    <p>Two things worth checking by hand. Replace the loop body with
+    <code>np.linalg.solve(M, v + b)</code> and you re-factor a thousand times for the same
+    answer. And <code>np.linalg.inv(M)</code> is dense in all sixteen entries, while $\mat L$
+    and $\mat U$ between them hold seven — the sparsity argument of the warning above, at
+    $n=4$ where you can still see it.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L02.html"><span class="arw">←</span> Lecture 3</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="L04.html">Lecture 5 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

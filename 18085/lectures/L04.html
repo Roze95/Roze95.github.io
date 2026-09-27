@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 5 — Bases, Orthogonality, and Projection | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 5: reading Ax = b as a change of coordinates, three bases for the plane, the inner product as a test for orthogonality, and coefficients by projection instead of elimination.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 5</p>
+    <h1>Bases, Orthogonality, and Projection</h1>
+    <p class="lecmeta">
+      <span>Wednesday, September 23, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang ch. 1 (background)</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L04.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Read $\mat A\vec x = \vec b$ as the search for coefficients that build $\vec b$ out of the columns of $\mat A$.</li>
+      <li>Recognise when a set of vectors forms a basis, and write one vector in three different bases.</li>
+      <li>Test orthogonality with the inner product and connect it to the angle between two vectors.</li>
+      <li>Compute coefficients in an orthogonal basis by projection instead of by elimination.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>The same equation, asked differently</h2>
+    <p>For two lectures we have treated $\mat A\vec x = \vec b$ as a computation. Today we
+    treat it as a <em>question about geometry</em>, and the answer will change what we do with
+    it. The mathematics is not new — we solve a $2\times2$ system on the first page — but the
+    reading is, and it is the reading that carries us into least squares, Fourier series, and
+    the SVD later in the term.</p>
+  </section>
+
+  <section>
+    <h2>1 · A $2\times2$ system, read geometrically</h2>
+
+    <p>Consider the linear system</p>
+    \[
+      \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}
+      \begin{bmatrix} a \\ b \end{bmatrix}
+      = \begin{bmatrix} 3 \\ 1 \end{bmatrix}.
+    \]
+    <p>We know how to solve this, of course. I want to draw attention to its geometric
+    interpretation instead.</p>
+
+    <p>Recall from Lecture&nbsp;2 that a matrix–vector product can be understood as a linear
+    combination of the <em>columns</em> of the matrix:</p>
+    \[
+      \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}
+      \begin{bmatrix} a \\ b \end{bmatrix}
+      = a \underbrace{\begin{bmatrix} 1 \\ 1 \end{bmatrix}}_{\vec v_1}
+      + b \underbrace{\begin{bmatrix} 1 \\ -1 \end{bmatrix}}_{\vec v_2}
+      = \begin{bmatrix} 3 \\ 1 \end{bmatrix}.
+    \]
+    <p>So the system is not really asking for two numbers $a$ and $b$. It is asking:
+    <em>how much of $\vec v_1$ and how much of $\vec v_2$ do I need in order to land on
+    $(3,1)$?</em></p>
+
+    <p>The solution is $a = 2$, $b = 1$.</p>
+
+    <figure>
+      <svg viewBox="0 0 480 315" width="100%" style="max-width:480px" role="img"
+           aria-label="The vector (3,1) drawn as two copies of v1 = (1,1) plus one copy of v2 = (1,-1), with the Cartesian basis vectors e1 and e2 also marked.">
+        <defs>
+          <marker id="a4aGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+          <marker id="a4aBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+          <marker id="a4aInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--ink)"/></marker>
+          <marker id="a4aRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11"
+                  markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker>
+        </defs>
+        <!-- axes -->
+        <g stroke="var(--cse-gray)" stroke-width="1.1">
+          <line x1="26.6" y1="191.2" x2="318" y2="191.2" marker-end="url(#a4aGray)"/>
+          <line x1="70" y1="290.4" x2="70" y2="30" marker-end="url(#a4aGray)"/>
+          <line x1="132" y1="186.9" x2="132" y2="195.5"/>
+          <line x1="194" y1="186.9" x2="194" y2="195.5"/>
+          <line x1="256" y1="186.9" x2="256" y2="195.5"/>
+          <line x1="65.7" y1="253.2" x2="74.3" y2="253.2"/>
+          <line x1="65.7" y1="129.2" x2="74.3" y2="129.2"/>
+          <line x1="65.7" y1="67.2" x2="74.3" y2="67.2"/>
+        </g>
+        <!-- construction -->
+        <g stroke="var(--cse-blue)" stroke-width="1.3" stroke-dasharray="5 4">
+          <line x1="70" y1="191.2" x2="194" y2="67.2"/>
+          <line x1="194" y1="67.2" x2="256" y2="129.2"/>
+        </g>
+        <!-- basis vectors -->
+        <g stroke="var(--cse-blue)" stroke-width="2.2">
+          <line x1="70" y1="191.2" x2="132" y2="129.2" marker-end="url(#a4aBlue)"/>
+          <line x1="70" y1="191.2" x2="132" y2="253.2" marker-end="url(#a4aBlue)"/>
+        </g>
+        <g stroke="var(--ink)" stroke-width="2.2">
+          <line x1="70" y1="191.2" x2="122.7" y2="191.2" marker-end="url(#a4aInk)"/>
+          <line x1="70" y1="191.2" x2="70" y2="138.5" marker-end="url(#a4aInk)"/>
+        </g>
+        <line x1="70" y1="191.2" x2="256" y2="129.2" stroke="var(--cse-red)"
+              stroke-width="2.8" marker-end="url(#a4aRed)"/>
+        <!-- labels -->
+        <g font-size="14" font-style="italic" font-family="Georgia, serif">
+          <text x="190" y="59" fill="var(--cse-blue)" text-anchor="end">2v₁</text>
+          <text x="126" y="122" fill="var(--cse-blue)" text-anchor="end">v₁</text>
+          <text x="138" y="269" fill="var(--cse-blue)">v₂</text>
+          <text x="116" y="209" fill="var(--ink)" text-anchor="middle">e₁</text>
+          <text x="62" y="146" fill="var(--ink)" text-anchor="end">e₂</text>
+          <text x="264" y="124" fill="var(--cse-red)">(3, 1) = 2v₁ + v₂</text>
+        </g>
+      </svg>
+      <figcaption>Two copies of $\vec v_1$, then one of $\vec v_2$, lands on $(3,1)$.</figcaption>
+    </figure>
+
+    <p>Geometrically, we have found the weights, or coefficients, needed to represent the
+    vector $\left[\begin{smallmatrix} 3 \\ 1\end{smallmatrix}\right]$ with the vectors
+    $\vec v_1 = \left[\begin{smallmatrix} 1 \\ 1\end{smallmatrix}\right]$ and
+    $\vec v_2 = \left[\begin{smallmatrix} 1 \\ -1\end{smallmatrix}\right]$.</p>
+  </section>
+
+  <section>
+    <h2>2 · Bases</h2>
+
+    <p>Nothing was special about $(3,1)$. We can see that <em>any</em> point in the
+    two-dimensional plane can be represented by a <strong>unique</strong> linear combination
+    of $\vec v_1$ and $\vec v_2$. That is the definition we want.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Definition · Basis</span>
+      <p>A set of vectors is a <strong>basis</strong> for a linear space if every vector in
+      the space is a linear combination of them, and that combination is unique. Here
+      $\vec v_1$ and $\vec v_2$ form a basis for the two-dimensional linear space of the
+      plane.</p>
+    </div>
+
+    <p>In fact, when we write down the vectors
+    $\left[\begin{smallmatrix} 3\\1\end{smallmatrix}\right]$ or
+    $\left[\begin{smallmatrix} 1\\1\end{smallmatrix}\right]$ or
+    $\left[\begin{smallmatrix} 1\\-1\end{smallmatrix}\right]$, we are already implicitly using
+    a specific basis — the <strong>Cartesian basis</strong> — to represent points on the plane.
+    The Cartesian basis vectors point along the axes as drawn:</p>
+    \[
+      \vec e_1 = \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \qquad
+      \vec e_2 = \begin{bmatrix} 0 \\ 1 \end{bmatrix}.
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Coordinates are a report, not the thing</span>
+      <p>A vector is a geometric object — an arrow in the plane. The column of numbers you
+      write down is a <em>report</em> of that arrow relative to a basis you have chosen,
+      usually without noticing. Change the basis and the numbers change; the arrow does not.
+      Most of the clever methods in this course amount to choosing a basis in which the
+      numbers come out simple.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · A third basis, and the general statement</h2>
+
+    <p>Let us take a basis with no symmetry at all:</p>
+    \[
+      \vec u_1 = \begin{bmatrix} -4 \\ 2 \end{bmatrix}, \qquad
+      \vec u_2 = \begin{bmatrix} -1 \\ 3 \end{bmatrix}.
+    \]
+    <p>To find out how to represent the vector $(3,1)$ using $\vec u_1$ and $\vec u_2$, we
+    just need to solve the linear system whose <em>columns</em> are those two vectors:</p>
+    \[
+      \bigl[\ \vec u_1 \ \ \vec u_2\ \bigr]\begin{bmatrix} c \\ d \end{bmatrix}
+      = \begin{bmatrix} -4 & -1 \\ \phantom{-}2 & \phantom{-}3 \end{bmatrix}
+        \begin{bmatrix} c \\ d \end{bmatrix}
+      = \begin{bmatrix} 3 \\ 1 \end{bmatrix}
+      \qquad\Longrightarrow\qquad
+      c = -1,\quad d = 1 ,
+    \]
+    <p>that is,</p>
+    \[
+      -\vec u_1 + \vec u_2
+      = \begin{bmatrix} 4 \\ -2 \end{bmatrix} + \begin{bmatrix} -1 \\ 3 \end{bmatrix}
+      = \begin{bmatrix} 3 \\ 1 \end{bmatrix}.
+    \]
+
+    <figure>
+      <svg viewBox="0 0 490 325" width="100%" style="max-width:490px" role="img"
+           aria-label="The same vector (3,1) reached instead as minus u1 plus u2, where u1 = (-4,2) and u2 = (-1,3).">
+        <defs>
+          <marker id="a4bGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+          <marker id="a4bGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+          <marker id="a4bRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11"
+                  markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker>
+        </defs>
+        <g stroke="var(--cse-gray)" stroke-width="1.1">
+          <line x1="30" y1="183.4" x2="452.4" y2="183.4" marker-end="url(#a4bGray)"/>
+          <line x1="241.2" y1="306.6" x2="241.2" y2="25" marker-end="url(#a4bGray)"/>
+          <line x1="65.2" y1="178.1" x2="65.2" y2="188.7"/>
+          <line x1="109.2" y1="178.1" x2="109.2" y2="188.7"/>
+          <line x1="153.2" y1="178.1" x2="153.2" y2="188.7"/>
+          <line x1="197.2" y1="178.1" x2="197.2" y2="188.7"/>
+          <line x1="285.2" y1="178.1" x2="285.2" y2="188.7"/>
+          <line x1="329.2" y1="178.1" x2="329.2" y2="188.7"/>
+          <line x1="373.2" y1="178.1" x2="373.2" y2="188.7"/>
+          <line x1="417.2" y1="178.1" x2="417.2" y2="188.7"/>
+          <line x1="235.9" y1="271.4" x2="246.5" y2="271.4"/>
+          <line x1="235.9" y1="227.4" x2="246.5" y2="227.4"/>
+          <line x1="235.9" y1="139.4" x2="246.5" y2="139.4"/>
+          <line x1="235.9" y1="95.4" x2="246.5" y2="95.4"/>
+          <line x1="235.9" y1="51.4" x2="246.5" y2="51.4"/>
+        </g>
+        <g stroke="var(--cse-green)" stroke-width="2.2">
+          <line x1="241.2" y1="183.4" x2="65.2" y2="95.4" marker-end="url(#a4bGreen)"/>
+          <line x1="241.2" y1="183.4" x2="197.2" y2="51.4" marker-end="url(#a4bGreen)"/>
+        </g>
+        <g stroke="var(--cse-green)" stroke-width="1.3" stroke-dasharray="5 4">
+          <line x1="241.2" y1="183.4" x2="417.2" y2="271.4"/>
+          <line x1="417.2" y1="271.4" x2="373.2" y2="139.4"/>
+        </g>
+        <line x1="241.2" y1="183.4" x2="373.2" y2="139.4" stroke="var(--cse-red)"
+              stroke-width="2.8" marker-end="url(#a4bRed)"/>
+        <g font-size="14" font-style="italic" font-family="Georgia, serif">
+          <text x="61" y="88" fill="var(--cse-green)" text-anchor="end">u₁</text>
+          <text x="197.2" y="44" fill="var(--cse-green)" text-anchor="middle">u₂</text>
+          <text x="423" y="287" fill="var(--cse-green)">−u₁</text>
+          <text x="380" y="132" fill="var(--cse-red)">(3, 1)</text>
+        </g>
+      </svg>
+      <figcaption>A different scaffolding, the same red arrow.</figcaption>
+    </figure>
+
+    <p>The two constructions in the two pictures land on the same red arrow. Only the
+    scaffolding differs. That is the general moral:</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · What a linear system is really asking</span>
+      <p>Another interpretation of solving a linear system $\mat A\vec x = \vec b$: find
+      coefficients $x_1,\dots,x_m$ for the columns $\vec a_1,\dots,\vec a_m$ of $\mat A$ such
+      that the linear combination</p>
+      \[
+        x_1\vec a_1 + \cdots + x_m\vec a_m = \vec b .
+      \]
+      <p>Solving is a change of coordinates: you are re-expressing $\vec b$ in the basis given
+      by the columns of $\mat A$.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Orthogonality</h2>
+
+    <p>Let us compare the three sets of bases we now have:</p>
+    \[
+      \underbrace{\{\vec e_1, \vec e_2\}}_{\text{orthonormal}}, \qquad
+      \{\vec v_1, \vec v_2\}, \qquad
+      \{\vec u_1, \vec u_2\} .
+    \]
+    <p>The first two are <strong>orthogonal</strong>; the first is orthogonal <em>and</em>
+    normalised. The key difference between $\{\vec u_1,\vec u_2\}$ and the other two is
+    exactly that:</p>
+    \[
+      \vec e_1 \perp \vec e_2, \qquad \vec v_1 \perp \vec v_2,
+      \qquad\text{but not for } \vec u_1, \vec u_2 .
+    \]
+
+    <p>From a linear algebra perspective, orthogonality is reflected by the
+    <strong>inner product</strong>:</p>
+    \[
+      \vec v_1 \cdot \vec v_2
+      = \begin{bmatrix} 1 \\ 1\end{bmatrix}\T \begin{bmatrix} 1 \\ -1\end{bmatrix}
+      = 1\cdot 1 + 1\cdot(-1) = 0 ,
+      \qquad\text{whereas}\qquad
+      \vec u_1 \cdot \vec u_2 = (-4)(-1) + (2)(3) = 10 \neq 0 .
+    \]
+
+    <p>Geometrically, for any two vectors,</p>
+    \[
+      \vec u_1 \cdot \vec u_2 = \vec u_1\T \vec u_2 = \abs{u_1}\,\abs{u_2}\cos\theta .
+    \]
+    <p>Given $\abs{u_1}, \abs{u_2} > 0$, the statement $\vec u_1 \cdot \vec u_2 = 0$ therefore
+    implies $\cos\theta = 0$, so $\theta = \pm\tfrac{\pi}{2}$ — orthogonal, in the ordinary
+    sense of the word.</p>
+
+    <figure>
+      <svg viewBox="0 0 290 245" width="100%" style="max-width:290px" role="img"
+           aria-label="Two vectors u1 and u2 from a common origin, with the angle theta between them and their lengths marked.">
+        <defs>
+          <marker id="a4cInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--ink)"/></marker>
+        </defs>
+        <g stroke="var(--ink)" stroke-width="2.2">
+          <line x1="40" y1="190" x2="229" y2="190" marker-end="url(#a4cInk)"/>
+          <line x1="40" y1="190" x2="120.5" y2="53.5" marker-end="url(#a4cInk)"/>
+        </g>
+        <path d="M83.4,190 A43.4,43.4 0 0 0 62.03,152.61" fill="none"
+              stroke="var(--cse-blue)" stroke-width="1.3"/>
+        <!-- length of u1 -->
+        <g stroke="var(--cse-gray)" stroke-width="1">
+          <line x1="41.4" y1="185.8" x2="32.8" y2="180.7"/>
+          <line x1="121.9" y1="49.3" x2="113.3" y2="44.2"/>
+          <line x1="32.8" y1="180.7" x2="113.3" y2="44.2"/>
+        </g>
+        <!-- length of u2 -->
+        <g stroke="var(--cse-gray)" stroke-width="1">
+          <line x1="40" y1="192" x2="40" y2="206"/>
+          <line x1="229" y1="192" x2="229" y2="206"/>
+          <line x1="40" y1="206" x2="229" y2="206"/>
+        </g>
+        <g font-size="14" font-style="italic" font-family="Georgia, serif">
+          <text x="235" y="194" fill="var(--ink)">u₂</text>
+          <text x="131" y="48" fill="var(--ink)">u₁</text>
+          <text x="100.2" y="172" fill="var(--cse-blue)">θ</text>
+          <text x="57" y="107" fill="var(--cse-gray)" text-anchor="end">|u₁|</text>
+          <text x="134.5" y="224" fill="var(--cse-gray)" text-anchor="middle">|u₂|</text>
+        </g>
+      </svg>
+      <figcaption>The inner product is $\abs{u_1}\abs{u_2}\cos\theta$, so it vanishes exactly
+      at a right angle.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>5 · Projection: coefficients without elimination</h2>
+
+    <p>Here is why we care. The nice thing about orthogonal bases is that finding the
+    coefficients of a vector in such a basis can be done by <strong>projection</strong>,
+    instead of by solving a linear system directly.</p>
+
+    <figure>
+      <svg viewBox="0 0 340 345" width="100%" style="max-width:340px" role="img"
+           aria-label="The vector x projected perpendicularly onto two orthogonal axes v1 and v2, with the two projected lengths marked as the magnitude of x times the cosine of each angle.">
+        <defs>
+          <marker id="a4dInk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--ink)"/></marker>
+          <marker id="a4dRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11"
+                  markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker>
+        </defs>
+        <g stroke="var(--cse-gray)" stroke-width="1" stroke-dasharray="1.5 4">
+          <line x1="55" y1="235" x2="255" y2="35"/>
+          <line x1="55" y1="165" x2="210" y2="320"/>
+        </g>
+        <g stroke="var(--ink)" stroke-width="2.2">
+          <line x1="90" y1="200" x2="153" y2="137" marker-end="url(#a4dInk)"/>
+          <line x1="90" y1="200" x2="128.5" y2="238.5" marker-end="url(#a4dInk)"/>
+        </g>
+        <line x1="90" y1="200" x2="258" y2="144" stroke="var(--cse-red)"
+              stroke-width="2.8" marker-end="url(#a4dRed)"/>
+        <g stroke="var(--cse-red)" stroke-width="1.3" stroke-dasharray="5 4">
+          <line x1="258" y1="144" x2="202" y2="88"/>
+          <line x1="258" y1="144" x2="146" y2="256"/>
+        </g>
+        <g fill="none" stroke="var(--cse-gray)" stroke-width="1">
+          <path d="M209.4,80.4 L216.8,88 L209.4,95.6"/>
+          <path d="M153.4,263.4 L160.8,256 L153.4,248.6"/>
+        </g>
+        <g fill="var(--cse-blue)">
+          <circle cx="202" cy="88" r="3.4"/>
+          <circle cx="146" cy="256" r="3.4"/>
+        </g>
+        <!-- projected lengths -->
+        <g stroke="var(--cse-gray)" stroke-width="0.9">
+          <line x1="90" y1="200" x2="78.7" y2="188.7"/>
+          <line x1="202" y1="88" x2="190.7" y2="76.7"/>
+          <line x1="78.7" y1="188.7" x2="190.7" y2="76.7"/>
+          <line x1="146" y1="256" x2="134.7" y2="267.3"/>
+          <line x1="90" y1="200" x2="78.7" y2="211.3"/>
+          <line x1="134.7" y1="267.3" x2="78.7" y2="211.3"/>
+        </g>
+        <!-- angles -->
+        <g fill="none" stroke="var(--cse-blue)" stroke-width="1.3">
+          <path d="M133.17,185.64 A45.5,45.5 0 0 0 122.17,167.83"/>
+          <path d="M144.45,254.45 A77,77 0 0 0 163.06,175.69"/>
+        </g>
+        <g font-size="14" font-style="italic" font-family="Georgia, serif">
+          <text x="158" y="150" fill="var(--ink)">v₁</text>
+          <text x="134" y="234" fill="var(--ink)">v₂</text>
+          <text x="265" y="148" fill="var(--cse-red)">x</text>
+          <text x="151.6" y="172" fill="var(--cse-blue)" font-size="13">θ₁</text>
+          <text x="181" y="230" fill="var(--cse-blue)" font-size="13">θ₂</text>
+          <text x="118" y="120" fill="var(--cse-gray)" text-anchor="end" font-size="13">|x| cos θ₁</text>
+          <text x="92" y="258" fill="var(--cse-gray)" text-anchor="end" font-size="13">|x| cos θ₂</text>
+        </g>
+      </svg>
+      <figcaption>Drop a perpendicular onto each axis; the two shadows are the
+      coefficients.</figcaption>
+    </figure>
+
+    <p>Suppose $\vec v_1$ and $\vec v_2$ are orthogonal. Drop a perpendicular from $\vec x$
+    onto each axis. The component along $\vec v_1$ has length $\abs{x}\cos\theta_1$, so it
+    contributes $\abs{x}\cos\theta_1$ divided by the length of $\vec v_1$ copies of
+    $\vec v_1$, and likewise for $\vec v_2$:</p>
+    \[
+      \vec x
+      = \frac{\abs{x}\cos\theta_1}{\abs{v_1}}\,\vec v_1
+      + \frac{\abs{x}\cos\theta_2}{\abs{v_2}}\,\vec v_2 .
+    \]
+    <p>Multiply each numerator and denominator by the length of the corresponding basis
+    vector,</p>
+    \[
+      \vec x
+      = \frac{\abs{v_1}\abs{x}\cos\theta_1}{\abs{v_1}^{2}}\,\vec v_1
+      + \frac{\abs{v_2}\abs{x}\cos\theta_2}{\abs{v_2}^{2}}\,\vec v_2 ,
+    \]
+    <p>and recognise every piece as an inner product:</p>
+    \[
+      \vec x
+      = \underbrace{\left(\frac{\vec v_1\T\vec x}{\vec v_1\T\vec v_1}\right)}_{\text{coefficient of }\vec v_1}\vec v_1
+      \;+\;
+      \underbrace{\left(\frac{\vec v_2\T\vec x}{\vec v_2\T\vec v_2}\right)}_{\text{coefficient of }\vec v_2}\vec v_2 .
+    \]
+
+    <p>Test it on the example we started with. With
+    $\vec v_1 = \left[\begin{smallmatrix}1\\1\end{smallmatrix}\right]$,
+    $\vec v_2 = \left[\begin{smallmatrix}1\\-1\end{smallmatrix}\right]$,
+    $\vec x = \left[\begin{smallmatrix}3\\1\end{smallmatrix}\right]$, we found
+    $a\vec v_1 + b\vec v_2 = \vec x$ with $a = 2$, $b = 1$. And indeed</p>
+    \[
+      a = \frac{\vec v_1\T\vec x}{\vec v_1\T\vec v_1} = \frac{4}{2} = 2 ,
+      \qquad
+      b = \frac{\vec v_2\T\vec x}{\vec v_2\T\vec v_2} = \frac{2}{2} = 1 .
+    \]
+    <p>No elimination, no back substitution — two dot products. If the basis is also
+    <em>normalised</em>, so that the basis vectors have length $1$, the denominators are $1$
+    and we can leave them out entirely.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Orthogonality decouples</span>
+      <p>In a general basis the coefficients are entangled: you cannot know $a$ without also
+      solving for $b$, which is why elimination is needed. In an orthogonal basis each
+      coefficient is computed by one formula that never mentions the other basis vectors.
+      Every appearance of orthogonality later in this course — <em>QR</em>, least squares,
+      Fourier series, the SVD — is bought for that reason.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · The projection formula is not a general formula</span>
+      <p>It computes coefficients <em>in an orthogonal basis</em>, and the derivation used
+      orthogonality in the step where the perpendicular from $\vec x$ onto the $\vec v_1$ axis
+      was allowed to ignore $\vec v_2$ entirely. Run it blindly on the non-orthogonal pair
+      $\vec u_1, \vec u_2$ and you get
+      $\vec u_1\T\vec x / \vec u_1\T\vec u_1 = -10/20 = -\tfrac12$, which is not the
+      coefficient $c = -1$ we computed above. For a non-orthogonal basis you must solve the
+      system.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · The Cartesian basis, and why the identity matrix looks like that</h2>
+
+    <p>Apply the formula to the basis we have been using all along. The Cartesian basis
+    $\{\vec e_1, \vec e_2\}$ is orthogonal <em>and</em> normalised, so the denominators
+    disappear and</p>
+    \[
+      \vec x
+      = \underbrace{(\vec e_1\T\vec x)}_{\substack{\text{first entry}\\ \text{of }\vec x,\ x(1)}}\vec e_1
+      + \underbrace{(\vec e_2\T\vec x)}_{x(2)}\vec e_2
+      = \begin{bmatrix} \vert & \vert \\ \vec e_1 & \vec e_2 \\ \vert & \vert \end{bmatrix}
+        \begin{bmatrix} x(1) \\ x(2) \end{bmatrix}
+      = \underbrace{\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}}_{\text{the identity }\eye}\vec x .
+    \]
+
+    <p>So the projection formula, applied to the standard basis, says $\vec x = \eye\vec x$ —
+    which is true, and is meant to be reassuring rather than surprising. It says that
+    “reading off the entries of a vector” is not a primitive operation at all: it is
+    projection onto a particular orthonormal basis, one we chose so long ago that we stopped
+    noticing we had chosen it.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Where the four fundamental subspaces come in</span>
+      <p>Two subspaces have already appeared without being named. The set of vectors reachable
+      as $\mat A\vec x$ — everything you can build from the columns — is the
+      <strong>column space</strong>, and it is what decides whether $\mat A\vec x = \vec b$ has
+      a solution at all. The set of $\vec x$ with $\mat A\vec x = \vec 0$ is the
+      <strong>nullspace</strong>, and we met it in Lecture&nbsp;3 as the rigid translation
+      $(1,1,1,1)$ of a free–free rod. Doing the same two constructions for $\mat A\T$ gives
+      two more, and those four subspaces — column space and nullspace of $\mat A$, column
+      space and nullspace of $\mat A\T$ — are the standard bookkeeping for every solvability
+      question we will meet.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time we go back to $-u'' = f$ and ask what happens when the load is concentrated
+    at a single point: the delta function, and the Green's function that is the response to
+    it. That is this lecture's idea in continuous costume — decompose the thing you want into
+    simple pieces, solve for each piece, and add the results up.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Bases and orthogonality are the linear-algebra background assumed throughout Chapter 1
+    of Strang, <em>Computational Science and Engineering</em>; the projection formula returns
+    in earnest with least squares and <em>QR</em> later in the term.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L03.html"><span class="arw">←</span> Lecture 4</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="L05.html">Lecture 6 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
