@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 8 — Eigendecomposition; Symmetric Matrices | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 8: A = V Lambda V inverse, proofs that a real symmetric matrix has real eigenvalues and orthogonal eigenvectors, the spectral theorem, and the matrix exponential.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 8</p>
+    <h1>Eigendecomposition; Symmetric Matrices</h1>
+    <p class="lecmeta">
+      <span>Wednesday, September 30, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.5</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L07.pdf">Download PDF</a>
+    </p>
+    <p class="note" style="margin-top:14px">Lectures 7 and 8 were both delivered in the
+    session of Wednesday, September 30. This one continues directly from
+    <a href="L06.html">Lecture 7 — Eigenvalues and Eigenvectors</a>.</p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Assemble the eigenvectors into $\mat V$ and the eigenvalues into $\mat\Lambda$, and derive $\mat A = \mat V\mat\Lambda\mat V\inv$ from $\mat A\mat V = \mat V\mat\Lambda$.</li>
+      <li>Prove that a real symmetric matrix has real eigenvalues and orthogonal eigenvectors, and state the spectral theorem $\mat A = \mat V \mat\Lambda \mat V\T$.</li>
+      <li>Compute powers $\mat A^{\ell} = \mat V\mat\Lambda^{\ell}\mat V\inv$ and use them to evaluate the matrix exponential.</li>
+      <li>Solve the system $d\vec x/dt = \mat A\vec x$ as $\vec x = e^{\mat A t}\vec C$, and read the eigenvectors as the modes of the system.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1 · Eigendecomposition</h2>
+
+    <p>Last lecture ended with a statement in words: in the eigenbasis, $\mat A$ is diagonal.
+    Today we turn that sentence into a matrix identity.</p>
+
+    <p>Let the $n$ linearly independent eigenvectors of $\mat A$ be $\vec v_1,\dots,\vec v_n$,
+    with eigenvalues $\lambda_1,\dots,\lambda_n$. Arrange $\vec v_1,\dots,\vec v_n$
+    column-wise into an $n\times n$ <strong>eigenvector matrix</strong></p>
+    \[
+      \mat V = \begin{bmatrix} \vert & & \vert \\ \vec v_1 & \cdots & \vec v_n \\ \vert & & \vert \end{bmatrix}.
+    \]
+    <p>Now multiply by $\mat A$ and read the product by columns, as in Lecture&nbsp;2: column
+    $j$ of $\mat A \mat V$ is $\mat A$ times column $j$ of $\mat V$. So</p>
+    \[
+      \mat A \mat V
+      = \begin{bmatrix} \vert & \vert & & \vert \\ \mat A\vec v_1 & \mat A\vec v_2 & \cdots & \mat A\vec v_n \\ \vert & \vert & & \vert \end{bmatrix}
+      = \begin{bmatrix} \vert & \vert & & \vert \\ \lambda_1\vec v_1 & \lambda_2 \vec v_2 & \cdots & \lambda_n \vec v_n \\ \vert & \vert & & \vert \end{bmatrix},
+    \]
+    <p>using $\mat A \vec v_j = \lambda_j \vec v_j$ in each column. The last matrix has the
+    same columns as $\mat V$, each scaled by its own number — and scaling column $j$ by
+    $\lambda_j$ is exactly what right-multiplication by a diagonal matrix does:</p>
+    \[
+      \mat A \mat V
+      = \begin{bmatrix} \vert & \vert & & \vert \\ \vec v_1 & \vec v_2 & \cdots & \vec v_n \\ \vert & \vert & & \vert \end{bmatrix}
+        \underbrace{\begin{bmatrix} \lambda_1 & & & \\ & \lambda_2 & & \\ & & \ddots & \\ & & & \lambda_n\end{bmatrix}}_{\textstyle \mat\Lambda},
+    \]
+    <p>where $\mat\Lambda$ is the <strong>diagonal eigenvalue matrix</strong>. We have
+    shown</p>
+    \[
+      \mat A\mat V = \mat V\mat\Lambda .
+    \]
+
+    <p>Because $\mat V$ has $n$ linearly independent columns it is invertible, so we may
+    multiply on the right by $\mat V\inv$:</p>
+    \[
+      \boxed{\ \mat A = \mat V \mat\Lambda \mat V\inv\ }
+    \]
+    <p>the <strong>eigendecomposition</strong> of $\mat A$.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · What the three factors do</span>
+      <p>Read $\mat A = \mat V\mat\Lambda\mat V\inv$ right to left as a recipe rather than a
+      formula: rewrite $\vec x$ in the eigenbasis, scale coordinate $i$ by $\lambda_i$, change
+      back. Nothing in the middle step mixes coordinates — all of the complication of $\mat A$
+      has been pushed into the change of basis, done once at the start and undone once at the
+      end.</p>
+    </div>
+
+    <figure>
+      \[
+        \vec x
+        \;\xrightarrow{\ \mat V\inv\ }\;
+        \mat V\inv\vec x
+        \;\xrightarrow{\ \mat\Lambda\ }\;
+        \mat\Lambda\mat V\inv\vec x
+        \;\xrightarrow{\ \mat V\ }\;
+        \mat V\mat\Lambda\mat V\inv\vec x = \mat A\vec x
+      \]
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:4px 24px;font-family:var(--sans);font-size:0.8rem;color:var(--muted);margin-top:-6px">
+        <div>rewrite $\vec x$ in the eigenbasis</div>
+        <div>scale coordinate $i$ by $\lambda_i$</div>
+        <div>go back to the original basis</div>
+      </div>
+    </figure>
+
+    <h3>The example from last lecture</h3>
+    <p>For $\mat A = \left[\begin{smallmatrix} 3 & 1 \\ 1 & 3\end{smallmatrix}\right]$ we
+    found $\lambda_1 = 4$ with $\vec v_1 = (1,1)$ and $\lambda_2 = 2$ with
+    $\vec v_2 = (1,-1)$. So</p>
+    \[
+      \mat V = \begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix},
+      \qquad
+      \mat\Lambda = \begin{bmatrix} 4 & 0 \\ 0 & 2\end{bmatrix},
+      \qquad
+      \mat V\inv = \tfrac12\begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix},
+    \]
+    <p>and multiplying the three together does return the matrix we started from:</p>
+    \[
+      \mat V\mat\Lambda\mat V\inv
+      = \begin{bmatrix} 4 & 2 \\ 4 & -2\end{bmatrix}\cdot\tfrac12\begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix}
+      = \tfrac12\begin{bmatrix} 6 & 2 \\ 2 & 6\end{bmatrix}
+      = \begin{bmatrix} 3 & 1 \\ 1 & 3\end{bmatrix} = \mat A .
+    \]
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Not every matrix has one</span>
+      <p>The derivation used invertibility of $\mat V$, which needed $n$ <em>linearly
+      independent</em> eigenvectors. A defective matrix (Lecture&nbsp;7) does not have them,
+      and for such a matrix $\mat A = \mat V\mat\Lambda\mat V\inv$ simply does not exist —
+      there is nothing to invert. Every formula in the rest of this lecture inherits that
+      hypothesis.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Symmetric matrices</h2>
+
+    <p>Real symmetric matrices — and their extended complex family, the
+    <strong>Hermitian</strong> matrices — are particularly nice, because of their well-behaved
+    eigenvalues and eigenvectors. Since essentially every matrix this course builds from a
+    physical equilibrium turns out to be symmetric, this is the case we care about most.</p>
+
+    <p>In particular, if a real-valued $n\times n$ matrix $\mat A$ is symmetric,</p>
+    \[
+      \mat A = \mat A\T ,
+    \]
+    <p>we have:</p>
+    <ul>
+      <li><strong>(1)</strong> All eigenvalues are <strong>real</strong>.</li>
+      <li><strong>(2)</strong> There are $n$ eigenvectors, and they are <strong>orthogonal to
+      each other</strong>.</li>
+    </ul>
+
+    <p>Both facts are worth proving, because both proofs are three lines and both explain
+    <em>why</em> symmetry is the hypothesis that makes them work. Throughout we write</p>
+    \[
+      \vec v^{\dagger} \equiv (\vec v^{*})\T
+    \]
+    <p>for the conjugate transpose — complex conjugate, then transpose. We allow complex
+    vectors here because we do not yet know that $\lambda$ is real; that is what we are
+    proving.</p>
+
+    <h3>Proof of (1): the eigenvalues are real</h3>
+    <p>Suppose we have an eigenvalue–eigenvector pair $(\lambda,\vec v)$ for $\mat A$, so that
+    $\mat A\vec v = \lambda\vec v$. Take the conjugate inner product of both sides with
+    $\vec v$:</p>
+    \[
+      \vec v^{\dagger}\mat A\vec v = \lambda\, \underbrace{\vec v^{\dagger}\vec v}_{\text{real}} .
+    \]
+    <p>The quantity $\vec v^{\dagger}\vec v = \sum_i \abs{v_i}^2$ is real and positive, since
+    $\vec v \neq \vec 0$.</p>
+
+    <p>Now $\vec v^{\dagger}\mat A \vec v$ is just a number ($1\times 1$), so conjugating it is
+    the same as taking its conjugate transpose:</p>
+    \[
+      \bigl(\vec v^{\dagger}\mat A\vec v\bigr)^{*}
+      = \bigl(\vec v^{\dagger}\mat A\vec v\bigr)^{\dagger}
+      = \vec v^{\dagger}\mat A^{\dagger}\vec v
+      = \vec v^{\dagger}\mat A\vec v ,
+    \]
+    <p>the last step because $\mat A$ is real symmetric, so $\mat A^{\dagger} = \mat A$. A
+    number equal to its own conjugate is real, so $\vec v^{\dagger}\mat A\vec v$ is real.
+    Thus</p>
+    \[
+      \lambda = \frac{\vec v^{\dagger}\mat A\vec v}{\vec v^{\dagger}\vec v}
+    \]
+    <p>is a real number divided by a real number, and is therefore also real.
+    <span style="float:right">∎</span></p>
+
+    <h3>Proof of (2): eigenvectors of distinct eigenvalues are orthogonal</h3>
+    <p>Suppose we have two eigenpairs $(\lambda_1,\vec v_1)$ and $(\lambda_2,\vec v_2)$ for a
+    real symmetric matrix $\mat A$, and $\lambda_1 \neq \lambda_2$. Start from</p>
+    \[
+      \mat A\vec v_1 = \lambda_1\vec v_1
+    \]
+    <p>and take inner products of both sides with $\vec v_2$:</p>
+    \[
+      \vec v_2^{\dagger}\mat A\vec v_1 = \lambda_1\,\vec v_2^{\dagger}\vec v_1 .
+    \]
+    <p>Now compute the same left-hand side the other way, moving $\mat A$ across:</p>
+    \[
+      \vec v_2^{\dagger}\mat A\vec v_1
+      = \bigl(\mat A^{\dagger}\vec v_2\bigr)^{\dagger}\vec v_1
+      = \bigl(\mat A\vec v_2\bigr)^{\dagger}\vec v_1
+      = \lambda_2\, \vec v_2^{\dagger}\vec v_1 ,
+    \]
+    <p>again using $\mat A^{\dagger} = \mat A$, and using part (1) at the last step so that
+    $\lambda_2^{*} = \lambda_2$. Setting the two expressions equal,</p>
+    \[
+      \lambda_1 \vec v_2^{\dagger}\vec v_1 = \lambda_2 \vec v_2^{\dagger}\vec v_1,
+      \qquad\text{with}\qquad \lambda_1 \neq \lambda_2 .
+    \]
+    <p>The only way that can hold is</p>
+    \[
+      \vec v_2^{\dagger}\vec v_1 = 0,
+    \]
+    <p>and so $\vec v_1, \vec v_2$ are orthogonal to each other.
+    <span style="float:right">∎</span></p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · The repeated case</span>
+      <p>If $\lambda_1 = \lambda_2$ this proof fails — the last step divided by
+      $\lambda_1 - \lambda_2$. But in that case nothing is lost: any linear combination of
+      $\vec v_1$ and $\vec v_2$ is again an eigenvector for the same eigenvalue, so we can
+      construct combinations of $\vec v_1$ and $\vec v_2$ that <em>are</em> orthogonal to each
+      other, i.e. construct an orthogonal basis for the degenerate eigenspace. A repeated
+      eigenvalue gives us a whole plane (or higher-dimensional subspace) of eigenvectors, and
+      we get to choose a convenient basis inside it.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Symmetry is the hypothesis, not a bonus</span>
+      <p>Both proofs used $\mat A^{\dagger} = \mat A$, once each, and would collapse without
+      it. A general matrix can have complex eigenvalues (a rotation has no real eigenvector at
+      all) and its eigenvectors need not be orthogonal. Do not carry the conclusions of this
+      section over to a non-symmetric matrix.</p>
+    </div>
+
+    <h3>The spectral theorem</h3>
+    <p>Put (1) and (2) together. Since the $n$ eigenvectors are mutually orthogonal, scale
+    each one to unit length — we are free to, by Lecture&nbsp;7 — and collect them into
+    $\mat V$. Then $\mat V$ has orthonormal columns, which is precisely the statement
+    $\mat V\T\mat V = \eye$, i.e.</p>
+    \[
+      \mat V\inv = \mat V\T .
+    \]
+    <p>The inverse in the eigendecomposition is now free: no elimination, just a transpose.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Spectral theorem</span>
+      <p>Every real symmetric matrix factors as</p>
+      \[
+        \mat A = \mat V\mat\Lambda\mat V\T,
+        \qquad \mat\Lambda \text{ real diagonal}, \quad \mat V\T \mat V = \eye .
+      \]
+      <p>Real eigenvalues, perpendicular eigenvectors, and the change of basis undone by a
+      transpose. This is the single most useful factorisation in the course.</p>
+    </div>
+
+    <p>For last lecture's example, normalising $(1,1)$ and $(1,-1)$ to unit length gives</p>
+    \[
+      \mat V = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix},
+      \qquad
+      \mat V\T\mat V = \tfrac12\begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix}\begin{bmatrix} 1 & 1 \\ 1 & -1\end{bmatrix}
+      = \tfrac12\begin{bmatrix} 2 & 0 \\ 0 & 2\end{bmatrix} = \eye,
+    \]
+    <p>so indeed $\mat A = \mat V\mat\Lambda\mat V\T$ with
+    $\mat\Lambda = \operatorname{diag}(4,2)$.</p>
+  </section>
+
+  <section>
+    <h2>3 · The matrix exponential</h2>
+
+    <p>The eigenvector basis for a matrix $\mat A$ is, in a sense, the best basis for that
+    matrix: it is the basis under which the matrix is diagonal. One particular application of
+    the eigendecomposition is in understanding and computing the <strong>matrix
+    exponential</strong>.</p>
+
+    <h3>Where it comes from</h3>
+    <p>The scalar first-order linear ODE</p>
+    \[
+      \dd{x}{t} = a x
+      \qquad\text{has general solution}\qquad
+      x = C e^{a t}.
+    \]
+    <p>Now take a <em>system</em> of first-order linear ODEs, with $\vec x \in \R^n$ and
+    $\mat A$ an $n \times n$ matrix:</p>
+    \[
+      \dd{\vec x}{t} = \mat A\vec x .
+    \]
+    <p>Analogously, the general solution is</p>
+    \[
+      \boxed{\ \vec x = e^{\mat A t}\,\vec C\ }
+    \]
+    <p>where $\vec C$ is now an $n$-dimensional vector and $e^{\mat A t}$ is a <em>matrix
+    exponential</em>. By the Taylor series expansion of the exponential function,</p>
+    \[
+      e^{\mat A t} = \eye + \mat A t + \tfrac12 (\mat A t)^2 + \cdots
+      = \sum_{\ell = 0}^{\infty} \frac{1}{\ell!}(\mat A t)^{\ell} .
+    \]
+    <p>So the object is defined — but it asks us for every power of $\mat A$, which looks
+    expensive. The eigendecomposition gives us an easy way to evaluate all these matrix
+    powers.</p>
+
+    <h3>Powers are free in the eigenbasis</h3>
+    <p>Let $\mat A = \mat V\mat\Lambda\mat V\inv$. Then</p>
+    \[
+      \mat A^2 = \mat V\mat\Lambda\,\underbrace{\mat V\inv \mat V}_{=\;\eye}\,\mat\Lambda\mat V\inv
+      = \mat V\mat\Lambda^2\mat V\inv ,
+    \]
+    <p>and analogously, for every $\ell$,</p>
+    \[
+      \mat A^{\ell} = \mat V\mat\Lambda^{\ell}\mat V\inv .
+    \]
+    <p>The interior factors telescope. And $\mat\Lambda^{\ell}$ costs nothing: it is the
+    diagonal matrix of $\lambda_i^{\ell}$.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>$\mat A^{\ell} = \mat V\mat\Lambda^{\ell}\mat V\inv$: to raise a matrix to a power,
+      raise its <em>eigenvalues</em> to that power and leave the eigenvectors alone. Anything
+      built out of powers by a series — the exponential above being the case we need —
+      therefore acts on the eigenvalues one at a time.</p>
+    </div>
+
+    <h3>Assembling the exponential</h3>
+    <p>Substitute the powers into the series:</p>
+    \[
+    \begin{aligned}
+      e^{\mat A t}
+      &= \sum_{\ell=0}^{\infty}\frac{1}{\ell!}\mat A^{\ell}t^{\ell}
+       = \sum_{\ell=0}^{\infty}\frac{1}{\ell!}\mat V\bigl(\mat\Lambda^{\ell}t^{\ell}\bigr)\mat V\inv \\[4pt]
+      &= \mat V\left(\sum_{\ell=0}^{\infty}\frac{1}{\ell!}
+          \begin{bmatrix} \lambda_1^{\ell}t^{\ell} & & \\ & \ddots & \\ & & \lambda_n^{\ell}t^{\ell}\end{bmatrix}
+         \right)\mat V\inv \\[4pt]
+      &= \mat V\begin{bmatrix} e^{\lambda_1 t} & & \\ & \ddots & \\ & & e^{\lambda_n t}\end{bmatrix}\mat V\inv
+       \;=\; \mat V e^{\mat\Lambda t}\mat V\inv .
+    \end{aligned}
+    \]
+    <p>The sum could be pulled inside because $\mat V$ and $\mat V\inv$ do not depend on
+    $\ell$, and each diagonal entry is then just the ordinary scalar series
+    $\sum_{\ell}\frac{1}{\ell!}(\lambda_i t)^{\ell} = e^{\lambda_i t}$.</p>
+
+    <p>If $\mat A$ is real symmetric, the spectral theorem replaces the inverse by a
+    transpose:</p>
+    \[
+      \boxed{\ e^{\mat A t} = \mat V e^{\mat\Lambda t}\mat V\T . \ }
+    \]
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Some physical context</span>
+      <p>If, for example, $\mat A$ is the Hamiltonian of a physical system, the eigenvectors
+      $\mat V$ are referred to as the <strong>modes</strong> of the physical system. The
+      matrix exponential is then related to the normal mode expansion: the system is
+      decomposed into modes, each mode evolves on its own with its own $e^{\lambda_i t}$, and
+      the modes are recombined at the end. That is exactly the three-arrow picture from §1,
+      now running in time.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>For a symmetric matrix we now know the eigenvalues are real. The next question is
+    whether they are <em>positive</em>, and that is Lecture&nbsp;9: positive definite matrices
+    are the symmetric matrices with all $\lambda_i > 0$. The distinction is not cosmetic — in
+    $\vec x = e^{\mat A t}\vec C$ the sign of each $\lambda_i$ decides whether that mode grows
+    or decays, so it is the difference between a stable system and an unstable one, and
+    between an energy that is a genuine minimum and one that is not.</p>
+
+    <p>The matrix exponential returns in Lecture&nbsp;10, where
+    $d\vec x/dt = \mat A\vec x$ with $\mat A$ a second-difference matrix <em>is</em> the
+    discretised heat equation, and again in Lecture&nbsp;15 for oscillations.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.5.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L06.html"><span class="arw">←</span> Lecture 7</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 9 — not yet posted <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

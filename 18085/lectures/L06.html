@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 7 — Eigenvalues and Eigenvectors | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 7: the eigenvalue equation, why an eigenbasis diagonalises a matrix, computing eigenpairs from the characteristic polynomial and the nullspace, and defective matrices.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 7</p>
+    <h1>Eigenvalues and Eigenvectors</h1>
+    <p class="lecmeta">
+      <span>Wednesday, September 30, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.5</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L06.pdf">Download PDF</a>
+    </p>
+    <p class="note" style="margin-top:14px">Lectures 7 and 8 were both delivered in the
+    session of Wednesday, September 30. <a href="L07.html">Lecture 8 — Eigendecomposition;
+    Symmetric Matrices</a> continues directly from here.</p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>State the eigenvalue equation $\mat A \vec x = \lambda \vec x$ and explain why $\vec x$ is required to be non-zero.</li>
+      <li>Explain why an eigenbasis turns multiplication by a matrix into multiplication by a number.</li>
+      <li>Compute eigenvalues by hand from $\det(\mat A - \lambda\eye)=0$ and eigenvectors from the nullspace of $\mat A - \lambda\eye$.</li>
+      <li>Say what a defective matrix is, and why the characteristic polynomial is <em>not</em> how eigenvalues are computed numerically.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1 · What they are</h2>
+
+    <p>Multiply a vector by a matrix and two things usually happen at once: the vector changes
+    length, and it changes direction. The second one is what makes matrices hard to reason
+    about. So ask: are there any vectors that $\mat A$ does <em>not</em> turn — directions
+    along which $\mat A$ only stretches?</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Definition · Eigenvalue and eigenvector</span>
+      <p>Given any <strong>square</strong> matrix $\mat A$, an <em>eigenpair</em> is a pair
+      $(\lambda, \vec x)$ consisting of a scalar and a <strong>non-zero</strong> vector
+      satisfying</p>
+      \[
+        \boxed{\ \mat A \vec x = \lambda \vec x\ }
+      \]
+      <p>that is, $\mat A$ acting on $\vec x$ gives back a constant multiple of $\vec x$. We
+      call $\lambda$ an <strong>eigenvalue</strong> of $\mat A$, and $\vec x$ the
+      corresponding <strong>eigenvector</strong>.</p>
+    </div>
+
+    <p>Two words in that definition are doing real work.</p>
+    <ul>
+      <li><strong>Square.</strong> $\mat A\vec x$ and $\vec x$ have to live in the same space
+      before we can ask whether one is a multiple of the other. A rectangular matrix moves you
+      between two different spaces, so the question does not even parse. (Rectangular matrices
+      get their own version of this story in the SVD lecture at the end of the term.)</li>
+      <li><strong>Non-zero.</strong> If $\vec x = \vec 0$ were allowed, then
+      $\mat A \vec 0 = \lambda \vec 0$ holds for <em>every</em> $\lambda$ and every $\mat A$,
+      and the definition would tell us nothing at all. The content of the equation is that
+      some genuine direction survives $\mat A$ intact.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>2 · Why they are important</h2>
+
+    <p>Eigenvectors simplify the behaviour of a matrix: along an eigenvector, multiplying by a
+    matrix is like multiplying by a number. That is already a large simplification for one
+    vector. The point is that it can be made to hold for <em>all</em> vectors at once.</p>
+
+    <p>If $\mat A$ is $n\times n$ and we can find $n$ <strong>linearly independent</strong>
+    eigenvectors $\vec v_1,\dots,\vec v_n$, then those eigenvectors form a special basis of
+    $\R^n$ — the <strong>eigenbasis</strong> of $\mat A$. Being a basis (Lecture&nbsp;5), it
+    lets us write any vector as</p>
+    \[
+      \vec x = c_1 \vec v_1 + c_2 \vec v_2 + \cdots + c_n \vec v_n ,
+    \]
+    <p>and now watch what $\mat A$ does. By linearity, and then by the eigenvalue equation
+    applied one term at a time,</p>
+    \[
+      \mat A \vec x
+      = c_1 \mat A\vec v_1 + \cdots + c_n \mat A \vec v_n
+      = c_1 \lambda_1 \vec v_1 + c_2\lambda_2 \vec v_2 + \cdots + c_n \lambda_n \vec v_n .
+    \]
+    <p>The coefficients did not mix. Each one was simply rescaled by its own eigenvalue. In
+    these coordinates $\mat A$ is <em>diagonal</em> — much simpler.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · The eigenbasis is the good basis</span>
+      <p>In an arbitrary basis, $\mat A\vec x$ couples all $n$ coordinates together. In the
+      eigenbasis it does not couple them at all: coordinate $i$ is multiplied by $\lambda_i$
+      and left alone. Finding eigenvectors is finding the coordinates in which the problem
+      falls apart into $n$ independent scalar problems.</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Superposition, again</span>
+      <p>The computation above is the superposition principle of Lecture&nbsp;2 in new
+      clothing: decompose, act on the pieces, add. Last lecture we decomposed a load into
+      point sources and added Green's functions. Here we decompose a vector into eigenvectors
+      and add scaled copies. It is the same move; only the basis has changed, and this time
+      the basis was chosen to suit the <em>operator</em> rather than the data.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · How to calculate eigenvalues and eigenvectors</h2>
+
+    <h3>In practice</h3>
+    <p>By numerical algorithms — the <em>QR</em> algorithm, inverse iteration, and their
+    relatives. In MATLAB, Python, or Julia you call <code>eig()</code> and its relatives, and
+    someone else's very carefully engineered code does the work. We will build one of the
+    ingredients, the <em>QR</em> factorisation, in Lecture&nbsp;11.</p>
+
+    <h3>Formally</h3>
+    <p>Eigenvalues are the solutions of</p>
+    \[
+      \boxed{\ \det(\mat A - \lambda \eye) = 0\ }
+    \]
+    <p>which is a polynomial equation in $\lambda$, the <em>characteristic polynomial</em>.</p>
+
+    <p>Where does that come from? Move everything to one side of the eigenvalue equation:</p>
+    \[
+      \mat A \vec x = \lambda \vec x
+      \quad\Longleftrightarrow\quad
+      \mat A \vec x - \lambda \eye \vec x = \vec 0
+      \quad\Longleftrightarrow\quad
+      (\mat A - \lambda\eye)\,\vec x = \vec 0 .
+    \]
+    <p>We are asking for a <em>non-zero</em> $\vec x$ in the nullspace of
+    $\mat A - \lambda\eye$. A square matrix has a non-trivial nullspace exactly when it is
+    singular (Lecture&nbsp;5), and a square matrix is singular exactly when its determinant
+    vanishes. Hence $\det(\mat A - \lambda\eye) = 0$. The eigenvalues are precisely the
+    numbers $\lambda$ that make $\mat A - \lambda\eye$ singular.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · Eigenvalues are where a matrix loses rank</span>
+      <p>An eigenvalue is a number $\lambda$ for which $\mat A - \lambda\eye$ fails to be
+      invertible. So the hunt splits cleanly in two: first find the $\lambda$ that make
+      $\mat A - \lambda\eye$ singular, then, for each one, read the eigenvectors off as the
+      nullspace of that singular matrix. The subspace machinery of Lecture&nbsp;5 is doing the
+      second half of the work.</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · $\lambda = 0$ is the singular case</span>
+      <p>Put $\lambda = 0$ into that condition and it reads $\det \mat A = 0$. So a matrix has
+      $0$ as an eigenvalue exactly when it is singular, and the eigenvectors for $\lambda = 0$
+      are exactly the nullspace vectors of Lecture&nbsp;5. That is worth carrying with you:
+      the difference between the invertible $\Kmat$ and the singular $\Bmat$ of
+      Lecture&nbsp;3 — fixed ends against free ends — is the difference between “no zero
+      eigenvalue” and “a zero eigenvalue”. The physical statement <em>a free–free bar can
+      drift</em> and the algebraic statement <em>$\Bmat$ has $\lambda = 0$</em> are one
+      statement in two languages.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Good for hand calculations only</span>
+      <p>Solving $\det(\mat A - \lambda\eye) = 0$ is fine for small matrices worked by hand.
+      <strong>Do not use it for numerics of large matrices.</strong> Forming an $n$th-degree
+      polynomial and then rooting it is a numerically disastrous route to the eigenvalues: the
+      roots of a polynomial can be wildly sensitive to tiny changes in its coefficients, so
+      you would be solving a badly conditioned problem in place of a well conditioned one.
+      Real algorithms never form the characteristic polynomial.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · A worked example</h2>
+
+    <p>Take</p>
+    \[
+      \mat A = \begin{bmatrix} 3 & 1 \\ 1 & 3 \end{bmatrix}.
+    \]
+
+    <h3>Step 1: the characteristic polynomial</h3>
+    \[
+      \det(\mat A - \lambda\eye)
+      = \det\begin{bmatrix} 3-\lambda & 1 \\ 1 & 3-\lambda \end{bmatrix}
+      = (3-\lambda)^2 - 1 .
+    \]
+
+    <h3>Step 2: the eigenvalues</h3>
+    <p>Setting it to zero,</p>
+    \[
+      (3-\lambda)^2 - 1 = 0
+      \quad\Longrightarrow\quad
+      (3-\lambda)^2 = 1
+      \quad\Longrightarrow\quad
+      3-\lambda = \pm 1 ,
+    \]
+    <p>so there are two eigenvalues,</p>
+    \[
+      \lambda_1 = 4, \qquad \lambda_2 = 2 .
+    \]
+
+    <h3>Step 3: the eigenvectors</h3>
+    <p>Each eigenvalue was chosen to make $\mat A - \lambda\eye$ singular, so now we read off
+    its nullspace. For $\lambda_1 = 4$,</p>
+    \[
+      \mat A - 4\eye = \begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix},
+      \qquad
+      \begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}
+      \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+      \ \Longrightarrow\ x_1 = x_2 ,
+    \]
+    <p>and for $\lambda_2 = 2$,</p>
+    \[
+      \mat A - 2\eye = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix},
+      \qquad
+      \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}
+      \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+      \ \Longrightarrow\ x_1 = -x_2 .
+    \]
+    <p>Both matrices have rank $1$, so each nullspace is a line, and we pick one vector from
+    each:</p>
+    \[
+      \vec v_1 = \begin{bmatrix} 1 \\ 1\end{bmatrix},
+      \qquad
+      \vec v_2 = \begin{bmatrix} 1 \\ -1\end{bmatrix}.
+    \]
+
+    <h3>Step 4: check</h3>
+    <p>Always check — it costs one multiplication:</p>
+    \[
+      \begin{bmatrix} 3 & 1 \\ 1 & 3 \end{bmatrix}\begin{bmatrix} 1 \\ 1\end{bmatrix}
+      = \begin{bmatrix} 4 \\ 4\end{bmatrix} = 4\begin{bmatrix} 1 \\ 1\end{bmatrix},
+      \qquad
+      \begin{bmatrix} 3 & 1 \\ 1 & 3 \end{bmatrix}\begin{bmatrix} 1 \\ -1\end{bmatrix}
+      = \begin{bmatrix} 2 \\ -2\end{bmatrix} = 2\begin{bmatrix} 1 \\ -1\end{bmatrix}.
+    \]
+
+    <figure>
+      <svg viewBox="0 0 470 400" width="100%" style="max-width:470px" role="img"
+           aria-label="Two dashed eigendirection lines through the origin. Vectors on them come back scaled by four and by two, while a third vector off both lines comes back turned.">
+        <defs>
+          <marker id="a6aGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+          <marker id="a6aGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+          <marker id="a6aBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11"
+                  markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+          <marker id="a6aRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11"
+                  markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker>
+        </defs>
+        <!-- axes -->
+        <g stroke="var(--cse-gray)" stroke-width="1.1">
+          <line x1="30" y1="245" x2="302.8" y2="245" marker-end="url(#a6aGray)"/>
+          <line x1="82.8" y1="385.8" x2="82.8" y2="25" marker-end="url(#a6aGray)"/>
+        </g>
+        <!-- eigendirections -->
+        <g stroke="var(--cse-gray)" stroke-width="1.1" stroke-dasharray="6 5">
+          <line x1="38.8" y1="289" x2="285.2" y2="42.6"/>
+          <line x1="38.8" y1="201" x2="214.8" y2="377"/>
+        </g>
+        <!-- stretched images, drawn first so the short vectors sit on top -->
+        <g stroke="var(--cse-green)" stroke-width="2.2">
+          <line x1="82.8" y1="245" x2="258.8" y2="69" marker-end="url(#a6aGreen)"/>
+          <line x1="82.8" y1="245" x2="170.8" y2="333" marker-end="url(#a6aGreen)"/>
+        </g>
+        <g stroke="var(--cse-blue)" stroke-width="3.2">
+          <line x1="82.8" y1="245" x2="126.8" y2="201" marker-end="url(#a6aBlue)"/>
+          <line x1="82.8" y1="245" x2="126.8" y2="289" marker-end="url(#a6aBlue)"/>
+        </g>
+        <!-- a non-eigenvector turns -->
+        <line x1="82.8" y1="245" x2="346.8" y2="157" stroke="var(--cse-red)"
+              stroke-width="2.2" stroke-dasharray="7 5" marker-end="url(#a6aRed)"/>
+        <line x1="82.8" y1="245" x2="170.8" y2="245" stroke="var(--cse-red)"
+              stroke-width="3.2" marker-end="url(#a6aRed)"/>
+        <g font-size="13.5" font-style="italic" font-family="Georgia, serif">
+          <text x="310" y="250" fill="var(--ink)">x₁</text>
+          <text x="82.8" y="18" fill="var(--ink)" text-anchor="middle">x₂</text>
+          <text x="122" y="194" fill="var(--cse-blue)" text-anchor="end">v₁</text>
+          <text x="131" y="284" fill="var(--cse-blue)">v₂</text>
+          <text x="263" y="64" fill="var(--cse-green)">Av₁ = 4v₁</text>
+          <text x="175" y="348" fill="var(--cse-green)">Av₂ = 2v₂</text>
+          <text x="170.8" y="264" fill="var(--cse-red)" text-anchor="middle">w</text>
+          <text x="352" y="161" fill="var(--cse-red)">Aw</text>
+        </g>
+      </svg>
+      <figcaption>On an eigendirection a vector comes back scaled; off it, turned.</figcaption>
+    </figure>
+
+    <p>The two dashed lines are the eigendirections: vectors on them come back scaled, by $4$
+    and by $2$. The red vector $\vec w$ is on neither line, and it comes back <em>turned</em>
+    — it is a mixture of $\vec v_1$ and $\vec v_2$, and the two pieces were stretched by
+    different amounts.</p>
+
+    <h3>The same picture, in coordinates</h3>
+    <p>Make that last sentence quantitative. The red vector is
+    $\vec w = \begin{bmatrix} 2 \\ 0\end{bmatrix}$, and in the eigenbasis it is</p>
+    \[
+      \vec w = 1\cdot\vec v_1 + 1\cdot \vec v_2
+      = \begin{bmatrix} 1 \\ 1\end{bmatrix} + \begin{bmatrix} 1 \\ -1\end{bmatrix}.
+    \]
+    <p>Now apply the rule from §2 — scale each coefficient by its own eigenvalue and add:</p>
+    \[
+      \mat A \vec w = 4\,\vec v_1 + 2\,\vec v_2
+      = \begin{bmatrix} 4 \\ 4\end{bmatrix} + \begin{bmatrix} 2 \\ -2\end{bmatrix}
+      = \begin{bmatrix} 6 \\ 2\end{bmatrix},
+    \]
+    <p>and that is exactly what the matrix gives directly:</p>
+    \[
+      \begin{bmatrix} 3 & 1 \\ 1 & 3\end{bmatrix}\begin{bmatrix} 2 \\ 0\end{bmatrix}
+      = \begin{bmatrix} 6 \\ 2\end{bmatrix} .
+    \]
+    <p>Notice what the middle computation did <em>not</em> contain: any multiplication by
+    $\mat A$. Once the vector was written in the eigenbasis, the matrix was replaced by the
+    two numbers $4$ and $2$. And notice <em>why</em> $\mat A\vec w$ points somewhere new: the
+    $\vec v_1$-part was quadrupled while the $\vec v_2$-part was only doubled, so the mixture
+    came out with different proportions. A matrix turns vectors because it stretches different
+    eigendirections by different amounts.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Eigenvectors are directions, not vectors</span>
+      <p>The eigenvectors can be scaled by an arbitrary constant: if
+      $\mat A \vec v = \lambda \vec v$ then
+      $\mat A (c\vec v) = c\,\mat A\vec v = \lambda (c \vec v)$ for any $c \neq 0$. So what an
+      eigenvalue determines is a <em>line</em> through the origin, not a particular arrow on
+      it. That freedom is why software returns eigenvectors normalised to unit length, and why
+      your hand answer of $(1,1)$ and the computer's $(0.7071, 0.7071)$ are the same
+      answer.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Defective matrices</h2>
+
+    <p>Everything in §2 assumed we could find $n$ linearly independent eigenvectors. That is
+    the typical case, but it is not guaranteed.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Definition · Defective matrix</span>
+      <p>Generally, it is possible for an $n\times n$ matrix not to have $n$ linearly
+      independent eigenvectors. In this case the matrix is said to be
+      <strong>defective</strong>.</p>
+    </div>
+
+    <p>A defective matrix has no eigenbasis, so it cannot be diagonalised, and the clean
+    picture of §2 breaks down. You will see an example on the problem set. Defective matrices
+    are not the focus of this course — the matrices we care about come from physical
+    equilibrium problems, are symmetric, and as we will see next time are never defective.</p>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time we package this lecture's computation into a single matrix factorisation.
+    Putting the eigenvectors into the columns of a matrix $\mat V$ and the eigenvalues into a
+    diagonal matrix $\mat\Lambda$ turns “$\mat A$ is diagonal in the eigenbasis” into the
+    statement $\mat A = \mat V \mat\Lambda \mat V\inv$, the <em>eigendecomposition</em>.</p>
+
+    <p>Keep one detail of today's example in view: $\mat A$ was symmetric, and its two
+    eigenvectors $(1,1)$ and $(1,-1)$ came out perpendicular, with both eigenvalues real.
+    Neither of those was an accident, and both are theorems about symmetric matrices that we
+    prove next lecture.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.5.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L05.html"><span class="arw">←</span> Lecture 6</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="L07.html">Lecture 8 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -10,7 +10,7 @@ colours in `cse085.sty`, and MathJax.
 ```
 18085-site/
   index.html            course home — logistics, arcs, grading, policies
-  lectures.html         all 26 sessions, dated, by arc
+  lectures.html         all 24 lectures, dated, by arc
   psets.html            the seven problem sets, submission and quiz policy
   resources.html        curated supplementary materials
   lectures/
