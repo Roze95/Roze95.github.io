@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 9 — Positive Definite Matrices | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 9: the quadratic form x-transpose M x, the bowl, trough and saddle, positive definiteness as the multivariable second derivative test, and the pivot and eigenvalue tests.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../slides.html">Slides</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 9</p>
+    <h1>Positive Definite Matrices</h1>
+    <p class="lecmeta">
+      <span>Monday, October 5, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.6</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L08.pdf">Download PDF</a>
+      <a class="btn ghost" href="../files/slides/L08_Positive_Definite_Hessian.pptx">Slides (pptx)</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>State the definition of a positive definite matrix and read it as a statement about the quadratic form $\vec x\T \mat M \vec x$.</li>
+      <li>Recognise the bowl, the trough, and the saddle as the graphs of definite, semidefinite, and indefinite quadratic forms.</li>
+      <li>Explain why positive definiteness is the multivariable second derivative test, and why we may restrict attention to symmetric matrices.</li>
+      <li>Test a symmetric matrix for positive definiteness using its pivots or its eigenvalues.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Where we are</h2>
+    <p>We now know how to take a symmetric matrix apart: real eigenvalues, orthogonal
+    eigenvectors, $\mat M = \mat Q \mat\Lambda \mat Q\T$. Symmetry was the structural
+    hypothesis. Today we add the one extra hypothesis that turns a symmetric matrix into
+    something that behaves like a <em>positive number</em> — and that single extra property is
+    what will later make energy positive, equilibrium a minimum, and the matrix
+    $\mat A\T \mat C \mat A$ invertible.</p>
+  </section>
+
+  <section>
+    <h2>1 · The definition</h2>
+
+    <div class="keyidea">
+      <span class="boxtitle">Definition · Definiteness</span>
+      <p>A square matrix $\mat M \in \R^{n\times n}$ is <strong>positive definite</strong>
+      (PD) if for all non-zero vectors $\vec x \in \R^n$,</p>
+      \[
+        \vec x\T \mat M \vec x > 0 .
+      \]
+      <p>$\mat M$ is <strong>positive semi-definite</strong> (PSD) if the inequality is not
+      strict: for all non-zero $\vec x \in \R^n$ we have $\vec x\T \mat M \vec x \ge 0$. If
+      the inequality is flipped, $\mat M$ is said to be <strong>negative definite</strong>. If
+      the inequality does not always hold in either direction, $\mat M$ is said to be
+      <strong>indefinite</strong>.</p>
+    </div>
+
+    <p>Notice what kind of object $\vec x\T \mat M \vec x$ is: $\vec x\T$ is $1\times n$,
+    $\mat M$ is $n \times n$, $\vec x$ is $n \times 1$, so the product is $1 \times 1$ — a
+    single number. The definition is a statement about the <em>sign</em> of that number, for
+    every input at once.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Positive definiteness is the generalisation of <em>positive numbers</em> to matrices.
+      For $n=1$ the matrix is a scalar $m$ and $x\,m\,x = m x^2 > 0$ for all $x \neq 0$ says
+      exactly $m > 0$. Everything we know about positive numbers — they have square roots,
+      they are invertible, they make $mx^2$ a bowl — has a matrix analogue, and that analogue
+      is this definition.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · Definiteness is not a property of the entries</span>
+      <p>The definition quantifies over <em>all</em> non-zero $\vec x$. Testing a few
+      convenient vectors, or glancing at the signs of the entries, proves nothing. The matrix
+      $\Kmat$ we have been using since Lecture&nbsp;3 is full of $-1$'s and is positive
+      definite; we will check that at the end of the hour.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · The geometrical picture: matrices as quadratic polynomials</h2>
+
+    <p>A geometrical picture of PD matrices can be had by thinking of matrices as
+    representing quadratic polynomials in $n$ variables:</p>
+    \[
+      P_{\mat M}(x_1, x_2, \ldots, x_n) =
+      \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix}\T
+      \mat M
+      \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix}.
+    \]
+    <p>Every term of $P_{\mat M}$ is quadratic — entry $m_{ij}$ contributes $m_{ij}x_i x_j$ —
+    so $P_{\mat M}(\vec 0) = 0$ always, and the whole question is what the graph does around
+    the origin. That graph has different qualities depending on whether $\mat M$ is PD.</p>
+
+    <h3>Visualisations for $2\times 2$ matrices</h3>
+    <p>Take the three simplest diagonal examples.</p>
+
+    <figure>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;align-items:end">
+        <div>
+          \[ \begin{bmatrix} 1 & 0 \\ 0 & 1\end{bmatrix} \]
+          <svg viewBox="0 0 170 150" width="100%" style="max-width:170px" role="img" aria-label="A bowl: the surface z equals x squared plus y squared, curving upward in every direction from a single lowest point at the origin.">
+        <g fill="none" stroke="var(--cse-green)" stroke-width="0.7" stroke-linejoin="round" opacity="0.85">
+          <polyline points="79.1,10.0 86.4,28.4 93.8,43.1 101.2,54.4 108.5,62.0 115.9,66.1 123.3,66.7 130.6,63.6 138.0,57.0 145.3,46.9 152.7,33.1"/>
+          <polyline points="72.9,28.8 80.3,47.2 87.6,62.0 95.0,73.2 102.4,80.8 109.7,84.9 117.1,85.5 124.4,82.4 131.8,75.8 139.2,65.7 146.5,51.9"/>
+          <polyline points="66.7,44.0 74.1,62.4 81.4,77.2 88.8,88.4 96.2,96.1 103.5,100.2 110.9,100.7 118.3,97.7 125.6,91.1 133.0,80.9 140.4,67.2"/>
+          <polyline points="60.5,55.7 67.9,74.1 75.3,88.9 82.6,100.1 90.0,107.7 97.4,111.8 104.7,112.4 112.1,109.3 119.4,102.7 126.8,92.6 134.2,78.9"/>
+          <polyline points="54.4,63.8 61.7,82.2 69.1,97.0 76.5,108.2 83.8,115.9 91.2,120.0 98.5,120.5 105.9,117.5 113.3,110.9 120.6,100.7 128.0,87.0"/>
+          <polyline points="48.2,68.4 55.5,86.7 62.9,101.5 70.3,112.7 77.6,120.4 85.0,124.5 92.4,125.0 99.7,122.0 107.1,115.4 114.5,105.2 121.8,91.5"/>
+          <polyline points="42.0,69.3 49.4,87.7 56.7,102.5 64.1,113.7 71.5,121.4 78.8,125.5 86.2,126.0 93.5,123.0 100.9,116.4 108.3,106.2 115.6,92.5"/>
+          <polyline points="35.8,66.7 43.2,85.1 50.6,99.9 57.9,111.1 65.3,118.8 72.6,122.9 80.0,123.4 87.4,120.4 94.7,113.8 102.1,103.6 109.5,89.9"/>
+          <polyline points="29.6,60.6 37.0,78.9 44.4,93.7 51.7,105.0 59.1,112.6 66.5,116.7 73.8,117.3 81.2,114.2 88.6,107.6 95.9,97.5 103.3,83.7"/>
+          <polyline points="23.5,50.9 30.8,69.2 38.2,84.0 45.6,95.2 52.9,102.9 60.3,107.0 67.6,107.5 75.0,104.5 82.4,97.9 89.7,87.7 97.1,74.0"/>
+          <polyline points="17.3,37.6 24.7,55.9 32.0,70.7 39.4,82.0 46.7,89.6 54.1,93.7 61.5,94.3 68.8,91.2 76.2,84.6 83.6,74.5 90.9,60.7"/>
+          <polyline points="79.1,10.0 72.9,28.8 66.7,44.0 60.5,55.7 54.4,63.8 48.2,68.4 42.0,69.3 35.8,66.7 29.6,60.6 23.5,50.9 17.3,37.6"/>
+          <polyline points="86.4,28.4 80.3,47.2 74.1,62.4 67.9,74.1 61.7,82.2 55.5,86.7 49.4,87.7 43.2,85.1 37.0,78.9 30.8,69.2 24.7,55.9"/>
+          <polyline points="93.8,43.1 87.6,62.0 81.4,77.2 75.3,88.9 69.1,97.0 62.9,101.5 56.7,102.5 50.6,99.9 44.4,93.7 38.2,84.0 32.0,70.7"/>
+          <polyline points="101.2,54.4 95.0,73.2 88.8,88.4 82.6,100.1 76.5,108.2 70.3,112.7 64.1,113.7 57.9,111.1 51.7,105.0 45.6,95.2 39.4,82.0"/>
+          <polyline points="108.5,62.0 102.4,80.8 96.2,96.1 90.0,107.7 83.8,115.9 77.6,120.4 71.5,121.4 65.3,118.8 59.1,112.6 52.9,102.9 46.7,89.6"/>
+          <polyline points="115.9,66.1 109.7,84.9 103.5,100.2 97.4,111.8 91.2,120.0 85.0,124.5 78.8,125.5 72.6,122.9 66.5,116.7 60.3,107.0 54.1,93.7"/>
+          <polyline points="123.3,66.7 117.1,85.5 110.9,100.7 104.7,112.4 98.5,120.5 92.4,125.0 86.2,126.0 80.0,123.4 73.8,117.3 67.6,107.5 61.5,94.3"/>
+          <polyline points="130.6,63.6 124.4,82.4 118.3,97.7 112.1,109.3 105.9,117.5 99.7,122.0 93.5,123.0 87.4,120.4 81.2,114.2 75.0,104.5 68.8,91.2"/>
+          <polyline points="138.0,57.0 131.8,75.8 125.6,91.1 119.4,102.7 113.3,110.9 107.1,115.4 100.9,116.4 94.7,113.8 88.6,107.6 82.4,97.9 76.2,84.6"/>
+          <polyline points="145.3,46.9 139.2,65.7 133.0,80.9 126.8,92.6 120.6,100.7 114.5,105.2 108.3,106.2 102.1,103.6 95.9,97.5 89.7,87.7 83.6,74.5"/>
+          <polyline points="152.7,33.1 146.5,51.9 140.4,67.2 134.2,78.9 128.0,87.0 121.8,91.5 115.6,92.5 109.5,89.9 103.3,83.7 97.1,74.0 90.9,60.7"/>
+        </g>
+      </svg>
+          <p style="margin:2px 0 0">$x^2+y^2$</p>
+          <p class="note" style="border:none;background:none;padding:0;margin:0">definite</p>
+        </div>
+        <div>
+          \[ \begin{bmatrix} 1 & 0 \\ 0 & 0\end{bmatrix} \]
+          <svg viewBox="0 0 170 150" width="100%" style="max-width:170px" role="img" aria-label="A trough: the surface z equals x squared, curving upward across the x direction but flat along a whole line in the y direction.">
+        <g fill="none" stroke="var(--cse-green)" stroke-width="0.7" stroke-linejoin="round" opacity="0.85">
+          <polyline points="78.4,34.6 86.6,37.2 94.8,39.8 102.9,42.3 111.1,44.9 119.2,47.5 127.4,50.0 135.5,52.6 143.7,55.2 151.8,57.7 160.0,60.3"/>
+          <polyline points="71.6,55.5 79.8,58.0 87.9,60.6 96.1,63.2 104.2,65.7 112.4,68.3 120.5,70.9 128.7,73.4 136.8,76.0 145.0,78.5 153.2,81.1"/>
+          <polyline points="64.8,72.3 72.9,74.9 81.1,77.5 89.2,80.0 97.4,82.6 105.5,85.2 113.7,87.7 121.8,90.3 130.0,92.9 138.2,95.4 146.3,98.0"/>
+          <polyline points="57.9,85.3 66.1,87.8 74.2,90.4 82.4,93.0 90.5,95.5 98.7,98.1 106.8,100.7 115.0,103.2 123.2,105.8 131.3,108.3 139.5,110.9"/>
+          <polyline points="51.1,94.3 59.2,96.8 67.4,99.4 75.5,101.9 83.7,104.5 91.8,107.1 100.0,109.6 108.2,112.2 116.3,114.8 124.5,117.3 132.6,119.9"/>
+          <polyline points="44.2,99.3 52.4,101.8 60.5,104.4 68.7,107.0 76.8,109.5 85.0,112.1 93.2,114.7 101.3,117.2 109.5,119.8 117.6,122.4 125.8,124.9"/>
+          <polyline points="37.4,100.4 45.5,102.9 53.7,105.5 61.8,108.1 70.0,110.6 78.2,113.2 86.3,115.7 94.5,118.3 102.6,120.9 110.8,123.4 118.9,126.0"/>
+          <polyline points="30.5,97.5 38.7,100.1 46.8,102.6 55.0,105.2 63.2,107.7 71.3,110.3 79.5,112.9 87.6,115.4 95.8,118.0 103.9,120.6 112.1,123.1"/>
+          <polyline points="23.7,90.7 31.8,93.2 40.0,95.8 48.2,98.4 56.3,100.9 64.5,103.5 72.6,106.1 80.8,108.6 88.9,111.2 97.1,113.8 105.2,116.3"/>
+          <polyline points="16.8,79.9 25.0,82.5 33.2,85.0 41.3,87.6 49.5,90.2 57.6,92.7 65.8,95.3 73.9,97.9 82.1,100.4 90.2,103.0 98.4,105.6"/>
+          <polyline points="10.0,65.2 18.2,67.8 26.3,70.3 34.5,72.9 42.6,75.5 50.8,78.0 58.9,80.6 67.1,83.1 75.2,85.7 83.4,88.3 91.6,90.8"/>
+          <polyline points="78.4,34.6 71.6,55.5 64.8,72.3 57.9,85.3 51.1,94.3 44.2,99.3 37.4,100.4 30.5,97.5 23.7,90.7 16.8,79.9 10.0,65.2"/>
+          <polyline points="86.6,37.2 79.8,58.0 72.9,74.9 66.1,87.8 59.2,96.8 52.4,101.8 45.5,102.9 38.7,100.1 31.8,93.2 25.0,82.5 18.2,67.8"/>
+          <polyline points="94.8,39.8 87.9,60.6 81.1,77.5 74.2,90.4 67.4,99.4 60.5,104.4 53.7,105.5 46.8,102.6 40.0,95.8 33.2,85.0 26.3,70.3"/>
+          <polyline points="102.9,42.3 96.1,63.2 89.2,80.0 82.4,93.0 75.5,101.9 68.7,107.0 61.8,108.1 55.0,105.2 48.2,98.4 41.3,87.6 34.5,72.9"/>
+          <polyline points="111.1,44.9 104.2,65.7 97.4,82.6 90.5,95.5 83.7,104.5 76.8,109.5 70.0,110.6 63.2,107.7 56.3,100.9 49.5,90.2 42.6,75.5"/>
+          <polyline points="119.2,47.5 112.4,68.3 105.5,85.2 98.7,98.1 91.8,107.1 85.0,112.1 78.2,113.2 71.3,110.3 64.5,103.5 57.6,92.7 50.8,78.0"/>
+          <polyline points="127.4,50.0 120.5,70.9 113.7,87.7 106.8,100.7 100.0,109.6 93.2,114.7 86.3,115.7 79.5,112.9 72.6,106.1 65.8,95.3 58.9,80.6"/>
+          <polyline points="135.5,52.6 128.7,73.4 121.8,90.3 115.0,103.2 108.2,112.2 101.3,117.2 94.5,118.3 87.6,115.4 80.8,108.6 73.9,97.9 67.1,83.1"/>
+          <polyline points="143.7,55.2 136.8,76.0 130.0,92.9 123.2,105.8 116.3,114.8 109.5,119.8 102.6,120.9 95.8,118.0 88.9,111.2 82.1,100.4 75.2,85.7"/>
+          <polyline points="151.8,57.7 145.0,78.5 138.2,95.4 131.3,108.3 124.5,117.3 117.6,122.4 110.8,123.4 103.9,120.6 97.1,113.8 90.2,103.0 83.4,88.3"/>
+          <polyline points="160.0,60.3 153.2,81.1 146.3,98.0 139.5,110.9 132.6,119.9 125.8,124.9 118.9,126.0 112.1,123.1 105.2,116.3 98.4,105.6 91.6,90.8"/>
+        </g>
+      </svg>
+          <p style="margin:2px 0 0">$x^2$</p>
+          <p class="note" style="border:none;background:none;padding:0;margin:0">semidefinite</p>
+        </div>
+        <div>
+          \[ \begin{bmatrix} 1 & 0 \\ 0 & -1\end{bmatrix} \]
+          <svg viewBox="0 0 170 150" width="100%" style="max-width:170px" role="img" aria-label="A saddle: the surface z equals x squared minus y squared, curving upward in one direction and downward in the other.">
+        <g fill="none" stroke="var(--cse-green)" stroke-width="0.7" stroke-linejoin="round" opacity="0.85">
+          <polyline points="79.1,43.5 86.4,29.8 93.8,19.6 101.2,13.0 108.5,10.0 115.9,10.5 123.3,14.6 130.6,22.3 138.0,33.5 145.3,48.3 152.7,66.7"/>
+          <polyline points="72.9,62.3 80.3,48.6 87.6,38.4 95.0,31.8 102.4,28.8 109.7,29.3 117.1,33.4 124.4,41.1 131.8,52.3 139.2,67.1 146.5,85.5"/>
+          <polyline points="66.7,77.6 74.1,63.8 81.4,53.7 88.8,47.1 96.2,44.0 103.5,44.6 110.9,48.7 118.3,56.3 125.6,67.6 133.0,82.3 140.4,100.7"/>
+          <polyline points="60.5,89.2 67.9,75.5 75.3,65.3 82.6,58.7 90.0,55.7 97.4,56.2 104.7,60.3 112.1,68.0 119.4,79.2 126.8,94.0 134.2,112.4"/>
+          <polyline points="54.4,97.3 61.7,83.6 69.1,73.4 76.5,66.8 83.8,63.8 91.2,64.3 98.5,68.4 105.9,76.1 113.3,87.3 120.6,102.1 128.0,120.5"/>
+          <polyline points="48.2,101.9 55.5,88.1 62.9,78.0 70.3,71.4 77.6,68.4 85.0,68.9 92.4,73.0 99.7,80.6 107.1,91.9 114.5,106.7 121.8,125.0"/>
+          <polyline points="42.0,102.9 49.4,89.1 56.7,79.0 64.1,72.4 71.5,69.3 78.8,69.9 86.2,74.0 93.5,81.6 100.9,92.9 108.3,107.6 115.6,126.0"/>
+          <polyline points="35.8,100.3 43.2,86.5 50.6,76.4 57.9,69.8 65.3,66.7 72.6,67.3 80.0,71.4 87.4,79.0 94.7,90.3 102.1,105.1 109.5,123.4"/>
+          <polyline points="29.6,94.1 37.0,80.4 44.4,70.2 51.7,63.6 59.1,60.6 66.5,61.1 73.8,65.2 81.2,72.9 88.6,84.1 95.9,98.9 103.3,117.3"/>
+          <polyline points="23.5,84.4 30.8,70.7 38.2,60.5 45.6,53.9 52.9,50.9 60.3,51.4 67.6,55.5 75.0,63.2 82.4,74.4 89.7,89.2 97.1,107.5"/>
+          <polyline points="17.3,71.1 24.7,57.4 32.0,47.2 39.4,40.6 46.7,37.6 54.1,38.1 61.5,42.2 68.8,49.9 76.2,61.1 83.6,75.9 90.9,94.3"/>
+          <polyline points="79.1,43.5 72.9,62.3 66.7,77.6 60.5,89.2 54.4,97.3 48.2,101.9 42.0,102.9 35.8,100.3 29.6,94.1 23.5,84.4 17.3,71.1"/>
+          <polyline points="86.4,29.8 80.3,48.6 74.1,63.8 67.9,75.5 61.7,83.6 55.5,88.1 49.4,89.1 43.2,86.5 37.0,80.4 30.8,70.7 24.7,57.4"/>
+          <polyline points="93.8,19.6 87.6,38.4 81.4,53.7 75.3,65.3 69.1,73.4 62.9,78.0 56.7,79.0 50.6,76.4 44.4,70.2 38.2,60.5 32.0,47.2"/>
+          <polyline points="101.2,13.0 95.0,31.8 88.8,47.1 82.6,58.7 76.5,66.8 70.3,71.4 64.1,72.4 57.9,69.8 51.7,63.6 45.6,53.9 39.4,40.6"/>
+          <polyline points="108.5,10.0 102.4,28.8 96.2,44.0 90.0,55.7 83.8,63.8 77.6,68.4 71.5,69.3 65.3,66.7 59.1,60.6 52.9,50.9 46.7,37.6"/>
+          <polyline points="115.9,10.5 109.7,29.3 103.5,44.6 97.4,56.2 91.2,64.3 85.0,68.9 78.8,69.9 72.6,67.3 66.5,61.1 60.3,51.4 54.1,38.1"/>
+          <polyline points="123.3,14.6 117.1,33.4 110.9,48.7 104.7,60.3 98.5,68.4 92.4,73.0 86.2,74.0 80.0,71.4 73.8,65.2 67.6,55.5 61.5,42.2"/>
+          <polyline points="130.6,22.3 124.4,41.1 118.3,56.3 112.1,68.0 105.9,76.1 99.7,80.6 93.5,81.6 87.4,79.0 81.2,72.9 75.0,63.2 68.8,49.9"/>
+          <polyline points="138.0,33.5 131.8,52.3 125.6,67.6 119.4,79.2 113.3,87.3 107.1,91.9 100.9,92.9 94.7,90.3 88.6,84.1 82.4,74.4 76.2,61.1"/>
+          <polyline points="145.3,48.3 139.2,67.1 133.0,82.3 126.8,94.0 120.6,102.1 114.5,106.7 108.3,107.6 102.1,105.1 95.9,98.9 89.7,89.2 83.6,75.9"/>
+          <polyline points="152.7,66.7 146.5,85.5 140.4,100.7 134.2,112.4 128.0,120.5 121.8,125.0 115.6,126.0 109.5,123.4 103.3,117.3 97.1,107.5 90.9,94.3"/>
+        </g>
+      </svg>
+          <p style="margin:2px 0 0">$x^2-y^2$</p>
+          <p class="note" style="border:none;background:none;padding:0;margin:0">indefinite</p>
+        </div>
+      </div>
+      <figcaption>A bowl, a trough, and a saddle.</figcaption>
+    </figure>
+
+    <p>A bowl, a trough, and a saddle. The trough is the interesting one: along the $y$-axis
+    the polynomial $x^2$ never grows, so $\vec x\T\mat M\vec x = 0$ for a whole line of
+    non-zero vectors. That is exactly the gap between $>0$ and $\ge 0$ in the definition.</p>
+
+    <p>Collecting the cases, the polynomial $P_{\mat M}(\vec x)$ has</p>
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td style="width:46%"><strong>$P_{\mat M}$ has</strong></td><td><strong>if $\mat M$ is</strong></td></tr>
+      <tr><td>a unique minimum</td><td>strictly positive definite</td></tr>
+      <tr><td>a subspace of minima</td><td>strictly positive semidefinite (but not PD)</td></tr>
+      <tr><td>a saddle point</td><td>indefinite</td></tr>
+      <tr><td>a subspace of maxima</td><td>strictly negative semidefinite</td></tr>
+      <tr><td>a unique maximum</td><td>strictly negative definite</td></tr>
+    </table>
+    </div>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Positive definite $=$ the quadratic form is a bowl with its single lowest point at
+      the origin. Whenever we later find a physical energy that can be written as
+      $\tfrac12 \vec x\T \mat M \vec x$, positive definiteness of $\mat M$ is the statement
+      that the system has one stable equilibrium and that any displacement costs energy.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · This is the second derivative test</h2>
+
+    <p>Recall, for a single variable function $f(x)$, the second derivative test for whether a
+    critical point $f'(x_0) = 0$ is a minimum:</p>
+    \[
+      f''(x_0) > 0 \quad\text{is a sufficient condition for } x_0 \text{ to be a local minimum.}
+    \]
+    <p>We want the same statement in $n$ variables. Both derivatives have to be
+    generalised.</p>
+
+    <p>The generalisation of the first derivative is the <strong>gradient</strong></p>
+    \[
+      \nabla f(\vec x) =
+      \begin{bmatrix}
+        \partial f/\partial x_1 \\ \partial f/\partial x_2 \\ \vdots \\ \partial f/\partial x_n
+      \end{bmatrix},
+    \]
+    <p>a vector. The generalisation of the second derivative is the
+    <strong>Hessian</strong></p>
+    \[
+      \mat H(\vec x) =
+      \begin{bmatrix}
+        \dfrac{\partial^2 f}{\partial x_1^2} & \dfrac{\partial^2 f}{\partial x_1 \partial x_2}
+          & \cdots & \dfrac{\partial^2 f}{\partial x_1 \partial x_n} \\[8pt]
+        \dfrac{\partial^2 f}{\partial x_2 \partial x_1} & \cdots & & \vdots \\[6pt]
+        \vdots & & & \\[2pt]
+        \dfrac{\partial^2 f}{\partial x_n \partial x_1} & \cdots & &
+          \dfrac{\partial^2 f}{\partial x_n^2}
+      \end{bmatrix},
+    \]
+    <p>a matrix — one second derivative for every pair of directions.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Theorem · Second derivative test in $n$ variables</span>
+      <p>If $\nabla f(\vec x_0) = \vec 0$, then $\mat H(\vec x_0)$ being positive definite is
+      a sufficient condition for $\vec x_0$ to be a local minimum of $f$.</p>
+    </div>
+
+    <p>Compare this with the table above and the statement is not mysterious: near a critical
+    point $f$ looks like a constant plus the quadratic form of its Hessian, and we have just
+    catalogued what those quadratic forms look like. A PD Hessian means a bowl; an indefinite
+    Hessian means a saddle, which is neither a maximum nor a minimum.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Why this lecture is the hinge of the course</span>
+      <p>Property ② below — all eigenvalues positive — is stated in an engineering setting
+      where $\mat M$ represents a physical system of some kind. That is where we are heading.
+      In Lectures&nbsp;13–14 every equilibrium problem in this course gets written as
+      $\mat A\T \mat C \mat A\, \vec u = \vec f$: $\mat A$ measures displacements, $\mat C$
+      holds material constants, $\mat A\T$ balances forces. The reason that framework works at
+      all is that $\mat A\T \mat C \mat A$ comes out positive definite whenever $\mat C$ is
+      positive and $\mat A$ has independent columns — so the energy
+      $\tfrac12 \vec u\T \mat A\T \mat C \mat A \vec u$ is positive, the equilibrium is a
+      genuine minimum, and the matrix is invertible. Today is where that guarantee is
+      purchased.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Why we always assume symmetry</h2>
+
+    <p>In general, when we speak about PD matrices, we restrict our attention to
+    <em>symmetric</em> matrices. Simply because symmetric matrices have a lot of nice
+    properties, and because we can always understand the definiteness properties of a
+    non-symmetric matrix through its symmetric component.</p>
+
+    <p>Suppose $\mat A \in \R^{n\times n}$ is not symmetric. Then for any
+    $\vec x \in \R^n$,</p>
+    \[
+      \vec x\T \mat A \vec x = \bigl(\vec x\T \mat A \vec x\bigr)\T = \vec x\T \mat A\T \vec x ,
+    \]
+    <p>where the first step is legal because $\vec x\T \mat A \vec x$ is just a number, and
+    transposing a number changes nothing. Averaging the two expressions,</p>
+    \[
+      \vec x\T \mat A \vec x
+       = \tfrac12\bigl(\vec x\T \mat A \vec x + \vec x\T \mat A\T \vec x\bigr)
+       = \vec x\T \underbrace{\frac{\mat A + \mat A\T}{2}}_{\text{the symmetric component of }\mat A} \vec x .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>The quadratic form cannot see the antisymmetric part of a matrix at all.
+      Definiteness of any $\mat A$ is the definiteness of $\tfrac12(\mat A + \mat A\T)$, which
+      is symmetric. So assuming symmetry costs us nothing, and buys us real eigenvalues and
+      orthogonal eigenvectors from last lecture.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Two equivalent tests</h2>
+
+    <p>The definition is useful theoretically, but sometimes clunky when we need to check that
+    any particular matrix is PD — we cannot try every $\vec x$. Here are two necessary and
+    sufficient (read: <em>equivalent</em>) properties of symmetric PD matrices.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Theorem · Tests for positive definiteness</span>
+      <p>Let $\mat M$ be symmetric. Then</p>
+      <ul>
+        <li>① $\mat M$ has all positive Gaussian elimination pivots:
+          \[
+            \mat M = \mat L \mat D \mat L\T \text{ is PD}
+            \iff \mat D \text{ has all positive diagonal entries.}
+          \]</li>
+        <li>② $\mat M$ has all positive eigenvalues. (Remember that since $\mat M$ is
+          symmetric, all eigenvalues are already real, so “positive” is a meaningful
+          demand.)</li>
+      </ul>
+    </div>
+
+    <p>Both tests are cheap to state and very different in character.</p>
+    <ul>
+      <li>① is the quickest check for a given random symmetric $\mat M$: run elimination,
+      which we already know how to do from Lecture&nbsp;4, and watch the pivots. Nothing else
+      is required.</li>
+      <li>② is very useful and important, especially in an engineering setting where $\mat M$
+      represents a physical system of some kind. Eigenvalues are frequencies, decay rates,
+      stiffnesses; their sign is a physical statement, not a bookkeeping one.</li>
+    </ul>
+
+    <p>There are other equivalent characterisations of symmetric PD matrices, but they are
+    more niche and not relevant for this class.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Reading the eigenvalue test off the definition</span>
+      <p>The two tests are not accidents. Writing $\mat M = \mat Q\mat\Lambda\mat Q\T$ from
+      last lecture and setting $\vec y = \mat Q\T \vec x$ turns the quadratic form into
+      $\vec x\T \mat M \vec x = \vec y\T \mat\Lambda \vec y = \sum_i \lambda_i y_i^2$, a sum of
+      squares with the eigenvalues as weights. And $\mat M = \mat L\mat D\mat L\T$ with
+      $\vec z = \mat L\T\vec x$ gives $\sum_i d_i z_i^2$ in the same way. Both tests say the
+      same thing: the form is a weighted sum of squares, and it is positive exactly when the
+      weights are.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Check: our own matrices</h2>
+
+    <div class="callout">
+      <span class="label">Exercise</span>
+      <p>The fixed–fixed and fixed–free negative second derivative matrices are PD. Verify
+      it:</p>
+      \[
+        \Kmat = \begin{bmatrix}
+          2 & -1 &  &  \\
+         -1 &  2 & -1 &  \\
+            & \ddots & \ddots & \ddots \\
+            &  & -1 & 2
+        \end{bmatrix},
+        \qquad
+        \Tmat = \begin{bmatrix}
+          2 & -1 &  &  \\
+         -1 &  2 & -1 &  \\
+            & \ddots & \ddots & \ddots \\
+            &  & -1 & 1
+        \end{bmatrix}.
+      \]
+      <p>Use test ①: eliminate and look at the pivots. Every one of them should come out
+      positive.</p>
+    </div>
+
+    <p>That $\Kmat$ and $\Tmat$ pass the test is the reason the fixed–fixed and fixed–free
+    rods of Lecture&nbsp;3 had unique equilibrium positions. It is also worth noticing which
+    matrix is missing from that list: the free–free matrix $\Bmat$ of Lecture&nbsp;3 is
+    singular, and the constant vector that made it singular gives
+    $\vec x\T \Bmat \vec x = 0$ — so $\Bmat$ is positive <em>semi</em>-definite but not
+    positive definite. The trough in the picture above and the floating free–free rod are the
+    same phenomenon.</p>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time we leave linear algebra for an hour and derive the 1D heat equation from
+    conservation of energy and Fourier's law of cooling. The second derivative
+    $\partial^2 u/\partial x^2$ that shows up there is the continuous object behind $-\Kmat$,
+    and its two boundary conditions are the fixed and free ends we just tested. The positivity
+    established today is what makes heat in that rod decay towards equilibrium rather than
+    grow.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.6 (positive definite
+    matrices); §1.3 for the $\mat L\mat D\mat L\T$ pivots used in test ①.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L07.html"><span class="arw">←</span> Lecture 8</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="L09.html">Lecture 10 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

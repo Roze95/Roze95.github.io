@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 10 — The 1D Heat Equation | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 10: deriving the heat equation from a continuity equation plus Fourier's law of cooling, and translating fixed-temperature and insulated ends into boundary conditions.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../slides.html">Slides</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 10</p>
+    <h1>The 1D Heat Equation</h1>
+    <p class="lecmeta">
+      <span>Wednesday, October 7, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §6.5</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L09.pdf">Download PDF</a>
+      <a class="btn ghost" href="../files/slides/L09_Heat_Equation_Examples.pptx">Slides (pptx)</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Derive the continuity equation for heat in a rod by balancing energy on a short segment over a short time.</li>
+      <li>State Fourier's law of cooling and explain the sign in $f = -k\,\partial u/\partial x$.</li>
+      <li>Combine the two into the 1D heat equation and identify what the physical constants do and do not affect.</li>
+      <li>Translate “fixed temperature” and “insulated” ends into boundary conditions on $u$ and on $\partial u/\partial x$.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Where we are</h2>
+    <p>Everything so far has been discrete: grids, difference matrices, eigenvalues, pivots.
+    Today we go the other way and build, from physics, the continuous problem that those
+    matrices have been approximating. The pattern of the derivation matters as much as the
+    answer: a <em>conservation law</em> that is exact bookkeeping, plus a <em>constitutive
+    law</em> that describes the material, combine into one second-order equation.</p>
+  </section>
+
+  <section>
+    <h2>1 · The physical setup</h2>
+
+    <p>Denote the temperature of the rod by $u(x,t)$, which is a function of both the
+    position $x$ and the time $t$.</p>
+
+    <figure>
+      <svg viewBox="0 0 480 160" width="100%" style="max-width:480px" role="img"
+           aria-label="A rod of length L running between two end walls, carrying a temperature field u of x and t, with an x axis marked from 0 to L beneath it.">
+        <defs>
+          <marker id="aHaGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <!-- end walls -->
+        <rect x="18" y="20" width="27" height="66" fill="var(--bg-soft)"
+              stroke="var(--cse-gray)" stroke-width="1.8"/>
+        <rect x="345" y="20" width="27" height="66" fill="var(--bg-soft)"
+              stroke="var(--cse-gray)" stroke-width="1.8"/>
+        <!-- the rod -->
+        <rect x="45" y="41" width="300" height="24" fill="var(--cse-bg)"
+              stroke="var(--cse-green)" stroke-width="2.4"/>
+        <text x="195" y="32" font-size="14" font-style="italic" fill="var(--cse-green)"
+              text-anchor="middle" font-family="Georgia, serif">u(x, t)</text>
+        <!-- x axis -->
+        <line x1="12" y1="112" x2="400" y2="112" stroke="var(--cse-gray)" stroke-width="1.2"
+              marker-end="url(#aHaGray)"/>
+        <g stroke="var(--cse-gray)" stroke-width="1.2">
+          <line x1="45" y1="105" x2="45" y2="119"/>
+          <line x1="345" y1="105" x2="345" y2="119"/>
+        </g>
+        <g font-size="13" font-style="italic" fill="var(--cse-gray)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="45" y="136">0</text>
+          <text x="345" y="136">L</text>
+          <text x="409" y="117">x</text>
+        </g>
+      </svg>
+      <figcaption>A rod of length $L$, held between two ends.</figcaption>
+    </figure>
+
+    <p>Let the linear density of the material in the rod be $\sigma$, and the heat capacity
+    per mass be $C$. Both are constants of the material.</p>
+
+    <p>The temperature distribution in the rod changes because energy in the form of heat is
+    flowing from high temperatures to low temperatures. Denote the heat flux in the rod by
+    $f(x,t)$, and specify that $f$ is positive if heat is flowing from left to right, and
+    negative vice versa.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Two functions, one unknown</span>
+      <p>We have introduced two unknown fields, $u$ and $f$, on the same rod. The derivation
+      below produces one equation relating them (conservation of energy) and then one more
+      equation expressing $f$ in terms of $u$ (Fourier's law). Two equations, two unknowns —
+      and eliminating $f$ leaves a single equation for $u$ alone.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Conservation of energy on a short segment</h2>
+
+    <p>To derive the heat equation, consider a very short segment of the rod, $x$ to
+    $x+\Dh$, during a very short interval of time, $t$ to $t + \Delta t$.</p>
+
+    <figure>
+      <svg viewBox="0 0 480 170" width="100%" style="max-width:480px" role="img"
+           aria-label="A short segment of the rod between x and x plus delta x, with heat flux arrows entering on the left and leaving on the right.">
+        <defs>
+          <marker id="aHbBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+          <marker id="aHbGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <rect x="170" y="38" width="130" height="62" fill="var(--cse-bg)"
+              stroke="var(--cse-green)" stroke-width="2.4"/>
+        <!-- flux in and out -->
+        <g stroke="var(--cse-blue)" stroke-width="2">
+          <line x1="62" y1="69" x2="162" y2="69" marker-end="url(#aHbBlue)"/>
+          <line x1="308" y1="69" x2="408" y2="69" marker-end="url(#aHbBlue)"/>
+        </g>
+        <g font-size="13.5" font-style="italic" fill="var(--cse-blue)"
+           font-family="Georgia, serif">
+          <text x="158" y="58" text-anchor="end">f(x, t)</text>
+          <text x="312" y="58">f(x + Δx, t)</text>
+        </g>
+        <!-- x axis -->
+        <line x1="40" y1="124" x2="420" y2="124" stroke="var(--cse-gray)" stroke-width="1.2"
+              marker-end="url(#aHbGray)"/>
+        <g stroke="var(--cse-gray)" stroke-width="1.2">
+          <line x1="170" y1="117" x2="170" y2="131"/>
+          <line x1="300" y1="117" x2="300" y2="131"/>
+        </g>
+        <g font-size="13" font-style="italic" fill="var(--cse-gray)" text-anchor="middle"
+           font-family="Georgia, serif">
+          <text x="170" y="148">x</text>
+          <text x="300" y="148">x + Δx</text>
+          <text x="429" y="129">x</text>
+        </g>
+      </svg>
+      <figcaption>What enters on the left and does not leave on the right stays behind as
+      temperature.</figcaption>
+    </figure>
+
+    <p>Since the segment is very short, we can approximately view its temperature as being
+    uniform: $u(x,t)$ at time $t$, and $u(x, t+\Delta t)$ at time $t + \Delta t$. Write
+    $\Delta u$ for the difference.</p>
+
+    <p>What causes $u$ to change? The net heat flow into the segment over $\Delta t$. Heat
+    enters at the left at rate $f(x,t)$ and leaves at the right at rate $f(x+\Dh, t)$, so</p>
+    \[
+      \text{Net heat flow} = \bigl(-f(x+\Dh,t) + f(x,t)\bigr)\cdot \Delta t .
+    \]
+    <p>That same quantity of energy can be counted a second way — through what it does to the
+    temperature:</p>
+    \[
+      \text{Net heat flow} \;=\;
+      \Delta u \cdot \underbrace{C \cdot \overbrace{\sigma \Dh}^{\text{mass of segment}}}_{\text{heat capacity of segment}} ,
+    \]
+    <p>the net heat required to change the rod's temperature by $\Delta u$. Setting the two
+    expressions equal and dividing by $C\sigma\,\Dh\,\Delta t$,</p>
+    \[
+      \frac{\Delta u}{\Delta t}
+      = -\frac{1}{C\sigma}\,\frac{f(x+\Dh,t) - f(x,t)}{\Dh} ,
+    \]
+    <p>and taking the limits $\Delta t \to 0$, $\Dh \to 0$:</p>
+    \[
+      \pd{u}{t} = -\frac{1}{C\sigma}\,\pd{f}{x} . \tag{1}
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea · The continuity equation</span>
+      <p>Equation (1) is known as a <strong>continuity equation</strong>, because it is a
+      statement that heat is not created nor destroyed: it just flows from one place to the
+      other. The temperature at a point can only rise if more heat arrives than leaves, and
+      $-\partial f/\partial x$ is precisely that imbalance.</p>
+    </div>
+
+    <p>Notice that nothing in (1) is a modelling assumption about heat. It is exact
+    bookkeeping, and it would look the same for mass, charge, or probability. What is missing
+    is any statement about <em>why</em> heat flows.</p>
+  </section>
+
+  <section>
+    <h2>3 · Fourier's law of cooling</h2>
+
+    <p>Now we just need to express the heat flow $f$ in terms of the temperature
+    distribution $u$:</p>
+    \[
+      f = -k\,\pd{u}{x} . \tag{2}
+    \]
+
+    <p>Properly, laws like this should be derived from a microscopic theory of heat; for the
+    purposes of this class we will take this as a given.</p>
+
+    <p>Intuitively, Fourier's law of cooling states that heat flows from hot to cold at a rate
+    proportional to the temperature gradient. The minus sign is the whole physical content: if
+    the temperature increases to the right ($\partial u/\partial x > 0$), then heat flows to
+    the left, so $f < 0$. The constant $k$ is the conductivity of the material.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · Conservation law vs. constitutive law</span>
+      <p>Equation (1) is a conservation law: exact, material-independent, non-negotiable.
+      Equation (2) is a constitutive law: it describes <em>this</em> material, it is
+      approximate, and it is where all the physics of the substance lives. Almost every
+      continuum model in this course is assembled from exactly this pair. Keeping the two
+      kinds of statement separate is a habit worth forming now.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Combining the two</h2>
+
+    <p>Substituting (2) into (1) gives, for constant $k$,</p>
+    \[
+      \pd{u}{t}
+      = -\frac{1}{C\sigma}\,\frac{\partial}{\partial x}\!\left(-k\,\pd{u}{x}\right)
+      = \boxed{\ \frac{k}{C\sigma}\,\frac{\partial^2 u}{\partial x^2}\ }
+      \qquad \text{(1D heat equation)} .
+    \]
+    <p>The three physical constants enter only through the single <em>global factor</em>
+    $k/(C\sigma)$ in front of the second derivative. In class we just took the global factor
+    to be $1$, so that the equation reads</p>
+    \[
+      \pd{u}{t} = \frac{\partial^2 u}{\partial x^2} .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>The 1D heat equation says: the rate at which a point heats up is proportional to the
+      <em>curvature</em> of the temperature profile there. A point sitting in a dip
+      ($\partial^2 u/\partial x^2 > 0$) is colder than its neighbours on average, so it warms;
+      a point at a bump cools. Diffusion is the continuous statement that everything is pulled
+      towards the average of its neighbours — which is exactly what the $1, -2, 1$ stencil
+      computes.</p>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Remark · A preview of the future</span>
+      <p>With more spatial dimensions, the flux becomes a vector field $\vec f$ and the two
+      laws generalise directly. Equation (1) becomes</p>
+      \[
+        \pd{u}{t} = -\frac{1}{C\rho}\,\nabla\cdot \vec f ,
+      \]
+      <p>and (2) becomes $\vec f = -k\,\nabla u$, so the heat equation reads</p>
+      \[
+        \pd{u}{t} = \frac{k}{C\rho}\,\nabla^2 u .
+      \]
+      <p>(The linear density $\sigma$ has become a volume density $\rho$.) The gradient
+      $\nabla$ measures the temperature difference, the material constant $k$ turns it into a
+      flux, and the divergence $\nabla\cdot$ balances what flows in against what flows out.
+      That three-step chain — difference, material constant, balance — is the same $\mat A$,
+      $\mat C$, $\mat A\T$ structure we will build matrices for in Lecture&nbsp;13.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Boundary conditions</h2>
+
+    <p>The heat equation on its own does not determine $u$: we must also say what happens at
+    the two ends of the rod. In the following we will only consider the boundary at $x = 0$
+    for convenience. Boundary conditions at other locations are analogous.</p>
+
+    <h3>① A fixed temperature boundary</h3>
+    \[
+      u(x = 0, t) = 0 .
+    \]
+    <p>The rod is free to exchange heat with a thermal mass of fixed temperature at $x = 0$,
+    so the temperature of the rod at the boundary remains constant. The reservoir supplies or
+    absorbs whatever heat is needed to hold that value.</p>
+
+    <h3>② An insulated boundary</h3>
+    \[
+      \pd{u}{x}(x = 0, t) = 0 .
+    \]
+    <p>The rod is insulated at the $x = 0$ end: no heat flux is allowed through. Per Fourier's
+    law of cooling, $f = -k\,\partial u/\partial x$, so demanding $f = 0$ at the boundary is
+    exactly the same as demanding that the temperature gradient at $x=0$ must be $0$.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>The condition on the <em>value</em> $u$ and the condition on the <em>slope</em>
+      $\partial u /\partial x$ are the continuous originals of the two boundary conditions we
+      imposed on the grid back in Lecture&nbsp;3 — fixed and free. Fixed temperature gives the
+      fixed end of $\Kmat$; insulated gives the free end of $\Tmat$. The boundary condition is
+      not a technicality attached to the equation; it is a second piece of physics.</p>
+    </div>
+
+    <div class="watch">
+      <span class="boxtitle">Watch out · An insulated end is not a cold end</span>
+      <p>“No heat flows through the boundary” does not mean “the boundary stays at zero
+      temperature.” It is the opposite: heat piles up against an insulated wall. The two
+      conditions constrain different objects — one the value of $u$, the other its
+      $x$-derivative — and mixing them up is the most common way to solve the wrong physical
+      problem correctly.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time we return to linear algebra with the <em>QR</em> decomposition and
+    orthogonality, which is the machinery behind least squares. The heat equation comes back
+    when we discretise it: $\partial^2 u/\partial x^2$ becomes the $1,-2,1$ matrix, the two
+    boundary conditions above select $\Kmat$ or $\Tmat$, and the positive definiteness we
+    established last lecture is what forces the temperature to relax rather than blow up.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §6.5 (the diffusion / heat
+    equation); §1.2 for the fixed and free boundary conditions in their discrete form.</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L08.html"><span class="arw">←</span> Lecture 9</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 11 — not yet posted <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
