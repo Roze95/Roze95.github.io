@@ -11,7 +11,7 @@ colours in `cse085.sty`, and MathJax.
 18085-site/
   index.html            course home — logistics, arcs, grading, policies
   lectures.html         all 24 lectures, dated, by arc
-  psets.html            the seven problem sets, submission and quiz policy
+  psets.html            the five problem sets, submission and quiz policy
   resources.html        curated supplementary materials
   lectures/
     L01.html            Lecture 1, full notes with MathJax
