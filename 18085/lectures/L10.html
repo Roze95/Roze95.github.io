@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 11 — The QR Decomposition and Orthogonality | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 11: inner products and orthonormal bases, orthogonal matrices, the range of a rectangular matrix, the Gram–Schmidt process, and the QR decomposition.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../slides.html">Slides</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 11</p>
+    <h1>The QR Decomposition and Orthogonality</h1>
+    <p class="lecmeta">
+      <span>Tuesday, October 13, 2026 (Monday schedule)</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §1.7</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L10.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Compute inner products and Euclidean lengths in $\R^n$, and test two vectors for orthogonality.</li>
+      <li>Explain why an orthonormal basis makes $\mat U\inv = \mat U\T$, and expand a vector in such a basis with a single transpose.</li>
+      <li>Run the Gram–Schmidt process to build an orthonormal basis for the range of a matrix.</li>
+      <li>Read $\mat A = \mat Q\mat R$ as a record of that process, and use it to solve $\mat A\vec x = \vec b$ by back-substitution.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Where we are</h2>
+    <p>Elimination gave us $\mat A = \mat L\mat U$ and a way to solve square systems. Today we
+    build the second great decomposition of the course. Its raw material is the dot product,
+    its engine is Gram–Schmidt, and its payoff is that inverting an orthogonal matrix costs
+    nothing at all: you transpose it.</p>
+  </section>
+
+  <section>
+    <h2>1 · Orthogonal vectors and orthonormal bases</h2>
+
+    <h3>The dot product / inner product in $\R^n$</h3>
+    <p>Take $\vec u, \vec v \in \R^n$, written as columns</p>
+    \[
+      \vec u = \begin{bmatrix} u_1 \\ \vdots \\ u_n \end{bmatrix}, \qquad
+      \vec v = \begin{bmatrix} v_1 \\ \vdots \\ v_n \end{bmatrix}
+      \qquad \longleftarrow \ \text{representation in the Cartesian basis.}
+    \]
+
+    <figure>
+      <svg viewBox="20 15 220 130" width="100%" style="max-width:240px" role="img"
+           aria-label="Two vectors u and v drawn from a common origin, with the angle theta between them.">
+        <defs>
+          <marker id="qrGreen1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+        </defs>
+        <line x1="40" y1="130" x2="103" y2="34" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen1)"/>
+        <line x1="40" y1="130" x2="196" y2="105" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen1)"/>
+        <path d="M77.5,123.9 A38,38 0 0,0 60.9,98.2" fill="none" stroke="var(--cse-gray)"
+              stroke-width="1.2"/>
+        <circle cx="103" cy="34" r="2.2" fill="var(--cse-blue)"/>
+        <circle cx="196" cy="105" r="2.2" fill="var(--cse-blue)"/>
+        <text x="90" y="28" font-size="14" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">u</text>
+        <text x="204" y="110" font-size="14" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">v</text>
+        <text x="80" y="112" font-size="13" font-style="italic" fill="var(--cse-gray)"
+              font-family="Georgia, serif">θ</text>
+      </svg>
+    </figure>
+
+    <p>The dot product has a geometric definition and an algebraic one, and they agree:</p>
+    \[
+      \vec u \cdot \vec v = \norm{\vec u}\,\norm{\vec v}\cos\theta
+      = \vec u\T \vec v \quad \text{(matrix multiplication)} .
+    \]
+    <p>In particular, the Euclidean length squared of $\vec u$ is</p>
+    \[
+      \norm{\vec u}^2 = \vec u\T \vec u = u_1^2 + \cdots + u_n^2 ,
+    \]
+    <p>which is Pythagoras' theorem in $n$ dimensions.</p>
+
+    <p>Two vectors $\vec u, \vec v$ are <strong>orthogonal</strong> if</p>
+    \[
+      \vec u \cdot \vec v = \vec u\T \vec v = 0
+      \qquad \bigl(\cos\theta = 0 \implies \theta = \pm\tfrac{\pi}{2}\bigr).
+    \]
+    <p>A vector $\vec u$ (or $\vec v$) is <strong>normalised</strong> if $\norm{\vec u} = 1$,
+    equivalently $\vec u\T\vec u = 1$.</p>
+
+    <p id="ex1-1"><strong>Example 1.1</strong> (Lengths, angles and orthogonality).
+    <strong>Given.</strong> Three vectors in $\R^3$, written in a row to save space:</p>
+    \[
+      \vec u = (1,1,0), \qquad \vec v = (1,0,1), \qquad \vec w = (-1,1,1).
+    \]
+    <p><strong>Find.</strong> (a) What are the lengths of the three vectors, and the angle
+    between $\vec u$ and $\vec v$? (b) Which pairs are orthogonal? (c) What is the unit vector
+    in the direction of $\vec w$? (d) Is $\norm{\vec u + \vec w}^2 = \norm{\vec u}^2 +
+    \norm{\vec w}^2$? Is $\norm{\vec u + \vec v}^2 = \norm{\vec u}^2 + \norm{\vec v}^2$?</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p>$\norm{\vec u}^2 = \vec u\T\vec u = 1 + 1 + 0 = 2$, so $\norm{\vec u} = \sqrt 2$.
+      In the same way $\norm{\vec v} = \sqrt 2$ and $\norm{\vec w} = \sqrt 3$. For the angle,
+      $\vec u\T\vec v = 1\cdot 1 + 1\cdot 0 + 0\cdot 1 = 1$, and</p>
+      \[
+        \cos\theta = \frac{\vec u\T\vec v}{\norm{\vec u}\,\norm{\vec v}}
+        = \frac{1}{\sqrt2\,\sqrt2} = \frac12, \qquad \theta = \frac{\pi}{3}\ \ (60^\circ).
+      \]</li>
+      <li><p>$\vec u\T\vec w = -1 + 1 + 0 = 0$ and $\vec v\T\vec w = -1 + 0 + 1 = 0$. So
+      $\vec w$ is orthogonal to both $\vec u$ and $\vec v$, and therefore to every combination
+      $c\,\vec u + d\,\vec v$: it is perpendicular to the plane that $\vec u$ and $\vec v$
+      span. The pair $\vec u, \vec v$ is not orthogonal, since $\vec u\T\vec v = 1$.</p></li>
+      <li><p>Divide by the length: $\vec w / \norm{\vec w} = (-1,1,1)/\sqrt3$. Its length
+      squared is $(1+1+1)/3 = 1$.</p></li>
+      <li><p>Multiplying out,</p>
+      \[
+        \norm{\vec u + \vec v}^2 = (\vec u + \vec v)\T(\vec u + \vec v)
+        = \norm{\vec u}^2 + 2\,\vec u\T\vec v + \norm{\vec v}^2 ,
+      \]
+      <p>and the same with $\vec w$ in place of $\vec v$. So Pythagoras holds exactly when the
+      cross term is zero. For $\vec u, \vec w$ it is: $\vec u + \vec w = (0,2,1)$ and
+      $\norm{\vec u + \vec w}^2 = 5 = 2 + 3$. For $\vec u, \vec v$ it is not:
+      $\vec u + \vec v = (2,1,1)$ and $\norm{\vec u + \vec v}^2 = 6$, which is $2 + 2$ plus the
+      cross term $2\,\vec u\T\vec v = 2$.</p></li>
+    </ol>
+
+    <h3>Bases</h3>
+    <p>A basis $U = \{\vec u_1, \ldots, \vec u_n\}$ is a set of linearly independent vectors
+    that span a vector space.</p>
+
+    <p><strong>Standard example: the Cartesian basis in $\R^n$.</strong></p>
+    \[
+      \vec e_1 = \begin{bmatrix} 1 \\ 0 \\ \vdots \\ 0\end{bmatrix}, \quad
+      \vec e_2 = \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0\end{bmatrix}, \quad \cdots \quad
+      \vec e_n = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1\end{bmatrix} .
+    \]
+    <p>A “default” basis. Put together, they give the identity matrix
+    $\eye_n = \begin{pmatrix} 1 & & \\ & \ddots & \\ & & 1\end{pmatrix}$.</p>
+
+    <p>Generally, $n$ linearly independent vectors $\{\vec u_1, \ldots, \vec u_n\}$ form a basis
+    for $\R^n$, and we collect them as the columns of a matrix</p>
+    \[
+      \mat U = \begin{pmatrix} | & & | \\ \vec u_1 & \cdots & \vec u_n \\ | & & | \end{pmatrix}.
+    \]
+    <p>One interpretation of the linear system $\mat U\vec x = \vec b$: find coefficients
+    $x_1, \ldots, x_n$ to represent the vector $\vec b$ using the $U$ basis,</p>
+    \[
+      \vec b = x_1\vec u_1 + \cdots + x_n\vec u_n .
+    \]
+    <p>Formally, $\vec x = \mat U\inv\vec b$, and this makes sense because
+    $\{\vec u_1, \ldots, \vec u_n\}$ linearly independent $\iff$ $\mat U$ is invertible.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Solving $\mat U\vec x = \vec b$ is a change of coordinates: it re-expresses the vector
+      $\vec b$, which arrived in Cartesian coordinates, in the basis $U$. The difficulty is
+      entirely in $\mat U\inv$ — and calculating $\mat U\inv$ for a general invertible $\mat U$
+      is costly.</p>
+    </div>
+
+    <p id="ex1-2"><strong>Example 1.2</strong> (Basis or not?). <strong>Given.</strong> Three
+    sets of vectors in $\R^2$:</p>
+    \[
+      S_1 = \{(2,1),\ (1,1)\}, \qquad S_2 = \{(1,2),\ (2,4)\}, \qquad
+      S_3 = \{(1,0),\ (0,1),\ (1,1)\}.
+    \]
+    <p><strong>Find.</strong> Which of them is a basis for $\R^2$?</p>
+    <p><strong>Answer.</strong> A basis has to do two things: span the space, and be linearly
+    independent, so that every vector has exactly one set of coefficients.</p>
+    <ul style="list-style:none; padding-left:0">
+      <li><p>($S_1$) Yes. Put the two vectors into the columns of
+      $\mat U = \left(\begin{smallmatrix} 2 & 1 \\ 1 & 1\end{smallmatrix}\right)$. Then
+      $\det\mat U = 2\cdot 1 - 1\cdot 1 = 1 \neq 0$, so $\mat U$ is invertible: the columns are
+      independent and span $\R^2$.</p></li>
+      <li><p>($S_2$) No. The second vector is twice the first, $(2,4) = 2\,(1,2)$, so every
+      combination is a multiple of $(1,2)$: the two vectors span only a line. The determinant
+      $1\cdot 4 - 2\cdot 2$ is zero.</p></li>
+      <li><p>($S_3$) No, although these three vectors do span $\R^2$. They are dependent, since
+      $(1,1) = (1,0) + (0,1)$, so the coefficients are not unique:</p>
+      \[
+        (1,1) = 1\,(1,0) + 1\,(0,1) + 0\,(1,1) = 0\,(1,0) + 0\,(0,1) + 1\,(1,1).
+      \]
+      <p>A basis of $\R^n$ always has exactly $n$ vectors; here there is one too many.</p></li>
+    </ul>
+
+    <p id="ex1-3"><strong>Example 1.3</strong> (Coordinates in a basis that is not orthonormal).
+    <strong>Given.</strong> The basis $\vec u_1 = (2,1)$, $\vec u_2 = (1,1)$ (the set $S_1$ of
+    <a href="#ex1-2">Example 1.2</a>) and the vector $\vec b = (3,1)$.<br>
+    <strong>Find.</strong> The coefficients in $\vec b = x_1\vec u_1 + x_2\vec u_2$.</p>
+    <p><strong>Answer.</strong> This is the linear system $\mat U\vec x = \vec b$:</p>
+    \[
+      \begin{pmatrix} 2 & 1 \\ 1 & 1 \end{pmatrix}
+      \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} = \begin{bmatrix} 3 \\ 1 \end{bmatrix}.
+    \]
+    <p>Subtracting $\frac12$ of row 1 from row 2 leaves $\frac12 x_2 = -\frac12$, so
+    $x_2 = -1$, and then $2x_1 - 1 = 3$ gives $x_1 = 2$. So $\vec x = (2,-1)$, and indeed
+    $2\,(2,1) - (1,1) = (3,1)$.</p>
+    <p>The dot products $\vec u_1\T\vec b = 7$ and $\vec u_2\T\vec b = 4$ are not the
+    coefficients. When the basis vectors are not orthogonal there is no such shortcut: we solve
+    a system, or multiply by
+    $\mat U\inv = \left(\begin{smallmatrix} 1 & -1 \\ -1 & 2\end{smallmatrix}\right)$.
+    <a href="#ex2-2">Example 2.2</a> finds the coefficients of the same $\vec b$ in an
+    orthonormal basis.</p>
+
+    <h3>A very nice type of basis: orthonormal bases</h3>
+    <p>An <strong>orthonormal basis</strong> is one whose vectors are mutually orthogonal and
+    each of unit length:</p>
+    \[
+      \vec u_i\T \vec u_j = \begin{cases} 1 & i = j \\ 0 & i \neq j. \end{cases}
+    \]
+    <p>The Cartesian basis is an orthonormal basis. Another example, for $\R^2$:</p>
+    \[
+      \left\{
+      \begin{bmatrix} \tfrac{1}{\sqrt2} \\[2pt] \tfrac{1}{\sqrt2}\end{bmatrix},\
+      \begin{bmatrix} \tfrac{1}{\sqrt2} \\[2pt] -\tfrac{1}{\sqrt2}\end{bmatrix}
+      \right\}.
+    \]
+
+    <p id="ex1-4"><strong>Example 1.4</strong> (Checking that a basis is orthonormal).
+    <strong>Given.</strong> Three vectors in $\R^3$:</p>
+    \[
+      \vec q_1 = \tfrac13\,(2,2,-1), \qquad \vec q_2 = \tfrac13\,(-1,2,2), \qquad
+      \vec q_3 = \tfrac13\,(2,-1,2).
+    \]
+    <p><strong>Find.</strong> Is $\{\vec q_1, \vec q_2, \vec q_3\}$ an orthonormal basis of
+    $\R^3$?</p>
+    <p><strong>Answer.</strong> Yes. It saves work to keep the factor $\frac13$ aside and check
+    the integer vectors $(2,2,-1)$, $(-1,2,2)$, $(2,-1,2)$ first. Each has length squared
+    $1 + 4 + 4 = 9$, so each $\vec q_i$ has length $3/3 = 1$. Their dot products are</p>
+    \[
+      \begin{aligned}
+        (2,2,-1)\cdot(-1,2,2) &= -2 + 4 - 2 = 0, \\
+        (2,2,-1)\cdot(2,-1,2) &= 4 - 2 - 2 = 0, \\
+        (-1,2,2)\cdot(2,-1,2) &= -2 - 2 + 4 = 0.
+      \end{aligned}
+    \]
+    <p>So the three vectors are orthonormal. Orthonormal vectors are always independent: if
+    $c_1\vec q_1 + c_2\vec q_2 + c_3\vec q_3 = \vec 0$, take the dot product with $\vec q_1$.
+    Every term but the first is zero, and the first is $c_1\vec q_1\T\vec q_1 = c_1$, so
+    $c_1 = 0$; in the same way $c_2 = c_3 = 0$. Three independent vectors in $\R^3$ form a
+    basis.</p>
+  </section>
+
+  <section>
+    <h2>2 · Orthogonal matrices</h2>
+    <p>Take an orthonormal basis $\{\vec u_1, \ldots, \vec u_n\}$. Then the matrix</p>
+    \[
+      \mat U = \begin{pmatrix} | & & | \\ \vec u_1 & \cdots & \vec u_n \\ | & & | \end{pmatrix}
+    \]
+    <p>is called an <strong>orthogonal matrix</strong>, and it has the defining property</p>
+    \[
+      \mat U\inv = \mat U\T .
+    \]
+    <p>Check it. Multiply $\mat U\T$ (whose <em>rows</em> are the $\vec u_i\T$) by $\mat U$
+    (whose <em>columns</em> are the $\vec u_j$):</p>
+    \[
+      \mat U\T\mat U =
+      \begin{pmatrix} \text{---}\ \vec u_1\T\ \text{---} \\ \vdots \\ \text{---}\ \vec u_n\T\ \text{---}\end{pmatrix}
+      \begin{pmatrix} | & & | \\ \vec u_1 & \cdots & \vec u_n \\ | & & | \end{pmatrix}
+      = \begin{pmatrix} 1 & & \\ & \ddots & \\ & & 1 \end{pmatrix} = \eye .
+    \]
+    <p>The $(i,j)$ entry of the product is exactly $\vec u_i\T\vec u_j$, which is $1$ on the
+    diagonal and $0$ off it — the orthonormality condition, read as a matrix identity.</p>
+    <p>So it is easy to calculate coefficients for an orthonormal basis:</p>
+    \[
+      \vec x = \mat U\inv\vec b = \mat U\T\vec b ,
+    \]
+    <p>just a flip of the original $\mat U$. Componentwise, $x_i = \vec u_i\T\vec b$: each
+    coefficient is a single dot product.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>An orthonormal basis makes the hardest step free. For a general basis, changing
+      coordinates costs a matrix inversion; for an orthonormal basis it costs a transpose.
+      Every use of QR in this course is ultimately cashing in on that one fact.</p>
+    </div>
+
+    <div class="watch" id="warn-orthonormal">
+      <span class="boxtitle">“Orthogonal matrix” means <em>ortho&#8202;normal</em> columns</span>
+      <p>The name is a historical accident. A matrix with merely orthogonal columns does not
+      satisfy $\mat U\T\mat U = \eye$ — the diagonal entries come out $\norm{\vec u_i}^2$
+      instead of $1$. The normalisation is not decoration; without it $\mat U\T$ is not the
+      inverse.</p>
+    </div>
+
+    <p id="ex2-1"><strong>Example 2.1</strong> (Which of these are orthogonal matrices?).
+    <strong>Given.</strong> Four matrices:</p>
+    \[
+      \mat R_\theta = \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}, \quad
+      \mat P = \begin{pmatrix} 0 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{pmatrix}, \quad
+      \mat W = \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix}, \quad
+      \mat G = \begin{pmatrix} 1 & 1 \\ 0 & 1 \end{pmatrix}.
+    \]
+    <p><strong>Find.</strong> Which of them are orthogonal matrices? What is the inverse of
+    each one that is?</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p>$\mat R_\theta$, the rotation by the angle $\theta$, is orthogonal:</p>
+      \[
+        \mat R_\theta\T\mat R_\theta =
+        \begin{pmatrix} \cos\theta & \sin\theta \\ -\sin\theta & \cos\theta \end{pmatrix}
+        \begin{pmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{pmatrix}
+        = \begin{pmatrix} \cos^2\theta + \sin^2\theta & 0 \\ 0 & \sin^2\theta + \cos^2\theta \end{pmatrix}
+        = \eye .
+      \]
+      <p>Its inverse $\mat R_\theta\T$ is $\mat R_{-\theta}$, since $\cos(-\theta) = \cos\theta$
+      and $\sin(-\theta) = -\sin\theta$: to undo a rotation by $\theta$, rotate back by
+      $\theta$.</p></li>
+      <li><p>$\mat P$ is orthogonal. Its columns are $\vec e_2, \vec e_3, \vec e_1$, the
+      Cartesian basis in a different order, so $\mat P\T\mat P = \eye$ and
+      $\mat P\inv = \mat P\T$. The matrix $\mat P$ moves the entries of a vector,
+      $\mat P\,(x_1,x_2,x_3) = (x_3,x_1,x_2)$, and $\mat P\T$ moves them back. A matrix with a
+      single $1$ in each row and each column and zeros elsewhere is a permutation matrix, and
+      every permutation matrix is orthogonal for the same reason.</p></li>
+      <li><p>$\mat W$ is not. Its columns $(1,1)$ and $(1,-1)$ are orthogonal but have length
+      $\sqrt2$, and $\mat W\T\mat W = 2\eye$. Dividing by $\sqrt2$ repairs this: the columns of
+      $\mat W/\sqrt2$ are the orthonormal basis of $\R^2$ in Section 1.</p></li>
+      <li><p>$\mat G$ is not. Its columns $(1,0)$ and $(1,1)$ have dot product $1$, and
+      $\mat G\T\mat G = \left(\begin{smallmatrix} 1 & 1 \\ 1 & 2\end{smallmatrix}\right) \neq
+      \eye$.</p></li>
+    </ol>
+
+    <p id="ex2-2"><strong>Example 2.2</strong> (Coordinates by dot products).
+    <strong>Given.</strong> (a) The orthonormal basis $\vec q_1 = \frac{1}{\sqrt2}(1,1)$,
+    $\vec q_2 = \frac{1}{\sqrt2}(1,-1)$ of $\R^2$ from Section 1, and $\vec b = (3,1)$.
+    (b) The orthonormal basis $\vec q_1, \vec q_2, \vec q_3$ of <a href="#ex1-4">Example
+    1.4</a>, collected in the orthogonal matrix</p>
+    \[
+      \mat Q = \frac13 \begin{pmatrix} 2 & -1 & 2 \\ 2 & 2 & -1 \\ -1 & 2 & 2 \end{pmatrix},
+      \qquad \text{and} \qquad \vec b = (1,2,3).
+    \]
+    <p><strong>Find.</strong> In each case, the coefficients in
+    $\vec b = x_1\vec q_1 + x_2\vec q_2 + \cdots$.</p>
+    <p><strong>Answer.</strong> No elimination is needed:
+    $\vec x = \mat Q\inv\vec b = \mat Q\T\vec b$, one dot product per coefficient.</p>
+    <ol type="a">
+      <li><p>$x_1 = \vec q_1\T\vec b = (3+1)/\sqrt2 = 2\sqrt2$ and
+      $x_2 = \vec q_2\T\vec b = (3-1)/\sqrt2 = \sqrt2$. Check:
+      $2\sqrt2\,\vec q_1 + \sqrt2\,\vec q_2 = 2\,(1,1) + (1,-1) = (3,1)$. Compare
+      <a href="#ex1-3">Example 1.3</a>, where the same $\vec b$, in a basis that is not
+      orthogonal, needed elimination.</p></li>
+      <li><p>$x_1 = \vec q_1\T\vec b = (2+4-3)/3 = 1$, $x_2 = \vec q_2\T\vec b = (-1+4+6)/3 = 3$
+      and $x_3 = \vec q_3\T\vec b = (2-2+6)/3 = 2$. Check:</p>
+      \[
+        \vec q_1 + 3\,\vec q_2 + 2\,\vec q_3
+        = \tfrac13\bigl[(2,2,-1) + (-3,6,6) + (4,-2,4)\bigr] = \tfrac13\,(3,6,9) = (1,2,3).
+      \]</li>
+    </ol>
+
+    <p id="ex2-3"><strong>Example 2.3</strong> (Orthogonal columns that are not unit vectors).
+    <strong>Given.</strong> The matrix $\mat W$ of <a href="#ex2-1">Example 2.1</a>, whose
+    columns $\vec u_1 = (1,1)$ and $\vec u_2 = (1,-1)$ are orthogonal with length $\sqrt2$, and
+    $\vec b = (3,1)$.<br>
+    <strong>Find.</strong> (a) $\mat W\T\mat W$ and $\mat W\inv$. (b) The coefficients in
+    $\vec b = x_1\vec u_1 + x_2\vec u_2$.</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p>$\mat W\T\mat W = \left(\begin{smallmatrix} 2 & 0 \\ 0 & 2\end{smallmatrix}\right)
+      = 2\eye$. The diagonal holds $\norm{\vec u_1}^2 = \norm{\vec u_2}^2 = 2$, the point of the
+      warning box above, so $\mat W\T$ is not the inverse;
+      $\mat W\inv = \frac12\mat W\T$ is.</p></li>
+      <li><p>$\vec x = \frac12\mat W\T\vec b = \frac12\,(3+1,\ 3-1) = (2,1)$. Check:
+      $2\,(1,1) + (1,-1) = (3,1)$. In general, when the columns are orthogonal but not unit
+      vectors, each coefficient is a dot product divided by a length squared,
+      $x_i = \vec u_i\T\vec b \,/\, \vec u_i\T\vec u_i$. Here each $\vec u_i$ is $\sqrt2$ times
+      the $\vec q_i$ of <a href="#ex2-2">Example 2.2</a>(a), so its coefficient is $\sqrt2$
+      times smaller.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>3 · The range of a general rectangular matrix</h2>
+    <p>Consider a general rectangular $\mat A \in \R^{m\times n}$. Suppose for the moment that
+    $m > n$, and that $\mat A$ has full column rank — that is, $\vec a_1, \ldots, \vec a_n$ are
+    linearly independent:</p>
+    \[
+      \mat A = \begin{pmatrix} | & & | \\ \vec a_1 & \cdots & \vec a_n \\ | & & | \end{pmatrix}.
+    \]
+    <p>Then $\mat A\vec x$, with $\vec x \in \R^n$, is</p>
+    \[
+      \mat A\vec x = \sum_i x_i\vec a_i ,
+    \]
+    <p>a linear combination of the columns $\vec a_i$ of $\mat A$. Collecting all of them,</p>
+    \[
+      \operatorname{Range}(\mat A) = \Bigl\{ \textstyle\sum_i x_i\vec a_i\ ,\ \forall\,\vec x \in \R^n \Bigr\} :
+      \quad \text{all possible linear combinations of the columns of } \mat A.
+    \]
+    <p>$\operatorname{Range}(\mat A)$ is a lower dimensional subspace of $\R^m$, and
+    $\{\vec a_1, \ldots, \vec a_n\}$ is a basis of $\operatorname{Range}(\mat A)$.</p>
+    <p>Given what we know about orthonormal bases, it is natural to consider finding an
+    <em>orthonormal</em> basis of $\operatorname{Range}(\mat A)$.</p>
+
+    <p id="ex3-1"><strong>Example 3.1.</strong> Take</p>
+    \[
+      \mat A = \begin{pmatrix} 1 & -1 \\ 0 & 1 \\ 0 & 1 \end{pmatrix},
+      \qquad
+      \operatorname{range}(\mat A) = x_1\begin{pmatrix} 1 \\ 0 \\ 0\end{pmatrix}
+      + x_2 \begin{pmatrix} -1 \\ 1 \\ 1 \end{pmatrix},
+    \]
+    <p>with columns $\vec a_1$ and $\vec a_2$.</p>
+
+    <figure>
+      <svg viewBox="60 0 380 290" width="100%" style="max-width:380px" role="img"
+           aria-label="A shaded plane through the origin in three-dimensional space, labelled range of A, containing the two column vectors a1 and a2.">
+        <defs>
+          <marker id="qrGreen2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+          <marker id="qrGray2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7"
+                  markerHeight="7" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <polygon points="321.4,21.8 94,190.5 78.6,278.3 306,109.5"
+                 fill="var(--cse-blue)" fill-opacity="0.10"
+                 stroke="var(--cse-blue)" stroke-width="1.6"/>
+        <g stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#qrGray2)">
+          <line x1="216" y1="143.7" x2="137.3" y2="175.1"/>
+          <line x1="182.9" y1="147.2" x2="345.4" y2="174.5"/>
+          <line x1="204.6" y1="178.5" x2="177.2" y2="8.6"/>
+        </g>
+        <line x1="200" y1="150" x2="168.7" y2="162.5" stroke="var(--cse-green)"
+              stroke-width="2.4" marker-end="url(#qrGreen2)"/>
+        <line x1="200" y1="150" x2="302.6" y2="63.4" stroke="var(--cse-green)"
+              stroke-width="2.4" marker-end="url(#qrGreen2)"/>
+        <text x="150" y="182" font-size="14" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">a<tspan font-size="10" dy="3">1</tspan></text>
+        <text x="278" y="52" font-size="14" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">a<tspan font-size="10" dy="3">2</tspan></text>
+        <text x="327" y="72" font-size="14" fill="var(--cse-blue)"
+              font-family="Georgia, serif">range(<tspan font-style="italic" font-weight="bold">A</tspan>)</text>
+      </svg>
+    </figure>
+
+    <p>$\mat A$ is a $3\times 2$ matrix: for $2$-dimensional input vectors $\vec x$,
+    $\mat A\vec x$ is a $3$-dimensional vector. $\operatorname{range}(\mat A)$ is the set of
+    all possible $\mat A\vec x$, and it forms a $2$-dimensional plane in $3$-dimensional space
+    $\R^3$.</p>
+    <p>Obviously, not all 3D vectors belong to $\operatorname{range}(\mat A)$, so the linear
+    system $\mat A\vec x = \vec b$ may not have a solution: it is
+    <strong>over-determined</strong>. We may instead speak of a <strong>least squares
+    solution</strong>: minimise the error $\vec e = \vec b - \mat A\vec x$,</p>
+    \[
+      \min_{\vec x}\ \norm{\vec b - \mat A\vec x}^2 .
+    \]
+    <p>For more details, see the notes on least squares solutions — that is
+    <a href="L11.html">Lecture&nbsp;12</a>.</p>
+
+    <p id="ex3-2"><strong>Example 3.2</strong> (Is $\vec b$ in the range?).
+    <strong>Given.</strong> The matrix of <a href="#ex3-1">Example 3.1</a>,
+    $\mat A = \left(\begin{smallmatrix} 1 & -1 \\ 0 & 1 \\ 0 & 1\end{smallmatrix}\right)$.<br>
+    <strong>Find.</strong> (a) Does $\mat A\vec x = \vec b$ have a solution for
+    $\vec b = (1,2,2)$? (b) For $\vec b = (1,2,3)$? (c) Which vectors $\vec b$ lie in
+    $\operatorname{range}(\mat A)$?</p>
+    <p><strong>Answer.</strong> Every vector in the range has the form</p>
+    \[
+      \mat A\vec x = x_1\begin{bmatrix} 1 \\ 0 \\ 0 \end{bmatrix}
+      + x_2\begin{bmatrix} -1 \\ 1 \\ 1 \end{bmatrix}
+      = \begin{bmatrix} x_1 - x_2 \\ x_2 \\ x_2 \end{bmatrix}.
+    \]
+    <ol type="a">
+      <li><p>Yes. The second and third rows both ask for $x_2 = 2$, and then the first row
+      gives $x_1 = 1 + 2 = 3$. So $\vec b = 3\vec a_1 + 2\vec a_2$.</p></li>
+      <li><p>No. The second and third rows ask for $x_2 = 2$ and $x_2 = 3$ at the same time.
+      Both systems are over-determined, three equations in two unknowns; this one has no
+      solution, because $\vec b$ is not in the range.</p></li>
+      <li><p>Exactly the vectors with equal second and third entries: any $(b_1, b_2, b_2)$
+      equals $\mat A\vec x$ with $x_2 = b_2$ and $x_1 = b_1 + b_2$. So
+      $\operatorname{range}(\mat A)$ is the plane $b_2 = b_3$. The vector $\vec n = (0,1,-1)$
+      is orthogonal to both columns, $\vec n\T\vec a_1 = 0$ and
+      $\vec n\T\vec a_2 = 0 + 1 - 1 = 0$, and the test $b_2 = b_3$ is the same as
+      $\vec n\T\vec b = 0$. For $\vec b = (1,2,3)$, $\vec n\T\vec b = -1$.</p></li>
+    </ol>
+
+    <p id="ex3-3"><strong>Example 3.3</strong> (Dependent columns). <strong>Given.</strong>
+    $\mat A = \left(\begin{smallmatrix} 1 & 2 \\ 2 & 4 \\ 3 & 6\end{smallmatrix}\right)$.<br>
+    <strong>Find.</strong> Does $\mat A$ have full column rank? What is
+    $\operatorname{range}(\mat A)$?</p>
+    <p><strong>Answer.</strong> No. The second column is twice the first,
+    $\vec a_2 = 2\vec a_1$, so the columns are dependent and the rank is $1$. Every
+    $\mat A\vec x = x_1\vec a_1 + 2x_2\vec a_1 = (x_1 + 2x_2)\,\vec a_1$ is a multiple of
+    $\vec a_1 = (1,2,3)$: the range is a line in $\R^3$, not a plane. The two columns are not a
+    basis of the range; $\vec a_1$ alone is. <a href="#ex4-4">Example 4.4</a> shows what
+    Gram–Schmidt does with columns like these.</p>
+  </section>
+
+  <section>
+    <h2>4 · The Gram–Schmidt orthogonalisation process</h2>
+    <p><strong>Basic idea:</strong> the columns of $\mat A$ form the edges of a
+    parallelepiped. “Straighten up” this parallelepiped into a cube, one edge at a time.</p>
+
+    <figure>
+      <svg viewBox="0 10 220 175" width="100%" style="max-width:240px" role="img"
+           aria-label="Two edge vectors a1 and a2 from a common corner, with the dashed segment a2 prime between their tips, and the two short orthonormal vectors q1 and q2 that Gram–Schmidt produces.">
+        <defs>
+          <marker id="qrGreen3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+          <marker id="qrInk3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--ink)"/></marker>
+        </defs>
+        <line x1="40" y1="140" x2="73" y2="38" stroke="var(--ink)" stroke-width="1.6"
+              marker-end="url(#qrInk3)"/>
+        <line x1="40" y1="140" x2="178" y2="74" stroke="var(--ink)" stroke-width="1.6"
+              marker-end="url(#qrInk3)"/>
+        <line x1="72.4" y1="39.8" x2="178" y2="74" stroke="var(--cse-gray)" stroke-width="1"
+              stroke-dasharray="4 3"/>
+        <line x1="40" y1="140" x2="56.6" y2="88.6" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen3)"/>
+        <line x1="40" y1="140" x2="91.4" y2="156.6" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen3)"/>
+        <text x="66" y="32" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--ink)" font-family="Georgia, serif">a<tspan font-size="9" dy="3">1</tspan></text>
+        <text x="184" y="80" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--ink)" font-family="Georgia, serif">a<tspan font-size="9" dy="3">2</tspan></text>
+        <text x="122" y="50" font-size="13" font-style="italic"
+              fill="var(--cse-gray)" font-family="Georgia, serif">a′<tspan font-size="9" dy="3">2</tspan></text>
+        <text x="30" y="88" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">q<tspan font-size="9" dy="3">1</tspan></text>
+        <text x="90" y="176" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">q<tspan font-size="9" dy="3">2</tspan></text>
+      </svg>
+    </figure>
+
+    <p>An orthonormal basis for $\operatorname{Range}(\mat A)$ is built up as follows.</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td style="padding-right:18px"><strong>Step #</strong></td>
+          <td style="padding-right:18px"><strong>Orthogonalisation</strong></td>
+          <td><strong>Normalisation</strong></td></tr>
+      <tr><td>$1$</td><td>N/A</td>
+          <td>$\vec q_1 = \vec a_1 / \norm{\vec a_1}$</td></tr>
+      <tr><td>$2$</td><td>$\vec a_2' = \vec a_2 - (\vec q_1\T \vec a_2)\,\vec q_1$</td>
+          <td>$\vec q_2 = \vec a_2' / \norm{\vec a_2'}$</td></tr>
+      <tr><td>$3$</td><td>$\vec a_3' = \vec a_3 - (\vec q_1\T \vec a_3)\,\vec q_1 - (\vec q_2\T \vec a_3)\,\vec q_2$</td>
+          <td>$\vec q_3 = \vec a_3' / \norm{\vec a_3'}$</td></tr>
+      <tr><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td></tr>
+      <tr><td>$n$</td><td>$\displaystyle \vec a_n' = \vec a_n - \sum_{j=1}^{n-1} (\vec q_j\T \vec a_n)\,\vec q_j$</td>
+          <td>$\vec q_n = \vec a_n' / \norm{\vec a_n'}$</td></tr>
+    </table>
+    </div>
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Every row of that table is the same move: subtract off everything the new column
+      already has in common with the directions already fixed, then rescale what is left to
+      length one. The quantity $(\vec q_j\T\vec a_n)\,\vec q_j$ is the part of $\vec a_n$ lying
+      along $\vec q_j$; removing it is what makes $\vec a_n'$ orthogonal to $\vec q_j$.</p>
+    </div>
+
+    <div class="remark" id="box-independent">
+      <span class="boxtitle">Why this needs independent columns</span>
+      <p>If $\vec a_k$ were a combination of $\vec a_1, \ldots, \vec a_{k-1}$, then after
+      subtracting off all of its components along $\vec q_1, \ldots, \vec q_{k-1}$ nothing
+      would be left: $\vec a_k' = \vec 0$, and the normalisation step would divide by zero. That
+      is exactly the full column rank hypothesis we made above, showing up as a division.</p>
+    </div>
+
+    <p id="ex4-1"><strong>Example 4.1</strong> (Gram–Schmidt in the plane).
+    <strong>Given.</strong> The columns of
+    $\mat A = \left(\begin{smallmatrix} 3 & -2 \\ 4 & 4\end{smallmatrix}\right)$, that is
+    $\vec a_1 = (3,4)$ and $\vec a_2 = (-2,4)$.<br>
+    <strong>Find.</strong> (a) The orthonormal basis $\vec q_1, \vec q_2$ that Gram–Schmidt
+    produces. (b) Is it really orthonormal? (c) What changes if the two columns are taken in
+    the other order?</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p><em>Step 1.</em> $\norm{\vec a_1} = \sqrt{9 + 16} = 5$, so
+      $\vec q_1 = \vec a_1/5 = (\frac35, \frac45)$.</p>
+      <p><em>Step 2.</em> The coefficient of $\vec a_2$ along $\vec q_1$ is
+      $\vec q_1\T\vec a_2 = (-6 + 16)/5 = 2$. Remove that part:</p>
+      \[
+        \vec a_2' = \vec a_2 - 2\,\vec q_1 = (-2,4) - (\tfrac65, \tfrac85)
+        = (-\tfrac{16}{5}, \tfrac{12}{5}).
+      \]
+      <p>Its length is $\norm{\vec a_2'} = \frac15\sqrt{256 + 144} = 4$, so
+      $\vec q_2 = \vec a_2'/4 = (-\frac45, \frac35)$.</p></li>
+      <li><p>Yes. $\vec q_1\T\vec q_2 = (-12 + 12)/25 = 0$, and both have length $1$ because
+      $9 + 16 = 25$. Also $\vec a_1\T\vec a_2' = (-48 + 48)/5 = 0$: removing the part along
+      $\vec q_1$ is what made $\vec a_2'$ perpendicular to $\vec a_1$. The figure below shows
+      the construction.</p></li>
+      <li><p>Start from $\vec a_2$ instead. Then
+      $\vec q_1 = \vec a_2/\norm{\vec a_2} = (-1,2)/\sqrt5$, the part of $\vec a_1$ along it is
+      $(\vec q_1\T\vec a_1)\,\vec q_1 = \sqrt5\,\vec q_1 = (-1,2)$, and what is left,
+      $(3,4) - (-1,2) = (4,2)$, has length $2\sqrt5$, so $\vec q_2 = (2,1)/\sqrt5$. This is a
+      different orthonormal basis of $\R^2$, and it is just as good. In either order the first
+      $\vec q$ points along the first vector taken. In general Gram–Schmidt keeps the direction
+      of the first vector, and $\vec q_1, \ldots, \vec q_k$ span the same space as the first
+      $k$ vectors it was given.</p></li>
+    </ol>
+
+    <figure>
+      <svg viewBox="60 35 280 160" width="100%" style="max-width:340px" role="img"
+           aria-label="The vectors a1 = (3,4) and a2 = (-2,4) from the origin; a dashed segment from 2 q1 to the tip of a2, meeting a1 at a right angle; the same segment moved to the origin as a2 prime; and the unit vectors q1 and q2.">
+        <defs>
+          <marker id="qrGreen4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10"
+                  markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-green)"/></marker>
+          <marker id="qrBlue4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+          <marker id="qrInk4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--ink)"/></marker>
+          <marker id="qrGray4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7"
+                  markerHeight="7" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <g stroke="var(--cse-gray)" stroke-width="0.9" stroke-opacity="0.6" marker-end="url(#qrGray4)">
+          <line x1="70" y1="180" x2="330" y2="180"/>
+          <line x1="200" y1="190" x2="200" y2="40"/>
+        </g>
+        <line x1="200" y1="180" x2="290" y2="60" stroke="var(--ink)" stroke-width="1.5"
+              marker-end="url(#qrInk4)"/>
+        <line x1="200" y1="180" x2="140" y2="60" stroke="var(--ink)" stroke-width="1.5"
+              marker-end="url(#qrInk4)"/>
+        <line x1="236" y1="132" x2="140" y2="60" stroke="var(--cse-blue)" stroke-width="1.3"
+              stroke-dasharray="5 3"/>
+        <polyline points="231.2,128.4 227.6,133.2 232.4,136.8" fill="none"
+                  stroke="var(--cse-gray)" stroke-width="0.9"/>
+        <circle cx="236" cy="132" r="2.4" fill="var(--cse-blue)"/>
+        <line x1="200" y1="180" x2="104" y2="108" stroke="var(--cse-blue)" stroke-width="1.5"
+              marker-end="url(#qrBlue4)"/>
+        <line x1="200" y1="180" x2="218" y2="156" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen4)"/>
+        <line x1="200" y1="180" x2="176" y2="162" stroke="var(--cse-green)" stroke-width="2.4"
+              marker-end="url(#qrGreen4)"/>
+        <text x="294" y="56" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--ink)" font-family="Georgia, serif">a<tspan font-size="9" dy="3">1</tspan></text>
+        <text x="126" y="54" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--ink)" font-family="Georgia, serif">a<tspan font-size="9" dy="3">2</tspan></text>
+        <text x="84" y="104" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--cse-blue)" font-family="Georgia, serif">a′<tspan font-size="9" dy="3">2</tspan></text>
+        <text x="242" y="148" font-size="13" fill="var(--cse-blue)"
+              font-family="Georgia, serif">2<tspan font-style="italic" font-weight="bold">q</tspan><tspan font-size="9" dy="3">1</tspan></text>
+        <text x="224" y="168" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">q<tspan font-size="9" dy="3">1</tspan></text>
+        <text x="160" y="176" font-size="13" font-style="italic" font-weight="bold"
+              fill="var(--cse-green)" font-family="Georgia, serif">q<tspan font-size="9" dy="3">2</tspan></text>
+      </svg>
+      <figcaption><a href="#ex4-1">Example 4.1</a>. The dashed segment runs from
+      $2\vec q_1$, the part of $\vec a_2$ along $\vec q_1$, to $\vec a_2$; it is $\vec a_2'$.
+      Moved to the origin, $\vec a_2'$ points along $\vec q_2$.</figcaption>
+    </figure>
+
+    <p id="ex4-2"><strong>Example 4.2</strong> (An orthonormal basis for the plane of Example
+    3.1). <strong>Given.</strong> The columns $\vec a_1 = (1,0,0)$ and $\vec a_2 = (-1,1,1)$
+    of the $3\times 2$ matrix of <a href="#ex3-1">Example 3.1</a>.<br>
+    <strong>Find.</strong> An orthonormal basis for $\operatorname{range}(\mat A)$.</p>
+    <p><strong>Answer.</strong> <em>Step 1.</em> $\norm{\vec a_1} = 1$, so
+    $\vec q_1 = \vec a_1 = (1,0,0)$. <em>Step 2.</em> $\vec q_1\T\vec a_2 = -1$. The
+    coefficient is negative, so subtracting $(-1)\,\vec q_1$ means adding $\vec q_1$:</p>
+    \[
+      \vec a_2' = \vec a_2 - (-1)\,\vec q_1 = (-1,1,1) + (1,0,0) = (0,1,1), \qquad
+      \norm{\vec a_2'} = \sqrt2, \qquad \vec q_2 = \tfrac{1}{\sqrt2}\,(0,1,1).
+    \]
+    <p>Check: $\vec q_1\T\vec q_2 = 0$ and both have length $1$. The plane in the figure of
+    Section 3 now has a basis of two perpendicular unit vectors, and both have equal second and
+    third entries, as <a href="#ex3-2">Example 3.2</a>(c) says every vector in this plane
+    must.</p>
+
+    <p id="ex4-3"><strong>Example 4.3</strong> (Three vectors in $\R^3$, step by step).
+    <strong>Given.</strong> The columns of</p>
+    \[
+      \mat A = \begin{pmatrix} 1 & -2 & 2 \\ 2 & 2 & 1 \\ 2 & 8 & 7 \end{pmatrix} : \qquad
+      \vec a_1 = (1,2,2), \quad \vec a_2 = (-2,2,8), \quad \vec a_3 = (2,1,7).
+    \]
+    <p><strong>Find.</strong> The orthonormal basis $\vec q_1, \vec q_2, \vec q_3$ from
+    Gram–Schmidt, with the numbers that fill in the table of this section.</p>
+    <p><strong>Answer.</strong> <em>Step 1.</em> $\norm{\vec a_1} = \sqrt{1 + 4 + 4} = 3$, so
+    $\vec q_1 = \frac13(1,2,2)$.<br>
+    <em>Step 2.</em> $\vec q_1\T\vec a_2 = \frac13(-2 + 4 + 16) = 6$, so the part of
+    $\vec a_2$ along $\vec q_1$ is $6\,\vec q_1 = (2,4,4)$, and</p>
+    \[
+      \vec a_2' = \vec a_2 - 6\,\vec q_1 = (-2,2,8) - (2,4,4) = (-4,-2,4).
+    \]
+    <p>Its length is $\sqrt{16 + 4 + 16} = 6$, so
+    $\vec q_2 = \frac16(-4,-2,4) = \frac13(-2,-1,2)$.<br>
+    <em>Step 3.</em> There are two coefficients now,
+    $\vec q_1\T\vec a_3 = \frac13(2 + 2 + 14) = 6$ and
+    $\vec q_2\T\vec a_3 = \frac13(-4 - 1 + 14) = 3$. Subtract both parts:</p>
+    \[
+      \vec a_3' = \vec a_3 - 6\,\vec q_1 - 3\,\vec q_2 = (2,1,7) - (2,4,4) - (-2,-1,2) = (2,-2,1).
+    \]
+    <p>Its length is $3$, so $\vec q_3 = \frac13(2,-2,1)$.<br>
+    <em>Check.</em> $\vec q_1\T\vec q_2 = \frac19(-2 - 2 + 4) = 0$,
+    $\vec q_1\T\vec q_3 = \frac19(2 - 4 + 2) = 0$ and
+    $\vec q_2\T\vec q_3 = \frac19(-4 + 2 + 2) = 0$, and each $\vec q_i$ has length $1$. It is
+    worth checking $\vec a_3'$ against the original columns as well:
+    $\vec a_3'\cdot\vec a_1 = 2 - 4 + 2 = 0$ and $\vec a_3'\cdot\vec a_2 = -4 - 4 + 8 = 0$.<br>
+    In the table of this section the run reads:</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td style="padding-right:18px"><strong>Step #</strong></td>
+          <td style="padding-right:18px"><strong>Orthogonalisation</strong></td>
+          <td><strong>Normalisation</strong></td></tr>
+      <tr><td>$1$</td><td>N/A</td>
+          <td>$\vec q_1 = \vec a_1/3 = \frac13(1,2,2)$</td></tr>
+      <tr><td>$2$</td><td>$\vec a_2' = \vec a_2 - 6\,\vec q_1 = (-4,-2,4)$</td>
+          <td>$\vec q_2 = \vec a_2'/6 = \frac13(-2,-1,2)$</td></tr>
+      <tr><td>$3$</td><td>$\vec a_3' = \vec a_3 - 6\,\vec q_1 - 3\,\vec q_2 = (2,-2,1)$</td>
+          <td>$\vec q_3 = \vec a_3'/3 = \frac13(2,-2,1)$</td></tr>
+    </table>
+    </div>
+
+    <div class="remark">
+      <span class="boxtitle">Postponing the square roots</span>
+      <p>By hand it is often easier to make the vectors orthogonal first and normalise only at
+      the end. Use the unnormalised $\vec a_j'$ in place of the $\vec q_j$, and divide each
+      coefficient by a length squared instead:</p>
+      \[
+        \vec a_k' = \vec a_k - \sum_{j &lt; k} \frac{\vec a_j'\cdot\vec a_k}{\vec a_j'\cdot\vec a_j'}\,\vec a_j' ,
+        \qquad \text{starting from } \vec a_1' = \vec a_1 .
+      \]
+      <p>In <a href="#ex4-3">Example 4.3</a> this gives
+      $\vec a_2' = \vec a_2 - \frac{18}{9}\,\vec a_1 = (-4,-2,4)$ and
+      $\vec a_3' = \vec a_3 - \frac{18}{9}\,\vec a_1 - \frac{18}{36}\,\vec a_2' = (2,-2,1)$,
+      the same vectors as before. The usual slip is to forget the division by
+      $\vec a_j'\cdot\vec a_j'$. These coefficients are not the entries of $\mat R$: multiply
+      each by the length $\norm{\vec a_j'}$, so $r_{12} = 3\cdot 2 = 6$,
+      $r_{13} = 3\cdot 2 = 6$ and $r_{23} = 6\cdot\frac12 = 3$.</p>
+    </div>
+
+    <p id="ex4-4"><strong>Example 4.4</strong> (Dependent columns: Gram–Schmidt stops).
+    <strong>Given.</strong> The columns $\vec a_1, \vec a_2$ of <a href="#ex4-3">Example
+    4.3</a>, with the third column replaced by their sum,
+    $\vec a_3 = \vec a_1 + \vec a_2 = (-1,4,10)$.<br>
+    <strong>Find.</strong> What happens in step 3?</p>
+    <p><strong>Answer.</strong> Steps 1 and 2 are unchanged. In step 3,
+    $\vec q_1\T\vec a_3 = \frac13(-1 + 8 + 20) = 9$ and
+    $\vec q_2\T\vec a_3 = \frac13(2 - 4 + 20) = 6$, so</p>
+    \[
+      \vec a_3' = \vec a_3 - 9\,\vec q_1 - 6\,\vec q_2 = (-1,4,10) - (3,6,6) - (-4,-2,4) = (0,0,0).
+    \]
+    <p>Nothing is left, and $\vec q_3 = \vec a_3'/\norm{\vec a_3'}$ would be $\vec 0/0$. This
+    is the box <a href="#box-independent">“Why this needs independent columns”</a> in numbers:
+    $\vec a_3$ already lies in the plane of $\vec q_1$ and $\vec q_2$, the matrix has rank $2$,
+    and its range is that plane. In that case we drop $\vec a_3$, and $\vec q_1, \vec q_2$ is
+    an orthonormal basis of the range. For the matrix of <a href="#ex3-3">Example 3.3</a>,
+    where $\vec a_2 = 2\vec a_1$, the same thing happens at step 2.</p>
+
+    <p id="ex4-5"><strong>Example 4.5</strong> (A tall matrix: four rows, three columns).
+    <strong>Given.</strong> The columns of</p>
+    \[
+      \mat A = \begin{pmatrix} 1 & 5 & 4 \\ 1 & 5 & 2 \\ 1 & 1 & 2 \\ 1 & 1 & 0 \end{pmatrix} : \qquad
+      \vec a_1 = (1,1,1,1), \quad \vec a_2 = (5,5,1,1), \quad \vec a_3 = (4,2,2,0).
+    \]
+    <p><strong>Find.</strong> An orthonormal basis for $\operatorname{range}(\mat A)$, a
+    three-dimensional subspace of $\R^4$.</p>
+    <p><strong>Answer.</strong> The steps are the same as in $\R^3$; only the vectors are
+    longer.<br>
+    <em>Step 1.</em> $\norm{\vec a_1} = \sqrt4 = 2$, so $\vec q_1 = \frac12(1,1,1,1)$.<br>
+    <em>Step 2.</em> $\vec q_1\T\vec a_2 = \frac12(5 + 5 + 1 + 1) = 6$, so
+    $\vec a_2' = (5,5,1,1) - (3,3,3,3) = (2,2,-2,-2)$, which has length $4$, and
+    $\vec q_2 = \frac12(1,1,-1,-1)$.<br>
+    <em>Step 3.</em> $\vec q_1\T\vec a_3 = \frac12(4 + 2 + 2 + 0) = 4$ and
+    $\vec q_2\T\vec a_3 = \frac12(4 + 2 - 2 - 0) = 2$, so
+    $\vec a_3' = (4,2,2,0) - (2,2,2,2) - (1,1,-1,-1) = (1,-1,1,-1)$, which has length $2$, and
+    $\vec q_3 = \frac12(1,-1,1,-1)$.</p>
+    <p>The sign patterns $(+,+,+,+)$, $(+,+,-,-)$ and $(+,-,+,-)$ make the orthogonality easy
+    to see. A fourth unit vector, $\vec q_4 = \frac12(1,-1,-1,1)$, is orthogonal to all three
+    and would complete a basis of $\R^4$; it is not in $\operatorname{range}(\mat A)$.</p>
+  </section>
+
+  <section>
+    <h2>5 · The QR decomposition</h2>
+    <p>Just like LU is a decomposition representing the elimination process, QR is a
+    decomposition representing the orthonormalisation process:</p>
+    \[
+      \underbrace{\begin{pmatrix} | & & | \\ \vec a_1 & \cdots & \vec a_n \\ | & & |\end{pmatrix}}_{\mat A \,\in\, \R^{m\times n}}
+      =
+      \underbrace{\begin{pmatrix} | & & | \\ \vec q_1 & \cdots & \vec q_n \\ | & & |\end{pmatrix}}_{\mat Q \,\in\, \R^{m\times n}}
+      \underbrace{\begin{pmatrix}
+         r_{11} & r_{12} & \cdots & r_{1n} \\
+                & r_{22} & \cdots & r_{2n} \\
+                &        & \ddots & \vdots \\
+         \mathbf{0} &    &        & r_{nn}
+      \end{pmatrix}}_{\mat R \,\in\, \R^{n\times n}} .
+    \]
+    <p>Reading the product one column at a time,</p>
+    \[
+      \vec a_1 = r_{11}\vec q_1, \qquad
+      \vec a_2 = r_{12}\vec q_1 + r_{22}\vec q_2, \qquad \ldots, \qquad
+      \vec a_n = \sum_j r_{jn}\,\vec q_j .
+    \]
+    <p>$\mat R$ is upper triangular for a structural reason: $\vec a_k$ was built using only
+    $\vec q_1, \ldots, \vec q_k$, so no later $\vec q$ can appear in its expansion.</p>
+
+    <div class="callout">
+      <span class="label">Exercise 5.1</span>
+      <p>Can you see how the $r_{ij}$ are extracted from the steps in the table of Section 4,
+      the one just before <a href="#ex4-1">Example 4.1</a>?</p>
+    </div>
+
+    <p>Unwind the table. Step 1 says $\vec q_1 = \vec a_1/\norm{\vec a_1}$, so
+    $\vec a_1 = \norm{\vec a_1}\,\vec q_1$ and $r_{11} = \norm{\vec a_1}$. Step 2 says
+    $\vec a_2' = \vec a_2 - (\vec q_1\T\vec a_2)\vec q_1$ and
+    $\vec a_2' = \norm{\vec a_2'}\,\vec q_2$, so</p>
+    \[
+      \vec a_2 = (\vec q_1\T \vec a_2)\,\vec q_1 + \norm{\vec a_2'}\,\vec q_2
+      \qquad\Longrightarrow\qquad
+      r_{12} = \vec q_1\T\vec a_2, \quad r_{22} = \norm{\vec a_2'} .
+    \]
+    <p>The same reading of row $n$ gives $r_{jn} = \vec q_j\T \vec a_n$ for $j < n$ and
+    $r_{nn} = \norm{\vec a_n'}$. The off-diagonal entries of $\mat R$ are the projection
+    coefficients we subtracted off; the diagonal entries are the lengths we divided by.</p>
+
+    <p id="ex5-2"><strong>Example 5.2</strong> (Reading $\mat Q$ and $\mat R$ off
+    Gram–Schmidt). <strong>Given.</strong> The Gram–Schmidt run of <a href="#ex4-3">Example
+    4.3</a>.<br>
+    <strong>Find.</strong> (a) $\mat Q$ and $\mat R$ with $\mat A = \mat Q\mat R$. (b) Do the
+    second and third columns of $\mat Q\mat R$ give back $\vec a_2$ and $\vec a_3$? (c) Is
+    $\mat Q\T\mat A$ equal to $\mat R$?</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p>The $\vec q$'s are the columns of $\mat Q$. The diagonal of $\mat R$ holds the
+      lengths we divided by, $3, 6, 3$. Above the diagonal are the coefficients we subtracted,
+      $r_{12} = \vec q_1\T\vec a_2 = 6$, $r_{13} = \vec q_1\T\vec a_3 = 6$ and
+      $r_{23} = \vec q_2\T\vec a_3 = 3$:</p>
+      \[
+        \underbrace{\begin{pmatrix} 1 & -2 & 2 \\ 2 & 2 & 1 \\ 2 & 8 & 7 \end{pmatrix}}_{\mat A}
+        = \underbrace{\frac13\begin{pmatrix} 1 & -2 & 2 \\ 2 & -1 & -2 \\ 2 & 2 & 1 \end{pmatrix}}_{\mat Q}
+        \underbrace{\begin{pmatrix} 3 & 6 & 6 \\ 0 & 6 & 3 \\ 0 & 0 & 3 \end{pmatrix}}_{\mat R} .
+      \]</li>
+      <li><p>Yes. Column 2 of $\mat Q\mat R$ is
+      $6\,\vec q_1 + 6\,\vec q_2 = (2,4,4) + (-4,-2,4) = (-2,2,8) = \vec a_2$, and column 3 is
+      $6\,\vec q_1 + 3\,\vec q_2 + 3\,\vec q_3 = (2,4,4) + (-2,-1,2) + (2,-2,1) = (2,1,7) =
+      \vec a_3$.</p></li>
+      <li><p>Yes. Multiplying $\mat A = \mat Q\mat R$ on the left by $\mat Q\T$ and using
+      $\mat Q\T\mat Q = \eye$ gives $\mat R = \mat Q\T\mat A$. In numbers, with entry $(i,j)$
+      equal to $\vec q_i\T\vec a_j$:</p>
+      \[
+        \mat Q\T\mat A = \frac13\begin{pmatrix} 1 & 2 & 2 \\ -2 & -1 & 2 \\ 2 & -2 & 1 \end{pmatrix}
+        \begin{pmatrix} 1 & -2 & 2 \\ 2 & 2 & 1 \\ 2 & 8 & 7 \end{pmatrix}
+        = \frac13\begin{pmatrix} 9 & 18 & 18 \\ 0 & 18 & 9 \\ 0 & 0 & 9 \end{pmatrix} = \mat R .
+      \]
+      <p>The zeros below the diagonal come from orthogonality: $\vec a_j$ is a combination of
+      $\vec q_1, \ldots, \vec q_j$, so $\vec q_i\T\vec a_j = 0$ whenever $i > j$.</p></li>
+    </ol>
+
+    <p id="ex5-3"><strong>Example 5.3</strong> (A tall $\mat Q$). <strong>Given.</strong> The
+    $3\times 2$ matrix of <a href="#ex3-1">Example 3.1</a> and its Gram–Schmidt run in
+    <a href="#ex4-2">Example 4.2</a>.<br>
+    <strong>Find.</strong> (a) $\mat Q$ and $\mat R$. (b) $\mat Q\T\mat Q$ and
+    $\mat Q\mat Q\T$.</p>
+    <p><strong>Answer.</strong></p>
+    <ol type="a">
+      <li><p>Here $\mat Q$ is $3\times 2$ and $\mat R$ is $2\times 2$, as in the display at the
+      start of this section, with $r_{11} = 1$, $r_{12} = \vec q_1\T\vec a_2 = -1$ and
+      $r_{22} = \sqrt2$:</p>
+      \[
+        \begin{pmatrix} 1 & -1 \\ 0 & 1 \\ 0 & 1 \end{pmatrix}
+        = \begin{pmatrix} 1 & 0 \\ 0 & 1/\sqrt2 \\ 0 & 1/\sqrt2 \end{pmatrix}
+        \begin{pmatrix} 1 & -1 \\ 0 & \sqrt2 \end{pmatrix} .
+      \]
+      <p>Column 2 checks: $-\vec q_1 + \sqrt2\,\vec q_2 = (-1,0,0) + (0,1,1) = (-1,1,1)$.</p></li>
+      <li><p>$\mat Q\T\mat Q = \eye_2$, because the two columns are orthonormal. But</p>
+      \[
+        \mat Q\mat Q\T = \begin{pmatrix} 1 & 0 & 0 \\ 0 & \frac12 & \frac12 \\ 0 & \frac12 & \frac12 \end{pmatrix}
+        \neq \eye_3 .
+      \]
+      <p>A tall $\mat Q$ has no inverse, since two columns cannot span $\R^3$; $\mat Q\T$ undoes
+      $\mat Q$ from the left only. The rule $\mat Q\inv = \mat Q\T$ of Section 2 is for square
+      $\mat Q$. The matrix $\mat Q\mat Q\T$ comes back in <a href="L11.html">Lecture&nbsp;12</a>.</p></li>
+    </ol>
+
+    <p id="ex5-4"><strong>Example 5.4</strong> (Volume from the diagonal of $\mat R$).
+    <strong>Given.</strong> The square matrices of <a href="#ex4-1">Examples 4.1</a> and
+    <a href="#ex4-3">4.3</a>.<br>
+    <strong>Find.</strong> How does $\abs{\det\mat A}$ compare with the product of the diagonal
+    entries of $\mat R$?</p>
+    <p><strong>Answer.</strong> They are equal. For a square $\mat A = \mat Q\mat R$,
+    $\det\mat A = \det\mat Q\,\det\mat R$. The determinant of the triangular $\mat R$ is the
+    product of its diagonal, and $\det\mat Q = \pm1$, because
+    $(\det\mat Q)^2 = \det\mat Q\T\det\mat Q = \det(\mat Q\T\mat Q) = \det\eye = 1$. So
+    $\abs{\det\mat A} = \abs{r_{11}\,r_{22}\cdots r_{nn}}$, and for the $\mat R$ of
+    Gram–Schmidt, whose diagonal entries are positive lengths,</p>
+    \[
+      \abs{\det\mat A} = r_{11}\,r_{22}\cdots r_{nn} .
+    \]
+    <p>In <a href="#ex4-1">Example 4.1</a>, $\det\mat A = 3\cdot 4 - (-2)\cdot 4 = 20 = 5\cdot 4$.
+    In <a href="#ex4-3">Example 4.3</a>, $\det\mat A = 54 = 3\cdot 6\cdot 3$. This is the
+    parallelepiped at the start of Section 4: $r_{11} = \norm{\vec a_1}$ is the length of the
+    first edge, $r_{22} = \norm{\vec a_2'}$ is the height of the second edge above the line of
+    the first, $r_{33}$ is the height of the third above the plane of the first two, and the
+    volume is the product. In the plane it is base times height, $5\times 4$ in the figure of
+    <a href="#ex4-1">Example 4.1</a>.</p>
+
+    <div class="remark">
+      <span class="boxtitle">Checking on the computer</span>
+      <p><code>numpy.linalg.qr</code> and MATLAB's <code>qr</code> compute
+      $\mat A = \mat Q\mat R$ by another method (Householder reflections), and they may flip
+      the signs of some columns of $\mat Q$ together with the matching rows of $\mat R$. For
+      the matrix of <a href="#ex5-2">Example 5.2</a>, numpy returns $\mat R$ with diagonal
+      $-3, -6, 3$ and the first two columns of $\mat Q$ negated. Both answers are correct,
+      since flipping a column of $\mat Q$ and the matching row of $\mat R$ leaves the product
+      unchanged. For independent columns, the factorisation with the $m\times n$ matrix
+      $\mat Q$ of this section is unique once we ask for $r_{kk} > 0$, and that is the one
+      Gram–Schmidt produces. For a tall $\mat A$, <code>numpy.linalg.qr</code> returns the
+      $m\times n$ matrix $\mat Q$ of this section, while MATLAB's <code>qr(A)</code> returns a
+      square $m\times m$ one; <code>qr(A,0)</code> gives the $m\times n$ one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Applications of the QR decomposition</h2>
+
+    <h3>① Solving linear equations</h3>
+    <p>Given a square $\mat A \in \R^{n\times n}$, we have $\mat Q \in \R^{n\times n}$ an
+    orthogonal matrix and $\mat R \in \R^{n \times n}$ upper triangular (like the $\mat U$ in
+    LU). Then</p>
+    \[
+      \mat A \vec x = \vec b
+      \implies \mat Q\mat R\vec x = \vec b
+      \implies \mat R \vec x = \mat Q\T \vec b ,
+    \]
+    <p>which is solved easily by back-substitution over $\mat R$.</p>
+    <p>The middle step is the whole point: moving $\mat Q$ to the other side needs $\mat Q\inv$,
+    and $\mat Q\inv = \mat Q\T$ is free.</p>
+
+    <p id="ex6-1"><strong>Example 6.1</strong> (Solving a square system with $\mat Q\mat R$).
+    <strong>Given.</strong> $\mat A = \mat Q\mat R$ from <a href="#ex5-2">Example 5.2</a>, and
+    $\vec b = (7,2,8)$.<br>
+    <strong>Find.</strong> The solution of $\mat A\vec x = \vec b$.</p>
+    <p><strong>Answer.</strong> First multiply by $\mat Q\T$, which takes three dot
+    products:</p>
+    \[
+      \mat Q\T\vec b = \tfrac13\,\bigl(7 + 4 + 16,\ -14 - 2 + 16,\ 14 - 4 + 8\bigr) = (9, 0, 6).
+    \]
+    <p>Then solve $\mat R\vec x = \mat Q\T\vec b$ by back-substitution, from the bottom row
+    up:</p>
+    \[
+      \begin{aligned}
+        3x_3 = 6 &\quad\Longrightarrow\quad x_3 = 2, \\
+        6x_2 + 3x_3 = 0 &\quad\Longrightarrow\quad x_2 = -1, \\
+        3x_1 + 6x_2 + 6x_3 = 9 &\quad\Longrightarrow\quad x_1 = 1.
+      \end{aligned}
+    \]
+    <p>Check: $\mat A\vec x = (1 + 2 + 4,\ 2 - 2 + 2,\ 2 - 8 + 14) = (7,2,8)$. As with
+    $\mat L$ and $\mat U$, the factorisation is done once; each new right-hand side then costs
+    one multiplication by $\mat Q\T$ and one back-substitution.</p>
+
+    <h3>② Solving least squares problems</h3>
+    <p>See the separate notes on least squares problems — <a href="L11.html">Lecture&nbsp;12</a>,
+    where the over-determined system of <a href="#ex3-1">Example 3.1</a> finally gets
+    solved.</p>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>Next time: least squares. We have the rectangular $\mat A$, the picture of
+    $\operatorname{range}(\mat A)$ as a plane that $\vec b$ generally misses, and now an
+    orthonormal basis for that plane. Putting them together turns
+    $\min_{\vec x}\norm{\vec b - \mat A\vec x}^2$ into a projection, and QR is the numerically
+    sound way to compute it.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §1.7 (numerical linear algebra:
+    LU, QR, SVD); §2.3 for the least squares problem that motivates it.</p>
+  </section>
+
+  <section>
+    <h2>Practice for Quiz 1</h2>
+    <p>These four exercises review Lectures 1 to 10, the material of Quiz 1. Try each one
+    before reading its answer; the answers are <a href="#answers">below</a>.</p>
+
+    <p id="pq1"><strong>Exercise 1</strong> (Finite differences and a point load).
+    <strong>Given.</strong> The one-sided difference</p>
+    \[
+      D_h u(x) = \frac{-3\,u(x) + 4\,u(x+h) - u(x+2h)}{2h} ,
+    \]
+    <p>and the fixed–fixed problem</p>
+    \[
+      -\frac{d^2u}{dx^2} = \delta\bigl(x - \tfrac13\bigr), \qquad 0 \le x \le 1, \qquad
+      u(0) = 0, \quad u(1) = 0.
+    \]
+    <p><strong>Find.</strong> (a) Use Taylor series to write
+    $D_h u(x) = u'(x) + C\,h^2\,u'''(x) + \Oh{h^3}$. What is $C$, and what is the order of
+    accuracy? (b) Check (a) on $u = x^3$ at $x = 0$ with $h = 0.1$. (c) What is the solution
+    $u(x)$ of the boundary value problem? (d) By how much does $u'$ jump at $x = \frac13$, and
+    why?</p>
+
+    <p id="pq2"><strong>Exercise 2</strong> (Eigenvalues and a system of differential
+    equations). <strong>Given.</strong></p>
+    \[
+      \frac{d\vec x}{dt} = -\mat A\vec x, \qquad
+      \mat A = \begin{pmatrix} 3 & -1 \\ -1 & 3 \end{pmatrix}, \qquad
+      \vec x(0) = \begin{bmatrix} 4 \\ 0 \end{bmatrix}.
+    \]
+    <p><strong>Find.</strong> (a) The eigenvalues and orthonormal eigenvectors of $\mat A$. Is
+    $\mat A$ positive definite? (b) What is $\vec x(t)$? (c) The second component $x_2$ starts
+    at $0$. When is it largest, and what is its largest value? (d) What does $\vec x(t)$ look
+    like for large $t$?</p>
+
+    <p id="pq3"><strong>Exercise 3</strong> (The Hessian and the second derivative test).
+    <strong>Given.</strong> $f(x_1, x_2) = x_1^3 + 3x_1x_2^2 - 3x_1$.<br>
+    <strong>Find.</strong> (a) The gradient and the Hessian of $f$. (b) All the critical
+    points. (c) Is each critical point a local minimum, a local maximum or a saddle? What is
+    $f$ there?</p>
+
+    <p id="pq4"><strong>Exercise 4</strong> (The heat equation on a rod of length 2).
+    <strong>Given.</strong> A rod $0 \le x \le 2$ with both ends held at zero:</p>
+    \[
+      \frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2}, \qquad
+      u(0,t) = 0, \quad u(2,t) = 0, \qquad
+      u(x,0) = 5\sin\frac{\pi x}{2} - \sin\pi x .
+    \]
+    <p><strong>Find.</strong> (a) Which modes do these ends allow, and how fast does each
+    decay? (b) What is $u(x,t)$? (c) What is the temperature at the midpoint $x = 1$, and when
+    has it fallen to half its starting value? (d) Show that $u(x,t) > 0$ for $0 < x < 2$ and
+    every $t \ge 0$.</p>
+
+    <h3 id="answers">Answers</h3>
+
+    <p><strong><a href="#pq1">Exercise 1</a>.</strong></p>
+    <ol type="a">
+      <li><p>Expand both shifted values about $x$:</p>
+      \[
+        \begin{aligned}
+          u(x+h) &= u + h\,u' + \tfrac12 h^2 u'' + \tfrac16 h^3 u''' + \Oh{h^4}, \\
+          u(x+2h) &= u + 2h\,u' + 2h^2 u'' + \tfrac43 h^3 u''' + \Oh{h^4}.
+        \end{aligned}
+      \]
+      <p>In $-3u + 4u(x+h) - u(x+2h)$ the terms in $u$ cancel ($-3 + 4 - 1 = 0$), the terms in
+      $u''$ cancel ($2h^2 - 2h^2 = 0$), the $u'$ terms give $4h - 2h = 2h$, and the $u'''$
+      terms give $\frac23 h^3 - \frac43 h^3 = -\frac23 h^3$. Dividing by $2h$,</p>
+      \[
+        D_h u(x) = u'(x) - \tfrac13 h^2\,u'''(x) + \Oh{h^3}.
+      \]
+      <p>So $C = -\frac13$, and the formula is second order: halving $h$ divides the error by
+      about $4$.</p></li>
+      <li><p>$u(0) = 0$, $u(0.1) = 0.001$, $u(0.2) = 0.008$, so
+      $D_h u(0) = (0.004 - 0.008)/0.2 = -0.02$, while $u'(0) = 0$. The formula predicts
+      $-\frac13(0.1)^2\cdot 6 = -0.02$, since $u''' = 6$. The agreement is exact here because
+      the fourth and higher derivatives of $x^3$ are zero.</p></li>
+      <li><p>On each side of $x = \frac13$, $u'' = 0$, so $u$ is linear: $u = ax$ on the left
+      (so that $u(0) = 0$) and $u = b(1-x)$ on the right (so that $u(1) = 0$). The two pieces
+      meet at $x = \frac13$, so $\frac a3 = \frac{2b}{3}$. Integrating
+      $-u'' = \delta(x - \frac13)$ across $x = \frac13$ shows that the slope drops by $1$
+      there, so $-b - a = -1$. Together, $a = \frac23$ and $b = \frac13$:</p>
+      \[
+        u(x) = \begin{cases} \frac23\,x, & 0 \le x \le \frac13, \\[2pt]
+                             \frac13\,(1-x), & \frac13 \le x \le 1. \end{cases}
+      \]
+      <p>This is the fixed–fixed Green's function $g(x,y)$ at $y = \frac13$, with its peak
+      $u(\frac13) = \frac29$ under the load.</p></li>
+      <li><p>$u'$ drops from $\frac23$ to $-\frac13$, a jump of $-1$. The integral of $-u''$
+      across $x = \frac13$ is minus the jump in $u'$, and the integral of $\delta$ is $1$: a
+      unit point load puts a corner in $u$, while $u$ itself does not jump.</p></li>
+    </ol>
+
+    <p><strong><a href="#pq2">Exercise 2</a>.</strong></p>
+    <ol type="a">
+      <li><p>$\det(\mat A - \lambda\eye) = (3-\lambda)^2 - 1 = 0$ gives $\lambda_1 = 2$ and
+      $\lambda_2 = 4$, with</p>
+      \[
+        \vec v_1 = \tfrac{1}{\sqrt2}\,(1,1), \qquad \vec v_2 = \tfrac{1}{\sqrt2}\,(1,-1).
+      \]
+      <p>Both eigenvalues are positive, so $\mat A$ is positive definite (the pivots, $3$ and
+      $\frac83$, are positive too).</p></li>
+      <li><p>Write $\vec x(0) = (4,0) = 2\,(1,1) + 2\,(1,-1)$. Each eigenvector part decays at
+      its own rate:</p>
+      \[
+        \vec x(t) = 2\,e^{-2t}\begin{bmatrix} 1 \\ 1 \end{bmatrix}
+        + 2\,e^{-4t}\begin{bmatrix} 1 \\ -1 \end{bmatrix}, \qquad
+        x_1 = 2e^{-2t} + 2e^{-4t}, \quad x_2 = 2e^{-2t} - 2e^{-4t}.
+      \]
+      <p>Check: at $t = 0$ this is $(4,0)$.</p></li>
+      <li><p>$dx_2/dt = -4e^{-2t} + 8e^{-4t}$ is zero when $e^{-2t} = \frac12$, that is at
+      $t = \frac12\ln 2 \approx 0.35$. There
+      $x_2 = 2\cdot\frac12 - 2\cdot\frac14 = \frac12$.</p></li>
+      <li><p>The $e^{-4t}$ part dies out first, so $\vec x(t) \approx 2e^{-2t}\,(1,1)$: the two
+      components become equal and decay together at the rate of the smaller eigenvalue,
+      $2$.</p></li>
+    </ol>
+
+    <p><strong><a href="#pq3">Exercise 3</a>.</strong></p>
+    <ol type="a">
+      <li>
+      \[
+        \nabla f = \begin{bmatrix} 3x_1^2 + 3x_2^2 - 3 \\ 6x_1x_2 \end{bmatrix}, \qquad
+        \mat H = \begin{pmatrix} 6x_1 & 6x_2 \\ 6x_2 & 6x_1 \end{pmatrix}.
+      \]</li>
+      <li><p>$6x_1x_2 = 0$ means $x_1 = 0$ or $x_2 = 0$. With $x_2 = 0$, $3x_1^2 = 3$ gives
+      $x_1 = \pm1$; with $x_1 = 0$, $3x_2^2 = 3$ gives $x_2 = \pm1$. There are four critical
+      points: $(1,0)$, $(-1,0)$, $(0,1)$ and $(0,-1)$.</p></li>
+      <li><p>At $(1,0)$, $\mat H = 6\eye$ is positive definite: a local minimum, with
+      $f = -2$. At $(-1,0)$, $\mat H = -6\eye$ is negative definite: a local maximum, with
+      $f = 2$. At $(0,\pm1)$,
+      $\mat H = \left(\begin{smallmatrix} 0 & \pm6 \\ \pm6 & 0\end{smallmatrix}\right)$ has
+      eigenvalues $6$ and $-6$: two saddles, with $f = 0$. The minimum and maximum are only
+      local: $f \to -\infty$ as $x_1 \to -\infty$ and $f \to +\infty$ as
+      $x_1 \to +\infty$.</p></li>
+    </ol>
+
+    <p><strong><a href="#pq4">Exercise 4</a>.</strong></p>
+    <ol type="a">
+      <li><p>Separating, $u = e^{-\lambda t}y(x)$ with $-y'' = \lambda y$ and
+      $y(0) = y(2) = 0$. The solutions are</p>
+      \[
+        y_n(x) = \sin\frac{n\pi x}{2}, \qquad \lambda_n = \frac{n^2\pi^2}{4}, \qquad
+        n = 1, 2, 3, \ldots
+      \]
+      <p>These are the modes of Lecture&nbsp;10, with the length $2$ in place of $\pi$.</p></li>
+      <li><p>The starting temperature is already a sum of the modes $n = 1$ and $n = 2$, with
+      coefficients $5$ and $-1$, so</p>
+      \[
+        u(x,t) = 5\,e^{-\pi^2 t/4}\sin\frac{\pi x}{2} - e^{-\pi^2 t}\sin\pi x .
+      \]</li>
+      <li><p>Since $\sin\pi = 0$, the second mode is zero at the midpoint, and
+      $u(1,t) = 5\,e^{-\pi^2 t/4}$. It starts at $5$ and halves when
+      $e^{-\pi^2 t/4} = \frac12$, at $t = 4\ln 2/\pi^2 \approx 0.28$.</p></li>
+      <li><p>Use $\sin\pi x = 2\sin\frac{\pi x}{2}\cos\frac{\pi x}{2}$ to take out the first
+      mode:</p>
+      \[
+        u(x,t) = e^{-\pi^2 t/4}\sin\frac{\pi x}{2}\,\Bigl(5 - 2\,e^{-3\pi^2 t/4}\cos\frac{\pi x}{2}\Bigr).
+      \]
+      <p>For $0 < x < 2$ the sine is positive, and the bracket is at least $5 - 2 = 3$. So
+      $u > 0$: the second mode starts five times smaller and decays four times faster, and it
+      never outweighs the first.</p></li>
+    </ol>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L09.html"><span class="arw">←</span> Lecture 10</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span><a href="L11.html">Lecture 12 <span class="arw">→</span></a></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>

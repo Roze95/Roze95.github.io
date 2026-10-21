@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 12 — Least Squares | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 12: fitting a model to data by minimising the total squared error, the geometry of dropping a perpendicular onto col(X), the normal equations, and multivariate and polynomial fits.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../slides.html">Slides</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 12</p>
+    <h1>Least Squares</h1>
+    <p class="lecmeta">
+      <span>Wednesday, October 21, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §2.3</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L11.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Set up a data-fitting problem as an overdetermined system $\mat X\vec k = \vec y$ and write the total squared error as $\vec e\T\vec e$.</li>
+      <li>Interpret least squares geometrically: find the point of $\operatorname{col}(\mat X)$ closest to $\vec y$, so that the residual is orthogonal to $\operatorname{col}(\mat X)$.</li>
+      <li>Turn that right angle into the normal equations $\mat X\T\mat X\,\overline{\vec k} = \mat X\T\vec y$, and solve them.</li>
+      <li>Extend the same matrix set-up to several independent variables and to polynomial models.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>1 · A problem you have already met</h2>
+
+    <p>Suppose we are handed data</p>
+    \[
+      \{(x_i, y_i)\}_{i\in\{1,\dots,m\}}, \qquad x_i, y_i \in \R .
+    \]
+    <p>For example, $x_i$ is a person's height and $y_i$ is their shoe size; or $x_i$ is the
+    horsepower of a vehicle and $y_i$ is its cost; etc., etc. We want to <em>fit a linear
+    model</em></p>
+    \[
+      y = kx + b
+    \]
+    <p>to that data.</p>
+
+    <figure>
+      <svg viewBox="0 0 400 230" width="100%" style="max-width:400px" role="img"
+           aria-label="Scattered data points marked with crosses around a straight line y equals k x plus b; two vertical red segments show the error e i between a point and the line.">
+        <defs>
+          <marker id="aLsGray1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8"
+                  markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <!-- axes -->
+        <line x1="20" y1="112" x2="340" y2="112" stroke="var(--cse-gray)" stroke-width="1.1"
+              marker-end="url(#aLsGray1)"/>
+        <line x1="150" y1="215" x2="150" y2="14" stroke="var(--cse-gray)" stroke-width="1.1"
+              marker-end="url(#aLsGray1)"/>
+        <text x="348" y="116" font-size="13" font-style="italic" fill="var(--cse-gray)"
+              font-family="Georgia, serif">x</text>
+        <text x="146" y="10" font-size="13" font-style="italic" fill="var(--cse-gray)"
+              font-family="Georgia, serif">y</text>
+        <!-- the line -->
+        <line x1="40" y1="42" x2="290" y2="172" stroke="var(--cse-green)" stroke-width="1.8"/>
+        <text x="296" y="178" font-size="12" font-style="italic" fill="var(--cse-green)"
+              font-family="Georgia, serif">y = kx + b</text>
+        <!-- residuals -->
+        <line x1="96" y1="26" x2="96" y2="71" stroke="var(--cse-red)" stroke-width="1.6"/>
+        <line x1="210" y1="130" x2="210" y2="146" stroke="var(--cse-red)" stroke-width="1.6"/>
+        <text x="214" y="144" font-size="12" font-style="italic" fill="var(--cse-red)"
+              font-family="Georgia, serif">e<tspan font-size="9" dy="3">i</tspan></text>
+        <!-- data -->
+        <g stroke="var(--cse-blue)" stroke-width="1.3">
+          <path d="M43,39 l6,6 m0,-6 l-6,6"/>
+          <path d="M75,37 l6,6 m0,-6 l-6,6"/>
+          <path d="M93,23 l6,6 m0,-6 l-6,6"/>
+          <path d="M57,53 l6,6 m0,-6 l-6,6"/>
+          <path d="M81,67 l6,6 m0,-6 l-6,6"/>
+          <path d="M113,77 l6,6 m0,-6 l-6,6"/>
+          <path d="M137,55 l6,6 m0,-6 l-6,6"/>
+          <path d="M157,52 l6,6 m0,-6 l-6,6"/>
+          <path d="M177,68 l6,6 m0,-6 l-6,6"/>
+          <path d="M161,85 l6,6 m0,-6 l-6,6"/>
+          <path d="M138,101 l6,6 m0,-6 l-6,6"/>
+          <path d="M159,107 l6,6 m0,-6 l-6,6"/>
+          <path d="M187,124 l6,6 m0,-6 l-6,6"/>
+          <path d="M207,143 l6,6 m0,-6 l-6,6"/>
+          <path d="M197,148 l6,6 m0,-6 l-6,6"/>
+          <path d="M226,154 l6,6 m0,-6 l-6,6"/>
+          <path d="M240,148 l6,6 m0,-6 l-6,6"/>
+          <path d="M255,168 l6,6 m0,-6 l-6,6"/>
+          <path d="M245,181 l6,6 m0,-6 l-6,6"/>
+        </g>
+      </svg>
+    </figure>
+
+    <p>How do we determine the parameters $k$ and $b$ of the line? No line passes through all
+    the crosses — with $m$ data points and two unknowns the system is
+    <em>overdetermined</em> — so “solve $\mat X\vec k = \vec y$” is the wrong question. We
+    must decide what “best” means first.</p>
+  </section>
+
+  <section>
+    <h2>2 · The classic criterion: minimise the total squared error</h2>
+
+    <p>For a given data point $(x_i, y_i)$, the prediction of our model at $x_i$ is
+    $kx_i + b$. The error between the model prediction and the actual observation $y_i$
+    is</p>
+    \[
+      y_i - (kx_i + b),
+    \]
+    <p>and the <strong>total squared error</strong> is</p>
+    \[
+      \sum_{i=1}^{m} \bigl[\, y_i - (kx_i + b) \,\bigr]^2 .
+    \]
+
+    <p>Let us write this using vectors and matrices. Collect the data into</p>
+    \[
+      \mat X = \begin{bmatrix} x_1 & 1 \\ \vdots & \vdots \\ x_m & 1 \end{bmatrix}, \qquad
+      \vec y = \begin{bmatrix} y_1 \\ \vdots \\ y_m \end{bmatrix}, \qquad
+      \vec k = \begin{bmatrix} k \\ b \end{bmatrix}.
+    \]
+    <p>(The board writes these $X$, $Y$, $K$; the lower case here only marks which are
+    vectors.) The column of ones is what carries the intercept $b$. The error as a vector is
+    then</p>
+    \[
+      \vec e = \vec y - \mat X\vec k, \qquad e_i = y_i - (kx_i + b),
+    \]
+    <p>and the total squared error is $\vec e\T\vec e = \sum_i e_i^2$:</p>
+    \[
+      \vec e\T\vec e = (\vec y - \mat X\vec k)\T(\vec y - \mat X\vec k)
+      = \vec y\T\vec y + \vec k\T\mat X\T\mat X\vec k - \vec y\T\mat X\vec k - \vec k\T\mat X\T\vec y .
+    \]
+    <p>The last two terms are $1\times 1$, hence equal to their own transposes, so they
+    combine:</p>
+    \[
+      \boxed{\ \vec e\T\vec e = \vec k\T(\mat X\T\mat X)\vec k - 2\,\vec y\T\mat X\vec k + \vec y\T\vec y\ }
+    \]
+    <p>So the least squares fitting problem can be written as the optimisation</p>
+    \[
+      \min_{\vec k\in\R^2}\ \vec k\T(\mat X\T\mat X)\vec k - 2\,\vec y\T\mat X\vec k + \vec y\T\vec y .
+    \]
+
+    <div class="keyidea">
+      <span class="boxtitle">Key idea</span>
+      <p>Everything about the data has been compressed into the two objects $\mat X\T\mat X$
+      (a $2\times 2$ matrix) and $\mat X\T\vec y$ (a 2-vector). The number of data points $m$
+      has left the problem. That collapse from $m$ to $2$ is the whole reason least squares
+      is cheap.</p>
+    </div>
+
+    <p id="ex2-1"><strong>Example 2.1</strong> (Five points and a first guess).
+    <strong>Given.</strong> Five data points</p>
+    \[
+      (x_i, y_i) = (1,3),\ (3,7),\ (4,9),\ (5,16),\ (7,20)
+    \]
+    <p>and the model $y = kx + b$. The first three points lie exactly on the line
+    $y = 2x + 1$, so that line is a natural first guess. (The data and the lines are drawn in
+    Example&nbsp;<a href="#ex3-1">3.1</a>.)</p>
+    <p><strong>Find.</strong> (a) What are $\mat X$, $\vec y$ and $\vec k$ for these data?
+    (b) What is the total squared error $\vec e\T\vec e$ of the guess $y = 2x + 1$? (c) What
+    are $\mat X\T\mat X$, $\mat X\T\vec y$ and $\vec y\T\vec y$, and does the boxed formula
+    give the same error for the guess?</p>
+    <p><strong>Answer.</strong> (a) One row per data point, with the column of ones last:</p>
+    \[
+      \mat X = \begin{bmatrix} 1 & 1 \\ 3 & 1 \\ 4 & 1 \\ 5 & 1 \\ 7 & 1 \end{bmatrix}, \qquad
+      \vec y = \begin{bmatrix} 3 \\ 7 \\ 9 \\ 16 \\ 20 \end{bmatrix}, \qquad
+      \vec k = \begin{bmatrix} k \\ b \end{bmatrix}.
+    \]
+    <p>There are five equations and two unknowns, and no choice of $k$ and $b$ satisfies all
+    five: the first three points force $k = 2$ and $b = 1$, and that line misses
+    $(5, 16)$.</p>
+    <p>(b) The guess has $\vec k = (2, 1)$ and predicts $2x_i + 1 = 3, 7, 9, 11, 15$. The
+    errors are</p>
+    \[
+      \vec e = \vec y - \mat X\vec k = (0,\,0,\,0,\,5,\,5), \qquad
+      \vec e\T\vec e = 0 + 0 + 0 + 25 + 25 = 50 .
+    \]
+    <p>The guess fits three points exactly and misses the other two by 5 each.</p>
+    <p>(c) The entries are sums over the data, with $m = 5$:</p>
+    \[
+      \mat X\T\mat X = \begin{bmatrix} \sum x_i^2 & \sum x_i \\ \sum x_i & m \end{bmatrix}
+      = \begin{bmatrix} 100 & 20 \\ 20 & 5 \end{bmatrix}, \qquad
+      \mat X\T\vec y = \begin{bmatrix} \sum x_i y_i \\ \sum y_i \end{bmatrix}
+      = \begin{bmatrix} 280 \\ 55 \end{bmatrix}, \qquad
+      \vec y\T\vec y = \sum y_i^2 = 795 .
+    \]
+    <p>For $\vec k = (2, 1)$,</p>
+    \[
+      \vec k\T(\mat X\T\mat X)\vec k = 100\cdot 4 + 2\cdot 20\cdot 2\cdot 1 + 5\cdot 1 = 485,
+      \qquad \vec y\T\mat X\vec k = 280\cdot 2 + 55\cdot 1 = 615,
+    \]
+    <p>so the box gives $485 - 2\cdot 615 + 795 = 50$, as in (b). As a function of $\vec k$,
+    the error depends on the data only through these three quantities. The constant
+    $\vec y\T\vec y$ changes the smallest value of the error, not the $\vec k$ where it
+    occurs.</p>
+    <p>The next section finds the minimum from a picture.</p>
+  </section>
+
+  <section>
+    <h2>3 · A geometrical interpretation</h2>
+
+    <p>Consider the vectors $\vec e$, $\vec y$, and $\mat X\vec k$: they all live in an
+    $m$-dimensional Euclidean space $\R^m$ — one coordinate per <em>data point</em>, not per
+    parameter. The total squared error $\vec e\T\vec e$ is just the squared Euclidean distance
+    between $\vec y$ and $\mat X\vec k$.</p>
+
+    <figure>
+      <svg viewBox="0 0 340 140" width="100%" style="max-width:340px" role="img"
+           aria-label="A triangle: the vector y from the origin, the vector X k along the base, and the error e joining the tip of X k to the tip of y.">
+        <defs>
+          <marker id="aLsBlue2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+          <marker id="aLsRed2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker>
+          <marker id="aLsGray2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker>
+        </defs>
+        <line x1="40" y1="118" x2="190" y2="20" stroke="var(--cse-blue)" stroke-width="1.8"
+              marker-end="url(#aLsBlue2)"/>
+        <line x1="40" y1="118" x2="248" y2="118" stroke="var(--cse-gray)" stroke-width="1.6"
+              marker-end="url(#aLsGray2)"/>
+        <line x1="250" y1="118" x2="193" y2="22" stroke="var(--cse-red)" stroke-width="1.6"
+              marker-end="url(#aLsRed2)"/>
+        <text x="184" y="13" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-blue)" font-family="Georgia, serif">y</text>
+        <text x="228" y="66" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-red)" font-family="Georgia, serif">e</text>
+        <text x="256" y="123" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-gray)" font-family="Georgia, serif">Xk</text>
+      </svg>
+    </figure>
+
+    <p>Specifically, since $\mat X\vec k\in\operatorname{col}(\mat X)$ for every choice of
+    $\vec k$, least squares fitting is finding <em>the point in $\operatorname{col}(\mat X)$
+    closest to $\vec y$</em>. The column space here is the plane spanned by the two columns
+    $(x_1,\dots,x_m)\T$ and $(1,\dots,1)\T$ — a 2-dimensional slice of $\R^m$, and $\vec y$
+    almost certainly does not lie in it.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">The one picture to remember</span>
+      <p>Least squares is not really about lines and data. It is: given a subspace and a point
+      off it, drop a perpendicular. Every formula below is bookkeeping for that
+      perpendicular.</p>
+    </div>
+
+    <p>From the diagram, the optimal $\vec k$, which we denote $\overline{\vec k}$, is such
+    that</p>
+    \[
+      \vec y - \mat X\overline{\vec k} \quad \text{is orthogonal to} \quad \operatorname{col}(\mat X).
+    \]
+
+    <figure>
+      <svg viewBox="0 0 460 210" width="100%" style="max-width:460px" role="img"
+           aria-label="A plane labelled col of X containing the origin and the point X k bar; the vector y rises above the plane, and the dashed red segment y minus X k bar drops from y perpendicular to the plane.">
+        <defs>
+          <marker id="aLsBlue3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9"
+                  markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker>
+        </defs>
+        <!-- the plane col(X) -->
+        <path d="M40,190 L130,110 L420,110 L330,190 Z" fill="var(--bg-soft)"
+              stroke="var(--cse-gray)" stroke-width="1.2"/>
+        <text x="352" y="206" font-size="13" fill="var(--cse-gray)"
+              font-family="Georgia, serif">col(<tspan font-weight="bold" font-style="italic">X</tspan>)</text>
+        <!-- origin to y -->
+        <line x1="120" y1="168" x2="298" y2="34" stroke="var(--cse-blue)" stroke-width="1.8"
+              marker-end="url(#aLsBlue3)"/>
+        <!-- origin to X k-bar -->
+        <line x1="120" y1="168" x2="258" y2="132" stroke="var(--ink)" stroke-width="1.6"/>
+        <circle cx="120" cy="168" r="2.6" fill="var(--cse-gray)"/>
+        <circle cx="258" cy="132" r="2.8" fill="var(--cse-blue)"/>
+        <!-- perpendicular -->
+        <line x1="258" y1="132" x2="300" y2="34" stroke="var(--cse-red)" stroke-width="1.6"
+              stroke-dasharray="5 4"/>
+        <path d="M246,135 L250,125 L262,122" fill="none" stroke="var(--ink)" stroke-width="1"/>
+        <text x="116" y="186" font-size="12" fill="var(--cse-gray)"
+              font-family="Georgia, serif">0</text>
+        <text x="294" y="26" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-blue)" font-family="Georgia, serif">y</text>
+        <text x="286" y="80" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-red)" font-family="Georgia, serif">y − X<tspan text-decoration="overline">k</tspan></text>
+        <text x="262" y="154" font-size="14" font-weight="bold" font-style="italic"
+              fill="var(--cse-blue)" font-family="Georgia, serif">X<tspan text-decoration="overline">k</tspan></text>
+      </svg>
+    </figure>
+
+    <h3>The normal equations</h3>
+    <p>Orthogonal to $\operatorname{col}(\mat X)$ means orthogonal to every column of
+    $\mat X$. The columns of $\mat X$ are the rows of $\mat X\T$, so the right angle in the
+    picture reads</p>
+    \[
+      \mat X\T(\vec y - \mat X\overline{\vec k}) = \vec 0,
+    \]
+    <p>that is,</p>
+    \[
+      \boxed{\ \mat X\T\mat X\,\overline{\vec k} = \mat X\T\vec y\ } \qquad \text{(the normal equations).}
+    \]
+    <p>They are built from the same $\mat X\T\mat X$ and $\mat X\T\vec y$ that appeared in
+    Section&nbsp;2. When the columns of $\mat X$ are independent, $\mat X\vec v\neq\vec 0$ for
+    every $\vec v\neq\vec 0$, so $\vec v\T\mat X\T\mat X\vec v = \norm{\mat X\vec v}^2 > 0$.
+    Then $\mat X\T\mat X$ is symmetric positive definite, hence invertible, and
+    $\overline{\vec k} = (\mat X\T\mat X)\inv\mat X\T\vec y$. For a line this fails only when
+    all the $x_i$ are equal.</p>
+
+    <p id="ex3-1"><strong>Example 3.1</strong> (The best line). <strong>Given.</strong> The
+    data of Example&nbsp;<a href="#ex2-1">2.1</a> and the sums from its part (c):
+    $\mat X\T\mat X$ has rows $(100, 20)$ and $(20, 5)$, and $\mat X\T\vec y = (280, 55)$.</p>
+    <p><strong>Find.</strong> (a) Which line do the normal equations give? (b) Is the
+    residual orthogonal to $\operatorname{col}(\mat X)$, and how does its squared length
+    compare with the error 50 of the guess $y = 2x + 1$?</p>
+    <p><strong>Answer.</strong> (a) The two equations are
+    $100\,\bar k + 20\,\bar b = 280$ and $20\,\bar k + 5\,\bar b = 55$. Subtract
+    $\tfrac15$ of the first from the second: $(5 - 4)\,\bar b = 55 - 56$, so $\bar b = -1$.
+    Then $100\,\bar k = 280 + 20 = 300$, so $\bar k = 3$. The best line is
+    $y = 3x - 1$.</p>
+    <p>(b) The fitted values are $3x_i - 1 = 2, 8, 11, 14, 20$. The residual is the error at
+    the best $\overline{\vec k}$, which we write
+    $\overline{\vec e} = \vec y - \mat X\overline{\vec k} = (1, -1, -2, 2, 0)$. Against the
+    two columns $(1, 3, 4, 5, 7)$ and $(1, 1, 1, 1, 1)$ of $\mat X$,</p>
+    \[
+      1 - 3 - 8 + 10 + 0 = 0, \qquad 1 - 1 - 2 + 2 + 0 = 0,
+    \]
+    <p>so $\overline{\vec e}$ is orthogonal to both columns, and hence to every combination of
+    them, which is all of $\operatorname{col}(\mat X)$. Its squared length is
+    $\overline{\vec e}\T\overline{\vec e} = 1 + 1 + 4 + 4 + 0 = 10$, against 50 for the
+    guess.</p>
+
+    <figure>
+      <svg viewBox="0 0 600 270" width="100%" style="max-width:600px" role="img"
+           aria-label="The five data points with the dashed guess line y equals 2x plus 1 and the solid best line y equals 3x minus 1; short red vertical segments show the residuals of the best line.">
+        <g font-family="Georgia, serif" font-size="12" fill="var(--ink)">
+          <!-- axes -->
+          <line x1="60" y1="220" x2="460" y2="220" stroke="var(--line)" stroke-width="1.2"/>
+          <line x1="60" y1="248" x2="60" y2="30" stroke="var(--ink)" stroke-width="1"/>
+          <line x1="60" y1="248" x2="465" y2="248" stroke="var(--ink)" stroke-width="1"/>
+          <g stroke="var(--ink)" stroke-width="1">
+            <line x1="60" y1="248" x2="60" y2="253"/><line x1="110" y1="248" x2="110" y2="253"/>
+            <line x1="160" y1="248" x2="160" y2="253"/><line x1="210" y1="248" x2="210" y2="253"/>
+            <line x1="260" y1="248" x2="260" y2="253"/><line x1="310" y1="248" x2="310" y2="253"/>
+            <line x1="360" y1="248" x2="360" y2="253"/><line x1="410" y1="248" x2="410" y2="253"/>
+            <line x1="460" y1="248" x2="460" y2="253"/>
+            <line x1="55" y1="220" x2="60" y2="220"/><line x1="55" y1="175" x2="60" y2="175"/>
+            <line x1="55" y1="130" x2="60" y2="130"/><line x1="55" y1="85" x2="60" y2="85"/>
+            <line x1="55" y1="40" x2="60" y2="40"/>
+          </g>
+          <g text-anchor="middle">
+            <text x="60" y="266">0</text><text x="110" y="266">1</text><text x="160" y="266">2</text>
+            <text x="210" y="266">3</text><text x="260" y="266">4</text><text x="310" y="266">5</text>
+            <text x="360" y="266">6</text><text x="410" y="266">7</text><text x="460" y="266">8</text>
+          </g>
+          <g text-anchor="end">
+            <text x="50" y="224">0</text><text x="50" y="179">5</text><text x="50" y="134">10</text>
+            <text x="50" y="89">15</text><text x="50" y="44">20</text>
+          </g>
+          <text x="476" y="252" font-style="italic">x</text>
+          <text x="20" y="134" font-style="italic">y</text>
+          <!-- guess and best lines -->
+          <line x1="60" y1="211" x2="460" y2="67" stroke="var(--cse-gray)" stroke-width="1.3"
+                stroke-dasharray="6 4"/>
+          <line x1="60" y1="229" x2="460" y2="13" stroke="var(--cse-green)" stroke-width="1.8"/>
+          <text x="466" y="70" font-size="11" fill="var(--cse-gray)">guess <tspan font-style="italic">y</tspan> = 2<tspan font-style="italic">x</tspan> + 1</text>
+          <text x="466" y="16" font-size="11" fill="var(--cse-green)">best <tspan font-style="italic">y</tspan> = 3<tspan font-style="italic">x</tspan> − 1</text>
+          <!-- residuals -->
+          <g stroke="var(--cse-red)" stroke-width="1.6">
+            <line x1="110" y1="193" x2="110" y2="202"/>
+            <line x1="210" y1="157" x2="210" y2="148"/>
+            <line x1="260" y1="139" x2="260" y2="121"/>
+            <line x1="310" y1="76" x2="310" y2="94"/>
+          </g>
+          <!-- data -->
+          <g stroke="var(--cse-blue)" stroke-width="1.4">
+            <path d="M107,190 l6,6 m0,-6 l-6,6"/>
+            <path d="M207,154 l6,6 m0,-6 l-6,6"/>
+            <path d="M257,136 l6,6 m0,-6 l-6,6"/>
+            <path d="M307,73 l6,6 m0,-6 l-6,6"/>
+            <path d="M407,37 l6,6 m0,-6 l-6,6"/>
+          </g>
+        </g>
+      </svg>
+    </figure>
+
+    <p>The vertical segments are the entries of $\overline{\vec e}$ (the one at $x = 7$ is
+    zero). The dashed guess passes through three points and still has the larger error.</p>
+  </section>
+
+  <section>
+    <h2>4 · Generalisations</h2>
+
+    <h3>Multivariate linear regression</h3>
+    <p>Say our data has $n$ independent variables,</p>
+    \[
+      \bigl\{(x_{i1}, x_{i2}, \dots, x_{in}\,;\, y_i)\bigr\}_{i\in\{1,\dots,m\}} .
+    \]
+    <p>Then our $\mat X$ matrix and $\vec k$ vector simply become larger:</p>
+    \[
+      \mat X = \begin{pmatrix}
+        x_{11} & x_{12} & \cdots & x_{1n} & 1 \\
+        x_{21} & x_{22} & \cdots & x_{2n} & 1 \\
+        \vdots & \vdots & \ddots & \vdots & \vdots \\
+        x_{m1} & x_{m2} & \cdots & x_{mn} & 1
+      \end{pmatrix}, \qquad
+      \vec k = \begin{pmatrix} k_1 \\ k_2 \\ \vdots \\ k_n \\ b \end{pmatrix},
+    \]
+    <p>with $\mat X\in\R^{m\times(n+1)}$ and $\vec k\in\R^{n+1}$. Nothing else changes: the
+    same two boxed formulas hold verbatim.</p>
+
+    <h3>Nonlinear regression</h3>
+    <p>For example, what happens if I want to fit a polynomial model</p>
+    \[
+      y = \ell x^2 + mx + b
+    \]
+    <p>with parameters $\ell, m, b$? Work it out in a problem set!</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">“Linear” means linear in the parameters</span>
+      <p>The model $y = \ell x^2 + mx + b$ is a curve, but the unknowns $\ell, m, b$ still enter
+      <em>linearly</em> — so it is still a least squares problem, with the columns of
+      $\mat X$ now $(x_i^2)$, $(x_i)$, and $(1)$. Least squares does not care what functions
+      of the data you put in the columns, only that the parameters multiply them
+      linearly.</p>
+    </div>
+
+    <p id="ex4-1"><strong>Example 4.1</strong> (Kinetic energy of a glider on springs).
+    <strong>Given.</strong> A 0.50&nbsp;kg glider on a level air track is attached to two
+    springs, one fixed at each end, and oscillates along the track. Photogates at five
+    positions $x$ measure its speed as it passes, and each speed is converted to kinetic
+    energy $y$:</p>
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td>position $x$ (cm)</td><td>$-20$</td><td>$-10$</td><td>$0$</td><td>$10$</td><td>$20$</td></tr>
+      <tr><td>kinetic energy $y$ (mJ)</td><td>274</td><td>673</td><td>887</td><td>861</td><td>680</td></tr>
+    </table>
+    </div>
+    <p>With no friction, energy is conserved:
+    $y + \tfrac12\kappa\,(x - x_0)^2 = \tfrac12\kappa A^2$, where $\kappa$ is the combined
+    constant of the two springs, $x_0$ the equilibrium position and $A$ the amplitude. So $y$
+    is a parabola in $x$, opening downwards.</p>
+    <p><strong>Find.</strong> (a) What are $\mat X$ and the normal equations for the model
+    $y = \ell x^2 + mx + b$? (Here $m$ is the coefficient of $x$, not the number of points.)
+    (b) Which parabola fits best? (c) What spring constant $\kappa$, equilibrium position
+    $x_0$ and amplitude $A$ does it give?</p>
+    <p><strong>Answer.</strong> (a) The columns are $x_i^2$, $x_i$ and $1$, and the unknowns
+    are $(\ell, m, b)$:</p>
+    \[
+      \mat X = \begin{bmatrix}
+        400 & -20 & 1 \\ 100 & -10 & 1 \\ 0 & 0 & 1 \\ 100 & 10 & 1 \\ 400 & 20 & 1
+      \end{bmatrix}, \qquad
+      \vec y = \begin{bmatrix} 274 \\ 673 \\ 887 \\ 861 \\ 680 \end{bmatrix}.
+    \]
+    <p>Call the three columns of $\mat X$</p>
+    \[
+      \vec c_1 = (400, 100, 0, 100, 400), \qquad
+      \vec c_2 = (-20, -10, 0, 10, 20), \qquad
+      \vec c_3 = (1, 1, 1, 1, 1).
+    \]
+    <p>They are the rows of $\mat X\T$:</p>
+    \[
+      \mat X\T = \begin{bmatrix}
+        400 & 100 & 0 & 100 & 400 \\
+        -20 & -10 & 0 & 10 & 20 \\
+        1 & 1 & 1 & 1 & 1
+      \end{bmatrix}
+      \begin{matrix} \leftarrow \vec c_1\T \\ \leftarrow \vec c_2\T \\ \leftarrow \vec c_3\T \end{matrix}
+    \]
+    <p><em>Computing $\mat X\T\mat X$.</em> Entry $(i, j)$ is row $i$ of $\mat X\T$ times
+    column $j$ of $\mat X$, which is the dot product $\vec c_i\T\vec c_j$ of two columns of
+    $\mat X$:</p>
+    \[
+      \mat X\T\mat X = \begin{bmatrix}
+        \vec c_1\T\vec c_1 & \vec c_1\T\vec c_2 & \vec c_1\T\vec c_3 \\
+        \vec c_2\T\vec c_1 & \vec c_2\T\vec c_2 & \vec c_2\T\vec c_3 \\
+        \vec c_3\T\vec c_1 & \vec c_3\T\vec c_2 & \vec c_3\T\vec c_3
+      \end{bmatrix}.
+    \]
+    <p>Since $\vec c_i\T\vec c_j = \vec c_j\T\vec c_i$, the matrix is symmetric and six dot
+    products are enough. Multiply the five pairs of entries and add:</p>
+    \[
+      \begin{aligned}
+        \vec c_1\T\vec c_1 &= 400^2 + 100^2 + 0^2 + 100^2 + 400^2 \\
+          &= 160000 + 10000 + 0 + 10000 + 160000 = 340000, \\
+        \vec c_1\T\vec c_2 &= 400(-20) + 100(-10) + 0\cdot 0 + 100\cdot 10 + 400\cdot 20 \\
+          &= -8000 - 1000 + 0 + 1000 + 8000 = 0, \\
+        \vec c_1\T\vec c_3 &= 400 + 100 + 0 + 100 + 400 = 1000, \\
+        \vec c_2\T\vec c_2 &= (-20)^2 + (-10)^2 + 0^2 + 10^2 + 20^2 = 400 + 100 + 0 + 100 + 400 = 1000, \\
+        \vec c_2\T\vec c_3 &= -20 - 10 + 0 + 10 + 20 = 0, \\
+        \vec c_3\T\vec c_3 &= 1 + 1 + 1 + 1 + 1 = 5.
+      \end{aligned}
+    \]
+    <p>So</p>
+    \[
+      \mat X\T\mat X = \begin{bmatrix} 340000 & 0 & 1000 \\ 0 & 1000 & 0 \\ 1000 & 0 & 5 \end{bmatrix}.
+    \]
+    <p>The two zeros come from the symmetric positions: in $\vec c_1\T\vec c_2$ and
+    $\vec c_2\T\vec c_3$ the terms for $x$ and $-x$ cancel in pairs.</p>
+    <p><em>Computing $\mat X\T\vec y$.</em> Entry $i$ is row $i$ of $\mat X\T$ times
+    $\vec y$, the dot product $\vec c_i\T\vec y$:</p>
+    \[
+      \begin{aligned}
+        \vec c_1\T\vec y &= 400\cdot 274 + 100\cdot 673 + 0\cdot 887 + 100\cdot 861 + 400\cdot 680 \\
+          &= 109600 + 67300 + 0 + 86100 + 272000 = 535000, \\
+        \vec c_2\T\vec y &= (-20)(274) + (-10)(673) + 0\cdot 887 + 10\cdot 861 + 20\cdot 680 \\
+          &= -5480 - 6730 + 0 + 8610 + 13600 = 10000, \\
+        \vec c_3\T\vec y &= 274 + 673 + 887 + 861 + 680 = 3375.
+      \end{aligned}
+    \]
+    <p>The normal equations $\mat X\T\mat X\,(\ell, m, b) = \mat X\T\vec y$ are
+    therefore</p>
+    \[
+      \begin{bmatrix} 340000 & 0 & 1000 \\ 0 & 1000 & 0 \\ 1000 & 0 & 5 \end{bmatrix}
+      \begin{bmatrix} \ell \\ m \\ b \end{bmatrix}
+      = \begin{bmatrix} 535000 \\ 10000 \\ 3375 \end{bmatrix}.
+    \]
+    <p>(b) The middle normal equation stands alone: $1000\,m = 10000$, so $m = 10$. The other
+    two are</p>
+    \[
+      340000\,\ell + 1000\,b = 535000, \qquad 1000\,\ell + 5\,b = 3375 .
+    \]
+    <p>Subtract 200 times the second from the first:
+    $(340000 - 200000)\,\ell = 535000 - 675000$, so $140000\,\ell = -140000$ and
+    $\ell = -1$. Then $5\,b = 3375 + 1000 = 4375$, so $b = 875$. The best parabola is</p>
+    \[
+      y = -x^2 + 10x + 875 \qquad (y \text{ in mJ},\ x \text{ in cm}),
+    \]
+    <p>and the residual is $(-1, -2, 12, -14, 5)$&nbsp;mJ: no entry is larger than
+    14&nbsp;mJ in size.</p>
+    <p>(c) Expanding the energy equation,
+    $y = -\tfrac{\kappa}{2}x^2 + \kappa x_0\,x + \tfrac{\kappa}{2}(A^2 - x_0^2)$, so
+    $\ell = -\kappa/2$ and $m = \kappa x_0$. Hence</p>
+    \[
+      \kappa = -2\ell = 2\ \text{mJ/cm}^2 = 20\ \text{N/m}, \qquad
+      x_0 = \frac{m}{\kappa} = \frac{10}{2} = 5\ \text{cm},
+    \]
+    <p>using $1\ \text{mJ/cm}^2 = (10^{-3}\ \text{J})/(10^{-4}\ \text{m}^2) = 10\ \text{N/m}$.
+    The largest kinetic energy, at $x_0 = 5$&nbsp;cm, is
+    $-25 + 50 + 875 = 900\ \text{mJ} = \tfrac12\kappa A^2$, which gives
+    $A^2 = 900\ \text{cm}^2$ and an amplitude $A = 30$&nbsp;cm.</p>
+
+    <figure>
+      <svg viewBox="0 0 560 270" width="100%" style="max-width:560px" role="img"
+           aria-label="The five kinetic-energy measurements with the fitted downward parabola y equals minus x squared plus 10 x plus 875, peaking at x0 equals 5 centimetres.">
+        <g font-family="Georgia, serif" font-size="12" fill="var(--ink)">
+          <!-- axes -->
+          <line x1="60" y1="220" x2="60" y2="30" stroke="var(--ink)" stroke-width="1"/>
+          <line x1="60" y1="220" x2="450" y2="220" stroke="var(--ink)" stroke-width="1"/>
+          <g stroke="var(--ink)" stroke-width="1">
+            <line x1="60" y1="220" x2="60" y2="225"/><line x1="115" y1="220" x2="115" y2="225"/>
+            <line x1="170" y1="220" x2="170" y2="225"/><line x1="225" y1="220" x2="225" y2="225"/>
+            <line x1="280" y1="220" x2="280" y2="225"/><line x1="335" y1="220" x2="335" y2="225"/>
+            <line x1="390" y1="220" x2="390" y2="225"/><line x1="445" y1="220" x2="445" y2="225"/>
+            <line x1="55" y1="184" x2="60" y2="184"/><line x1="55" y1="148" x2="60" y2="148"/>
+            <line x1="55" y1="112" x2="60" y2="112"/><line x1="55" y1="76" x2="60" y2="76"/>
+            <line x1="55" y1="40" x2="60" y2="40"/>
+          </g>
+          <g text-anchor="middle">
+            <text x="60" y="238">−30</text><text x="115" y="238">−20</text><text x="170" y="238">−10</text>
+            <text x="225" y="238">0</text><text x="280" y="238">10</text><text x="335" y="238">20</text>
+            <text x="390" y="238">30</text><text x="445" y="238">40</text>
+            <text x="252" y="258">position <tspan font-style="italic">x</tspan> (cm)</text>
+          </g>
+          <g text-anchor="end">
+            <text x="50" y="224">0</text><text x="50" y="188">200</text><text x="50" y="152">400</text>
+            <text x="50" y="116">600</text><text x="50" y="80">800</text><text x="50" y="44">1000</text>
+          </g>
+          <text x="16" y="140" transform="rotate(-90 16 140)" text-anchor="middle"><tspan font-style="italic">y</tspan> (mJ)</text>
+          <!-- x0 -->
+          <line x1="252.5" y1="58" x2="252.5" y2="220" stroke="var(--cse-gray)" stroke-width="1"
+                stroke-dasharray="4 3"/>
+          <text x="252.5" y="50" font-size="11" fill="var(--cse-gray)" text-anchor="middle"><tspan font-style="italic">x</tspan>₀ = 5</text>
+          <!-- fitted parabola -->
+          <polyline fill="none" stroke="var(--cse-green)" stroke-width="1.6"
+            points="87.5,220.0 93.0,209.4 98.5,199.1 104.0,189.2 109.5,179.7 115.0,170.5 120.5,161.7 126.0,153.2 131.5,145.1 137.0,137.4 142.5,130.0 148.0,123.0 153.5,116.3 159.0,110.0 164.5,104.1 170.0,98.5 175.5,93.3 181.0,88.4 186.5,83.9 192.0,79.8 197.5,76.0 203.0,72.6 208.5,69.5 214.0,66.8 219.5,64.5 225.0,62.5 230.5,60.9 236.0,59.6 241.5,58.7 247.0,58.2 252.5,58.0 258.0,58.2 263.5,58.7 269.0,59.6 274.5,60.9 280.0,62.5 285.5,64.5 291.0,66.8 296.5,69.5 302.0,72.6 307.5,76.0 313.0,79.8 318.5,83.9 324.0,88.4 329.5,93.3 335.0,98.5 340.5,104.1 346.0,110.0 351.5,116.3 357.0,123.0 362.5,130.0 368.0,137.4 373.5,145.1 379.0,153.2 384.5,161.7 390.0,170.5 395.5,179.7 401.0,189.2 406.5,199.1 412.0,209.4 417.5,220.0"/>
+          <text x="410" y="188" font-size="11" fill="var(--cse-green)"><tspan font-style="italic">y</tspan> = −<tspan font-style="italic">x</tspan>² + 10<tspan font-style="italic">x</tspan> + 875</text>
+          <!-- data -->
+          <g stroke="var(--cse-blue)" stroke-width="1.4">
+            <path d="M112,167.7 l6,6 m0,-6 l-6,6"/>
+            <path d="M167,95.9 l6,6 m0,-6 l-6,6"/>
+            <path d="M222,57.3 l6,6 m0,-6 l-6,6"/>
+            <path d="M277,62 l6,6 m0,-6 l-6,6"/>
+            <path d="M332,94.6 l6,6 m0,-6 l-6,6"/>
+          </g>
+        </g>
+      </svg>
+    </figure>
+
+    <p>The three columns of $\mat X$ are independent because the positions take at least
+    three different values, so $\mat X\T\mat X$ is invertible and the fit is unique.</p>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>The two ingredients we assembled today — a rectangular matrix $\mat X$ and the
+    symmetric positive definite combination $\mat X\T\mat X$ — reappear on Monday wearing
+    physics. In springs and masses the rectangular matrix will be a difference matrix
+    $\mat A$, a diagonal matrix $\mat C$ of material constants will sit in the middle, and
+    equilibrium will read $\mat A\T\mat C\mat A\,\vec u = \vec f$. Least squares is the case
+    $\mat C = \eye$.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, §2.3 (least squares for
+    rectangular matrices).</p>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L10.html"><span class="arw">←</span> Lecture 11</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 13 — not yet posted <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
