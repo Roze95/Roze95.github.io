@@ -1,0 +1,1427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 16 — Time Stepping: Simpson's Rule and Runge–Kutta | 18.085</title>
+<meta name="description" content="18.085 Fall 2026, Lecture 16: Simpson's rule from cancelling the midpoint and trapezoid errors and from a parabola, Runge–Kutta (RK4) built from Simpson's rule, its fourth-order accuracy, and a comparison of five time-stepping methods on accuracy, stability and cost.">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    macros: {
+      R: "\\mathbb{R}", C: "\\mathbb{C}", Z: "\\mathbb{Z}", N: "\\mathbb{N}",
+      vec: ["\\boldsymbol{#1}", 1],
+      mat: ["\\boldsymbol{#1}", 1],
+      T: "^{\\mathsf{T}}",
+      inv: "^{-1}",
+      Oh: ["\\mathcal{O}(#1)", 1],
+      Dh: "\\Delta x",
+      eye: "\\boldsymbol{I}",
+      norm: ["\\left\\lVert #1 \\right\\rVert", 1],
+      abs: ["\\left\\lvert #1 \\right\\rvert", 1],
+      ip: ["\\left\\langle #1, #2 \\right\\rangle", 2],
+      dd: ["\\frac{d #1}{d #2}", 2],
+      pd: ["\\frac{\\partial #1}{\\partial #2}", 2],
+      Kmat: "\\boldsymbol{K}", Tmat: "\\boldsymbol{T}",
+      Bmat: "\\boldsymbol{B}", Cmat: "\\boldsymbol{C}"
+    }
+  },
+  svg: { fontCache: 'global' },
+  options: { renderActions: { addMenu: [] } }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">18.085 <span>·</span> CSE I</a>
+    <nav class="main">
+      <a href="../index.html">Home</a>
+      <a href="../lectures.html" class="active">Lectures</a>
+      <a href="../slides.html">Slides</a>
+      <a href="../psets.html">Problem sets</a>
+      <a href="../resources.html">Resources</a>
+      <a href="../../" class="home-link">← Rozenman</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="lechead">
+    <p class="eyebrow">Lecture 16</p>
+    <h1>Time Stepping: Simpson's Rule and Runge–Kutta</h1>
+    <p class="lecmeta">
+      <span>Wednesday, November 4, 2026</span>
+      <span>MW 9:30–11:00, 6-120</span>
+      <span>Reading: Strang §2.2, §6.2</span>
+    </p>
+    <p style="margin-top:16px">
+      <a class="btn ghost" href="../files/L15.pdf">Download PDF</a>
+    </p>
+  </div>
+
+  <div class="objectives">
+    <span class="boxtitle">After this lecture you should be able to</span>
+    <ul>
+      <li>Derive Simpson's rule in two ways: by cancelling the $h^3$ errors of the midpoint rule and the trapezoid, and by integrating a parabola.</li>
+      <li>Find the error of Simpson's rule, $-\frac{h^5}{2880}f^{(4)}$ per step, and see why the rule has no error for cubics.</li>
+      <li>Build RK4 from Simpson's rule by predicting the missing values with Euler steps.</li>
+      <li>Show that RK4 is fourth order, first on the test equation $\dot y = \mu y$ and then for any $\dot y = f(y)$.</li>
+      <li>Carry out one RK4 step by hand.</li>
+      <li>Compare the five methods of <a href="L14.html">Lectures 15</a> and 16 on accuracy, stability and cost.</li>
+    </ul>
+  </div>
+
+  <section id="sec1">
+    <h2>1 · What we take from Lecture 15</h2>
+
+    <p>Every method of <a href="L14.html">Lecture 15</a> starts from the integral form of
+    $\dot{\vec y} = \vec f(t, \vec y)$ over one step,</p>
+    \[
+      \vec y(t_{n+1}) = \vec y(t_n) + \int_{t_n}^{t_{n+1}} \vec f\bigl(t, \vec y(t)\bigr)\,dt,
+    \]
+    <p>and replaces the integral by an area. Along the true solution the integrand is a function
+    of $t$ alone, $f(t) = \dot y(t)$, and we write dots for its time derivatives:
+    $\dot f = \ddot y$, $\ddot f = \dddot y$. The area sketches of Lecture 15 showed what each
+    rule misses in one step:</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td><strong>rule</strong></td><td><strong>area</strong></td>
+          <td><strong>exact minus rule</strong></td><td><strong>used by</strong></td></tr>
+      <tr><td>left rectangle</td><td>$h\,f(t_n)$</td><td>$+\frac{h^2}{2}\,\dot f$</td><td>forward Euler</td></tr>
+      <tr><td>right rectangle</td><td>$h\,f(t_{n+1})$</td><td>$-\frac{h^2}{2}\,\dot f$</td><td>backward Euler</td></tr>
+      <tr><td>midpoint</td><td>$h\,f(t_{n+1/2})$</td><td>$+\frac{h^3}{24}\,\ddot f$</td><td>leapfrog</td></tr>
+      <tr><td>trapezoid</td><td>$\frac{h}{2}\bigl(f(t_n) + f(t_{n+1})\bigr)$</td><td>$-\frac{h^3}{12}\,\ddot f$</td><td>trapezoidal</td></tr>
+    </table>
+    </div>
+
+    <p>A plus sign means the rule gives too little, a minus sign too much. None of these is
+    better than second order. Two tools from Lecture 15 take us further today: Taylor series
+    about the middle of the step, where the odd powers cancel (as in leapfrog's centred
+    differences), and predicting an unknown value with a forward Euler step. The first gives
+    Simpson's rule, a fourth-order rule for the integral (<a href="#sec2">Section 2</a>). The
+    second turns Simpson's rule into a time stepper, RK4 (<a href="#sec3">Section 3</a>).</p>
+  </section>
+
+  <section id="sec2">
+    <h2>2 · Simpson's rule</h2>
+
+    <p>In this section $f = f(t)$ is a function of $t$ alone, and we write $f_n = f(t_n)$,
+    $f_m = f(t_{n+1/2})$ and $f_{n+1} = f(t_{n+1})$ for its values at the start, the midpoint
+    and the end of the step.</p>
+
+    <h3>One expansion for every rule</h3>
+    <p>Measure time from the midpoint, $s = t - t_{n+1/2}$, so that the step is
+    $-h/2 \le s \le h/2$. Taylor's theorem about the midpoint, with every derivative taken at
+    $t_{n+1/2}$, gives</p>
+    \[
+      f(t_{n+1/2} + s) = f_m + s\,\dot f + \frac{s^2}{2}\,\ddot f + \frac{s^3}{6}\,\dddot f
+      + \frac{s^4}{24}\,f^{(4)} + \cdots .
+    \]
+    <p>Integrate term by term over $-h/2 \le s \le h/2$. The odd powers $s$ and $s^3$ integrate
+    to zero over the symmetric interval, and for even $k$</p>
+    \[
+      \int_{-h/2}^{h/2} s^k\,ds = 2\int_0^{h/2} s^k\,ds = \frac{2}{k+1}\Bigl(\frac{h}{2}\Bigr)^{k+1},
+      \qquad \text{so} \qquad
+      \int_{-h/2}^{h/2} s^2\,ds = \frac{h^3}{12}, \qquad
+      \int_{-h/2}^{h/2} s^4\,ds = \frac{h^5}{80}.
+    \]
+    <p>The exact integral over one step is therefore</p>
+    \[
+      I = \int_{t_n}^{t_{n+1}} f(t)\,dt
+        = h f_m + \frac12\cdot\frac{h^3}{12}\,\ddot f + \frac1{24}\cdot\frac{h^5}{80}\,f^{(4)} + \cdots
+        = h f_m + \frac{h^3}{24}\,\ddot f + \frac{h^5}{1920}\,f^{(4)} + \cdots .
+    \]
+
+    <h3>The midpoint rule and the trapezoid</h3>
+    <p>The <strong>midpoint rule</strong> $M = h f_m$ is the first term, so</p>
+    \[
+      I - M = \frac{h^3}{24}\,\ddot f + \frac{h^5}{1920}\,f^{(4)} + \cdots .
+    \]
+    <p>For the <strong>trapezoid</strong> $T = \frac{h}{2}(f_n + f_{n+1})$ we need the end
+    values. They are the expansion at $s = -h/2$ and $s = +h/2$:</p>
+    \[
+      \begin{aligned}
+        f_n &amp;= f_m - \frac{h}{2}\,\dot f + \frac{h^2}{8}\,\ddot f - \frac{h^3}{48}\,\dddot f
+               + \frac{h^4}{384}\,f^{(4)} - \cdots, \\
+        f_{n+1} &amp;= f_m + \frac{h}{2}\,\dot f + \frac{h^2}{8}\,\ddot f + \frac{h^3}{48}\,\dddot f
+               + \frac{h^4}{384}\,f^{(4)} + \cdots .
+      \end{aligned}
+    \]
+    <p>Add them: the odd powers cancel, as in leapfrog's centred second difference, and the even
+    powers double,</p>
+    \[
+      f_n + f_{n+1} = 2f_m + \frac{h^2}{4}\,\ddot f + \frac{h^4}{192}\,f^{(4)} + \cdots, \qquad
+      T = \frac{h}{2}\,(f_n + f_{n+1}) = h f_m + \frac{h^3}{8}\,\ddot f + \frac{h^5}{384}\,f^{(4)} + \cdots .
+    \]
+    <p>Subtract from $I$:</p>
+    \[
+      I - T = \Bigl(\frac1{24} - \frac18\Bigr)h^3\,\ddot f
+            + \Bigl(\frac1{1920} - \frac1{384}\Bigr)h^5 f^{(4)} + \cdots
+            = -\frac{h^3}{12}\,\ddot f - \frac{h^5}{480}\,f^{(4)} + \cdots .
+    \]
+    <p>These are the last two rows of the table in <a href="#sec1">Section 1</a>, now with
+    their next terms.</p>
+
+    <figure>
+      <svg viewBox="0 0 570 212" width="100%" style="max-width:570px" role="img"
+           aria-label="Two panels. Left: a rising convex curve with a midpoint rectangle whose top meets the curve at the midpoint; two small hatched pieces between curve and rectangle nearly cancel. Right: the same curve with the trapezoid under the chord; the hatched sliver between chord and curve is counted too much.">
+        <defs><marker id="rkAx1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker><pattern id="rkH1" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink)" stroke-width="0.7"/></pattern></defs>
+        <line x1="30" y1="150" x2="262" y2="150" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx1)"/>
+        <line x1="30" y1="150" x2="30" y2="18" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx1)"/>
+        <text x="26.0" y="14.0" font-size="13" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">f</text>
+        <text x="268.0" y="154.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">t</text>
+        <rect x="65" y="100" width="140" height="50" fill="#d9730d" fill-opacity="0.22" stroke="#d9730d" stroke-width="1.3"/>
+        <path d="M65.0,121.7 L67.4,121.3 L69.8,120.8 L72.2,120.4 L74.7,119.9 L77.1,119.4 L79.5,118.8 L81.9,118.3 L84.3,117.7 L86.7,117.1 L89.1,116.4 L91.6,115.8 L94.0,115.1 L96.4,114.4 L98.8,113.7 L101.2,112.9 L103.6,112.2 L106.0,111.4 L108.4,110.5 L110.9,109.7 L113.3,108.8 L115.7,107.9 L118.1,107.0 L120.5,106.1 L122.9,105.1 L125.3,104.2 L127.8,103.2 L130.2,102.1 L132.6,101.1 L135.0,100.0 L65.0,100.0 Z" fill="url(#rkH1)" stroke="none"/>
+        <path d="M135.0,100.0 L137.4,98.9 L139.8,97.8 L142.2,96.6 L144.7,95.5 L147.1,94.3 L149.5,93.1 L151.9,91.8 L154.3,90.6 L156.7,89.3 L159.1,88.0 L161.6,86.6 L164.0,85.3 L166.4,83.9 L168.8,82.5 L171.2,81.1 L173.6,79.6 L176.0,78.2 L178.4,76.7 L180.9,75.2 L183.3,73.6 L185.7,72.1 L188.1,70.5 L190.5,68.9 L192.9,67.2 L195.3,65.6 L197.8,63.9 L200.2,62.2 L202.6,60.5 L205.0,58.7 L205.0,100.0 Z" fill="url(#rkH1)" stroke="none"/>
+        <path d="M40.0,124.7 L42.4,124.5 L44.7,124.3 L47.1,124.1 L49.5,123.9 L51.8,123.6 L54.2,123.3 L56.6,123.0 L58.9,122.7 L61.3,122.3 L63.7,121.9 L66.0,121.5 L68.4,121.1 L70.8,120.7 L73.1,120.2 L75.5,119.7 L77.9,119.2 L80.2,118.6 L82.6,118.1 L85.0,117.5 L87.3,116.9 L89.7,116.3 L92.1,115.6 L94.4,115.0 L96.8,114.3 L99.2,113.6 L101.5,112.8 L103.9,112.1 L106.3,111.3 L108.6,110.5 L111.0,109.6 L113.4,108.8 L115.7,107.9 L118.1,107.0 L120.5,106.1 L122.8,105.2 L125.2,104.2 L127.6,103.2 L129.9,102.2 L132.3,101.2 L134.7,100.1 L137.1,99.1 L139.4,98.0 L141.8,96.9 L144.2,95.7 L146.5,94.6 L148.9,93.4 L151.3,92.2 L153.6,90.9 L156.0,89.7 L158.4,88.4 L160.7,87.1 L163.1,85.8 L165.5,84.4 L167.8,83.1 L170.2,81.7 L172.6,80.3 L174.9,78.8 L177.3,77.4 L179.7,75.9 L182.0,74.4 L184.4,72.9 L186.8,71.4 L189.1,69.8 L191.5,68.2 L193.9,66.6 L196.2,64.9 L198.6,63.3 L201.0,61.6 L203.3,59.9 L205.7,58.2 L208.1,56.4 L210.4,54.7 L212.8,52.9 L215.2,51.1 L217.5,49.2 L219.9,47.4 L222.3,45.5 L224.6,43.6 L227.0,41.7" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <circle cx="135" cy="100" r="2.6" fill="var(--cse-red)"/>
+        <text x="65.0" y="166.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="135.0" y="166.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1/2</tspan><tspan dy="-3"></tspan></text>
+        <text x="205.0" y="166.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="135.0" y="186.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">midpoint rule  M = hf<tspan font-size="9" dy="3">m</tspan><tspan dy="-3"></tspan></text>
+        <text x="135.0" y="203.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">misses about (h³/24) f&#776;</text>
+        <line x1="320" y1="150" x2="552" y2="150" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx1)"/>
+        <line x1="320" y1="150" x2="320" y2="18" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx1)"/>
+        <text x="316.0" y="14.0" font-size="13" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">f</text>
+        <text x="558.0" y="154.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">t</text>
+        <path d="M355.0,150.0 L355.0,121.7 L495.0,58.7 L495.0,150.0 Z" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.3"/>
+        <path d="M355.0,121.7 L357.9,121.2 L360.7,120.7 L363.6,120.1 L366.4,119.5 L369.3,118.9 L372.1,118.2 L375.0,117.5 L377.9,116.8 L380.7,116.0 L383.6,115.2 L386.4,114.4 L389.3,113.5 L392.1,112.6 L395.0,111.7 L397.9,110.7 L400.7,109.7 L403.6,108.7 L406.4,107.7 L409.3,106.6 L412.1,105.5 L415.0,104.3 L417.9,103.1 L420.7,101.9 L423.6,100.6 L426.4,99.4 L429.3,98.0 L432.1,96.7 L435.0,95.3 L437.9,93.9 L440.7,92.4 L443.6,91.0 L446.4,89.4 L449.3,87.9 L452.1,86.3 L455.0,84.7 L457.9,83.1 L460.7,81.4 L463.6,79.7 L466.4,77.9 L469.3,76.1 L472.1,74.3 L475.0,72.5 L477.9,70.6 L480.7,68.7 L483.6,66.8 L486.4,64.8 L489.3,62.8 L492.1,60.8 L495.0,58.7 Z" fill="url(#rkH1)" stroke="none"/>
+        <line x1="355" y1="121.7" x2="495" y2="58.7" stroke="var(--cse-green)" stroke-width="1.3"/>
+        <path d="M330.0,124.7 L332.4,124.5 L334.7,124.3 L337.1,124.1 L339.5,123.9 L341.8,123.6 L344.2,123.3 L346.6,123.0 L348.9,122.7 L351.3,122.3 L353.7,121.9 L356.0,121.5 L358.4,121.1 L360.8,120.7 L363.1,120.2 L365.5,119.7 L367.9,119.2 L370.2,118.6 L372.6,118.1 L375.0,117.5 L377.3,116.9 L379.7,116.3 L382.1,115.6 L384.4,115.0 L386.8,114.3 L389.2,113.6 L391.5,112.8 L393.9,112.1 L396.3,111.3 L398.6,110.5 L401.0,109.6 L403.4,108.8 L405.7,107.9 L408.1,107.0 L410.5,106.1 L412.8,105.2 L415.2,104.2 L417.6,103.2 L419.9,102.2 L422.3,101.2 L424.7,100.1 L427.1,99.1 L429.4,98.0 L431.8,96.9 L434.2,95.7 L436.5,94.6 L438.9,93.4 L441.3,92.2 L443.6,90.9 L446.0,89.7 L448.4,88.4 L450.7,87.1 L453.1,85.8 L455.5,84.4 L457.8,83.1 L460.2,81.7 L462.6,80.3 L464.9,78.8 L467.3,77.4 L469.7,75.9 L472.0,74.4 L474.4,72.9 L476.8,71.4 L479.1,69.8 L481.5,68.2 L483.9,66.6 L486.2,64.9 L488.6,63.3 L491.0,61.6 L493.3,59.9 L495.7,58.2 L498.1,56.4 L500.4,54.7 L502.8,52.9 L505.2,51.1 L507.5,49.2 L509.9,47.4 L512.3,45.5 L514.6,43.6 L517.0,41.7" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <circle cx="355" cy="121.7" r="2.6" fill="var(--cse-red)"/>
+        <circle cx="495" cy="58.7" r="2.6" fill="var(--cse-red)"/>
+        <text x="355.0" y="166.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="495.0" y="166.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="425.0" y="186.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">trapezoid  T = (h/2)(f<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan> + f<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan>)</text>
+        <text x="425.0" y="203.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">counts about (h³/12) f&#776; too much</text>
+      </svg>
+      <figcaption>The two second-order rules on the same curve. The midpoint rectangle misses a
+      little net area (its two hatched pieces nearly cancel); the trapezoid counts the hatched
+      sliver above the curve, twice as much and on the other side.</figcaption>
+    </figure>
+
+    <h3>Cancelling the $h^3$ terms</h3>
+    <p>The two $h^3$ errors have opposite signs and the trapezoid's is twice as large:
+    $\frac1{24}$ against $-\frac1{12}$. So take the midpoint rule twice and the trapezoid
+    once,</p>
+    \[
+      S = \frac{2M + T}{3}.
+    \]
+    <p>The weights add to 1, so $S$ is still a rule for the integral, and its error is the same
+    combination of the two errors:</p>
+    \[
+      \begin{aligned}
+        I - S &amp;= \frac{2\,(I - M) + (I - T)}{3}
+          = \frac13\Bigl[\Bigl(\frac{2}{24} - \frac1{12}\Bigr)h^3\,\ddot f
+          + \Bigl(\frac{2}{1920} - \frac1{480}\Bigr)h^5 f^{(4)}\Bigr] + \cdots \\
+        &amp;= \frac13\Bigl[0 - \frac{2}{1920}\,h^5 f^{(4)}\Bigr] + \cdots
+          = -\frac{h^5}{2880}\,f^{(4)} + \cdots .
+      \end{aligned}
+    \]
+    <p>The $h^3$ term is gone. Written with the three values of $f$,</p>
+    \[
+      S = \frac13\Bigl(2hf_m + \frac{h}{2}\,(f_n + f_{n+1})\Bigr) = \frac{h}{6}\,(f_n + 4f_m + f_{n+1}).
+    \]
+    <p>Only even derivatives of $f$ appear in these errors, because the odd powers of $s$
+    integrate to zero. So the third derivative never enters, and $S$ has no error at all when
+    $f$ is a cubic.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Simpson's rule</span>
+      \[
+        \int_{t_n}^{t_{n+1}} f(t)\,dt \approx \frac{h}{6}\,(f_n + 4f_m + f_{n+1}),
+        \qquad \text{error } -\frac{h^5}{2880}\,f^{(4)} \text{ per step.}
+      \]
+      <p>It is the combination of the midpoint rule and the trapezoid in which their $h^3$
+      errors cancel.</p>
+    </div>
+
+    <h3>The same weights from a parabola</h3>
+    <p>A second route gives the same rule. Replace $f$ by the parabola through the three points
+    $(t_n, f_n)$, $(t_{n+1/2}, f_m)$ and $(t_{n+1}, f_{n+1})$, and integrate the parabola. With
+    $s$ as before, write the parabola as $p(s) = a + bs + cs^2$. The three conditions are</p>
+    \[
+      p(0) = a = f_m, \qquad
+      p\bigl(-\tfrac{h}{2}\bigr) = a - \frac{bh}{2} + \frac{ch^2}{4} = f_n, \qquad
+      p\bigl(\tfrac{h}{2}\bigr) = a + \frac{bh}{2} + \frac{ch^2}{4} = f_{n+1}.
+    \]
+    <p>Adding the last two gives $f_n + f_{n+1} = 2a + ch^2/2$, so
+    $c = 2\,(f_n + f_{n+1} - 2f_m)/h^2$. Now integrate. The odd term $bs$ integrates to zero
+    over the symmetric interval, and $\int_{-h/2}^{h/2} s^2\,ds = h^3/12$:</p>
+    \[
+      \int_{-h/2}^{h/2} p(s)\,ds = a\,h + c\,\frac{h^3}{12}
+      = hf_m + \frac{h}{6}\,(f_n + f_{n+1} - 2f_m) = \frac{h}{6}\,(f_n + 4f_m + f_{n+1}).
+    \]
+    <p>The weights are $\frac16, \frac46, \frac16$. The rule integrates cubics without error as
+    well: for $f = s^3$ the integral and the rule are both zero. The first function it gets
+    wrong is $f = s^4$, whose integral is $\int_{-h/2}^{h/2} s^4\,ds = h^5/80$ while the rule
+    gives $\frac{h}{6}\bigl(\frac{h^4}{16} + 0 + \frac{h^4}{16}\bigr) = h^5/48$. The error (exact
+    minus rule) is $h^5/80 - h^5/48 = -h^5/120$, and since $f^{(4)} = 24$ for this $f$, this
+    agrees with the error $-\frac{h^5}{2880}f^{(4)}$ found by cancelling.</p>
+
+    <figure>
+      <svg viewBox="0 0 520 200" width="100%" style="max-width:520px" role="img"
+           aria-label="A curve f of t with three marked points at t n, the midpoint and t n plus 1; a dashed parabola through the three points, with the area under the parabola shaded: Simpson's rule.">
+        <defs><marker id="rkAx2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker></defs>
+        <path d="M80.0,175.0 L80.0,104.0 L82.7,101.8 L85.4,99.7 L88.1,97.6 L90.8,95.6 L93.6,93.7 L96.3,91.8 L99.0,89.9 L101.7,88.1 L104.4,86.4 L107.1,84.7 L109.8,83.1 L112.5,81.5 L115.3,80.0 L118.0,78.6 L120.7,77.2 L123.4,75.8 L126.1,74.5 L128.8,73.3 L131.5,72.1 L134.2,71.0 L136.9,69.9 L139.7,68.9 L142.4,67.9 L145.1,67.0 L147.8,66.2 L150.5,65.4 L153.2,64.6 L155.9,63.9 L158.6,63.3 L161.4,62.7 L164.1,62.2 L166.8,61.7 L169.5,61.3 L172.2,61.0 L174.9,60.7 L177.6,60.4 L180.3,60.2 L183.1,60.1 L185.8,60.0 L188.5,60.0 L191.2,60.0 L193.9,60.1 L196.6,60.2 L199.3,60.4 L202.0,60.7 L204.7,61.0 L207.5,61.4 L210.2,61.8 L212.9,62.2 L215.6,62.8 L218.3,63.4 L221.0,64.0 L223.7,64.7 L226.4,65.4 L229.2,66.2 L231.9,67.1 L234.6,68.0 L237.3,69.0 L240.0,70.0 L240.0,175.0 Z" fill="var(--cse-green)" fill-opacity="0.2" stroke="none"/>
+        <line x1="80.0" y1="175.0" x2="80.0" y2="104.0" stroke="var(--cse-gray)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="160.0" y1="175.0" x2="160.0" y2="63.0" stroke="var(--cse-gray)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="240.0" y1="175.0" x2="240.0" y2="70.0" stroke="var(--cse-gray)" stroke-width="1" stroke-dasharray="4 3"/>
+        <line x1="40" y1="175" x2="330" y2="175" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx2)"/>
+        <line x1="40" y1="175" x2="40" y2="20" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx2)"/>
+        <text x="36.0" y="15.0" font-size="13" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">f</text>
+        <text x="336.0" y="179.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">t</text>
+        <path d="M80.0,104.0 L82.7,101.8 L85.4,99.7 L88.1,97.6 L90.8,95.6 L93.6,93.7 L96.3,91.8 L99.0,89.9 L101.7,88.1 L104.4,86.4 L107.1,84.7 L109.8,83.1 L112.5,81.5 L115.3,80.0 L118.0,78.6 L120.7,77.2 L123.4,75.8 L126.1,74.5 L128.8,73.3 L131.5,72.1 L134.2,71.0 L136.9,69.9 L139.7,68.9 L142.4,67.9 L145.1,67.0 L147.8,66.2 L150.5,65.4 L153.2,64.6 L155.9,63.9 L158.6,63.3 L161.4,62.7 L164.1,62.2 L166.8,61.7 L169.5,61.3 L172.2,61.0 L174.9,60.7 L177.6,60.4 L180.3,60.2 L183.1,60.1 L185.8,60.0 L188.5,60.0 L191.2,60.0 L193.9,60.1 L196.6,60.2 L199.3,60.4 L202.0,60.7 L204.7,61.0 L207.5,61.4 L210.2,61.8 L212.9,62.2 L215.6,62.8 L218.3,63.4 L221.0,64.0 L223.7,64.7 L226.4,65.4 L229.2,66.2 L231.9,67.1 L234.6,68.0 L237.3,69.0 L240.0,70.0" fill="none" stroke="var(--cse-green)" stroke-width="1.4" stroke-dasharray="5 3"/>
+        <path d="M56.0,122.5 L58.3,121.0 L60.6,119.4 L62.9,117.8 L65.2,116.1 L67.5,114.3 L69.8,112.5 L72.0,110.6 L74.3,108.7 L76.6,106.8 L78.9,104.9 L81.2,103.0 L83.5,101.1 L85.8,99.2 L88.1,97.3 L90.4,95.4 L92.7,93.5 L95.0,91.7 L97.3,89.9 L99.6,88.2 L101.8,86.5 L104.1,84.8 L106.4,83.2 L108.7,81.6 L111.0,80.1 L113.3,78.7 L115.6,77.3 L117.9,76.0 L120.2,74.7 L122.5,73.5 L124.8,72.3 L127.1,71.3 L129.3,70.3 L131.6,69.3 L133.9,68.4 L136.2,67.6 L138.5,66.9 L140.8,66.2 L143.1,65.6 L145.4,65.1 L147.7,64.6 L150.0,64.2 L152.3,63.8 L154.6,63.5 L156.9,63.2 L159.1,63.1 L161.4,62.9 L163.7,62.8 L166.0,62.8 L168.3,62.8 L170.6,62.9 L172.9,63.0 L175.2,63.1 L177.5,63.3 L179.8,63.5 L182.1,63.7 L184.4,64.0 L186.7,64.2 L188.9,64.6 L191.2,64.9 L193.5,65.2 L195.8,65.6 L198.1,65.9 L200.4,66.3 L202.7,66.6 L205.0,67.0 L207.3,67.4 L209.6,67.7 L211.9,68.1 L214.2,68.4 L216.4,68.7 L218.7,69.0 L221.0,69.2 L223.3,69.4 L225.6,69.6 L227.9,69.8 L230.2,69.9 L232.5,70.0 L234.8,70.1 L237.1,70.1 L239.4,70.0 L241.7,69.9 L244.0,69.8 L246.2,69.6 L248.5,69.3 L250.8,69.0 L253.1,68.6 L255.4,68.2 L257.7,67.7 L260.0,67.1" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <circle cx="80.0" cy="104.0" r="2.8" fill="var(--cse-red)"/>
+        <text x="76.0" y="94.0" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">f<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="160.0" cy="63.0" r="2.8" fill="var(--cse-red)"/>
+        <text x="160.0" y="51.0" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">f<tspan font-size="9" dy="3">m</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="240.0" cy="70.0" r="2.8" fill="var(--cse-red)"/>
+        <text x="246.0" y="74.0" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">f<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="80.0" y="192.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="160.0" y="192.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1/2</tspan><tspan dy="-3"></tspan></text>
+        <text x="240.0" y="192.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="355.0" y="58.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">solid: <tspan font-style="italic">f</tspan>(<tspan font-style="italic">t</tspan>)</text>
+        <text x="355.0" y="75.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">dashed: the parabola</text>
+        <text x="355.0" y="92.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">through the three points</text>
+        <text x="355.0" y="109.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">shaded: Simpson’s rule</text>
+      </svg>
+    </figure>
+
+    <p id="ex2-1"><strong>Example 2.1</strong> (Three rules on one integral).
+    <strong>Given.</strong> $\int_0^{0.5} e^t\,dt = e^{0.5} - 1 = 0.6487213$, taken as one step
+    with $h = 0.5$.</p>
+    <p><strong>Find.</strong> What do the midpoint rule, the trapezoid and Simpson's rule give?
+    How do their errors compare with the predictions $\frac{h^3}{24}\ddot f$,
+    $-\frac{h^3}{12}\ddot f$ and $-\frac{h^5}{2880}f^{(4)}$?</p>
+    <p><strong>Answer.</strong> Every derivative of $e^t$ is $e^t$, which is
+    $e^{0.25} = 1.2840254$ at the midpoint. The three rules give</p>
+    \[
+      M = 0.5\,e^{0.25} = 0.6420127, \qquad
+      T = 0.25\,(1 + e^{0.5}) = 0.6621803, \qquad
+      S = \frac{2M + T}{3} = 0.6487352,
+    \]
+    <p>and $S$ is also $\frac{0.5}{6}\bigl(1 + 4e^{0.25} + e^{0.5}\bigr)$. Against the exact
+    value:</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td><strong>rule</strong></td><td><strong>exact minus rule</strong></td>
+          <td><strong>first error term</strong></td></tr>
+      <tr><td>midpoint</td><td>$0.0067086$</td><td>$\frac{h^3}{24}e^{0.25} = 0.0066876$</td></tr>
+      <tr><td>trapezoid</td><td>$-0.0134590$</td><td>$-\frac{h^3}{12}e^{0.25} = -0.0133753$</td></tr>
+      <tr><td>Simpson</td><td>$-0.0000140$</td><td>$-\frac{h^5}{2880}e^{0.25} = -0.0000139$</td></tr>
+    </table>
+    </div>
+
+    <p>The midpoint error is half the size of the trapezoid's and of the other sign, as
+    predicted. Its next term $\frac{h^5}{1920}e^{0.25} = 0.0000209$ accounts for most of the
+    small difference. Simpson's rule is about 480 times more accurate than the midpoint rule
+    here, from the same three values of $f$ that the midpoint rule and the trapezoid use
+    together.</p>
+
+    <h3>Many steps</h3>
+    <p>Over an interval of length $L$ split into $N$ steps of $h = L/N$, the step errors
+    $-\frac{h^5}{2880}f^{(4)}$ add up to about $-\frac{h^4}{2880}\int f^{(4)}\,dt$: Simpson's
+    rule is <strong>fourth order</strong>, and halving $h$ divides the error by about 16. For
+    $\int_0^1 e^t\,dt = e - 1$:</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:420px;margin:0 auto">
+      <tr><td><strong>steps $N$</strong></td><td><strong>exact minus Simpson</strong></td>
+          <td><strong>ratio</strong></td></tr>
+      <tr><td>$1$</td><td>$-5.79\times10^{-4}$</td><td></td></tr>
+      <tr><td>$2$</td><td>$-3.70\times10^{-5}$</td><td>$15.7$</td></tr>
+      <tr><td>$4$</td><td>$-2.33\times10^{-6}$</td><td>$15.9$</td></tr>
+      <tr><td>$8$</td><td>$-1.46\times10^{-7}$</td><td>$16.0$</td></tr>
+    </table>
+    </div>
+
+    <p>For $N = 8$ the estimate
+    $-\frac{h^4}{2880}\bigl(\dddot f(1) - \dddot f(0)\bigr) = -\frac{e-1}{2880\cdot4096} = -1.46\times10^{-7}$
+    is right to the digits shown. If $\dot y = f(t)$ depends on $t$ alone, the step
+    $y_{n+1} = y_n + \frac{h}{6}(f_n + 4f_m + f_{n+1})$ is a fourth-order time stepper. When $f$
+    depends on $y$ as well, the values $f_m$ and $f_{n+1}$ are not available, and that is the
+    next section.</p>
+  </section>
+
+  <section id="sec3">
+    <h2>3 · Runge–Kutta: the idea</h2>
+
+    <p>Every method so far is a way to estimate one area. Over a step of size $h$,</p>
+    \[
+      \vec Y_{n+1} = \vec Y_n + \int_{t_n}^{t_{n+1}} \vec f\,dt,
+    \]
+    <p>so the step is decided by the height of $\vec f$ across the interval. Forward Euler looks
+    at the slope once, at the start, and commits to it for the whole step. If the slope is
+    changing, that one look is out of date before the step ends.</p>
+    <p>Runge–Kutta methods take several looks at the slope inside the step, then move once with
+    a weighted average of what they saw. Nothing is solved, and earlier steps are not needed.
+    The picture below shows the area each choice covers for $\dot y = y$, $y(0) = 1$,
+    $h = 0.5$, drawn to scale. The true value is $e^{0.5} = 1.6487213$.</p>
+
+    <figure>
+      <svg viewBox="0 0 640 212" width="100%" style="max-width:640px" role="img"
+           aria-label="Three panels for y dot equals y over one step of h equals 0.5, drawn to scale: one rectangle of height 1 under the rising curve e to the t; one rectangle at the midpoint slope 1.25; and three strips of widths h over 6, 4h over 6 and h over 6 that cover the area almost exactly.">
+        <defs><marker id="rkAx3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker></defs>
+        <text x="110.0" y="18.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">one look</text>
+        <text x="110.0" y="35.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Y<tspan font-size="9" dy="3">1</tspan><tspan dy="-3"></tspan> = 1.5</text>
+        <rect x="25.0" y="120.0" width="170.0" height="70.0" fill="var(--cse-red)" fill-opacity="0.32" stroke="var(--cse-red)" stroke-width="1.1"/>
+        <path d="M25.0,120.0 L29.4,119.1 L33.7,118.2 L38.1,117.3 L42.4,116.3 L46.8,115.4 L51.2,114.4 L55.5,113.4 L59.9,112.4 L64.2,111.4 L68.6,110.4 L72.9,109.4 L77.3,108.4 L81.7,107.3 L86.0,106.2 L90.4,105.2 L94.7,104.1 L99.1,103.0 L103.5,101.8 L107.8,100.7 L112.2,99.5 L116.5,98.4 L120.9,97.2 L125.3,96.0 L129.6,94.8 L134.0,93.6 L138.3,92.3 L142.7,91.0 L147.1,89.8 L151.4,88.5 L155.8,87.2 L160.1,85.8 L164.5,84.5 L168.8,83.1 L173.2,81.8 L177.6,80.4 L181.9,78.9 L186.3,77.5 L190.6,76.1 L195.0,74.6" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <line x1="25" y1="190" x2="207.0" y2="190" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <line x1="25" y1="190" x2="25" y2="50.0" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <text x="25.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="195.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="315.0" y="18.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">two looks</text>
+        <text x="315.0" y="35.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Y<tspan font-size="9" dy="3">1</tspan><tspan dy="-3"></tspan> = 1.625</text>
+        <rect x="230.0" y="102.5" width="170.0" height="87.5" fill="var(--cse-blue)" fill-opacity="0.32" stroke="var(--cse-blue)" stroke-width="1.1"/>
+        <path d="M230.0,120.0 L234.4,119.1 L238.7,118.2 L243.1,117.3 L247.4,116.3 L251.8,115.4 L256.2,114.4 L260.5,113.4 L264.9,112.4 L269.2,111.4 L273.6,110.4 L277.9,109.4 L282.3,108.4 L286.7,107.3 L291.0,106.2 L295.4,105.2 L299.7,104.1 L304.1,103.0 L308.5,101.8 L312.8,100.7 L317.2,99.5 L321.5,98.4 L325.9,97.2 L330.3,96.0 L334.6,94.8 L339.0,93.6 L343.3,92.3 L347.7,91.0 L352.1,89.8 L356.4,88.5 L360.8,87.2 L365.1,85.8 L369.5,84.5 L373.8,83.1 L378.2,81.8 L382.6,80.4 L386.9,78.9 L391.3,77.5 L395.6,76.1 L400.0,74.6" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <line x1="230" y1="190" x2="412.0" y2="190" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <line x1="230" y1="190" x2="230" y2="50.0" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <text x="230.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="400.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <text x="520.0" y="18.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">four looks</text>
+        <text x="520.0" y="35.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Y<tspan font-size="9" dy="3">1</tspan><tspan dy="-3"></tspan> = 1.6484375</text>
+        <rect x="435.0" y="120.0" width="28.3" height="70.0" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.1"/>
+        <rect x="463.3" y="100.3" width="113.3" height="89.7" fill="var(--cse-green)" fill-opacity="0.32" stroke="var(--cse-green)" stroke-width="1.1"/>
+        <rect x="576.7" y="74.1" width="28.3" height="115.9" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.1"/>
+        <path d="M435.0,120.0 L439.4,119.1 L443.7,118.2 L448.1,117.3 L452.4,116.3 L456.8,115.4 L461.2,114.4 L465.5,113.4 L469.9,112.4 L474.2,111.4 L478.6,110.4 L482.9,109.4 L487.3,108.4 L491.7,107.3 L496.0,106.2 L500.4,105.2 L504.7,104.1 L509.1,103.0 L513.5,101.8 L517.8,100.7 L522.2,99.5 L526.5,98.4 L530.9,97.2 L535.3,96.0 L539.6,94.8 L544.0,93.6 L548.3,92.3 L552.7,91.0 L557.1,89.8 L561.4,88.5 L565.8,87.2 L570.1,85.8 L574.5,84.5 L578.8,83.1 L583.2,81.8 L587.6,80.4 L591.9,78.9 L596.3,77.5 L600.6,76.1 L605.0,74.6" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <line x1="435" y1="190" x2="617.0" y2="190" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <line x1="435" y1="190" x2="435" y2="50.0" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx3)"/>
+        <text x="435.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <text x="605.0" y="205.0" font-size="11" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+      </svg>
+    </figure>
+
+    <p>With one look we get a single rectangle, which misses the growth of the curve. With a
+    look at the middle the rectangle sits at about the right average height. With four looks
+    the area becomes three strips of widths $h/6$, $4h/6$ and $h/6$: these are the weights
+    $1, 4, 1$ of Simpson's rule, and the strips cover the area almost exactly.</p>
+
+    <h3>The four looks</h3>
+    <p>Simpson's rule wants the height at the start, the middle and the end. The middle and the
+    end lie in the future, so we do not know $\vec Y$ there. RK4 scouts ahead, each time from
+    $\vec Y_n$, using the latest slope it has:</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td style="padding-right:14px"><strong>Look 1:</strong></td><td style="padding-right:14px">slope where we stand</td>
+          <td>$\vec k_1 = \vec f(t_n,\ \vec Y_n)$</td></tr>
+      <tr><td style="padding-right:14px"><strong>Look 2:</strong></td><td style="padding-right:14px">walk half a step with $\vec k_1$, look again</td>
+          <td>$\vec k_2 = \vec f\bigl(t_n + \frac{h}{2},\ \vec Y_n + \frac{h}{2}\vec k_1\bigr)$</td></tr>
+      <tr><td style="padding-right:14px"><strong>Look 3:</strong></td><td style="padding-right:14px">walk half a step with $\vec k_2$ instead, look again</td>
+          <td>$\vec k_3 = \vec f\bigl(t_n + \frac{h}{2},\ \vec Y_n + \frac{h}{2}\vec k_2\bigr)$</td></tr>
+      <tr><td style="padding-right:14px"><strong>Look 4:</strong></td><td style="padding-right:14px">walk a full step with $\vec k_3$, look at the end</td>
+          <td>$\vec k_4 = \vec f\bigl(t_n + h,\ \vec Y_n + h\vec k_3\bigr)$</td></tr>
+    </table>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 520 340" width="100%" style="max-width:520px" role="img"
+           aria-label="One RK4 step for y dot equals y with h equals 1.6: the true solution curve; dashed walks from the start point with slopes k1, k2 and k3 to trial points, each ending in an arrow for the next slope; the green dot is where the real step lands, next to the end of the true solution.">
+        <defs><marker id="rkAx4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker><marker id="rkR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-red)"/></marker><marker id="rkB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-blue)"/></marker><marker id="rkP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="#8e3fa0"/></marker><marker id="rkO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="#d9730d"/></marker></defs>
+        <line x1="37.5" y1="300" x2="490.0" y2="300" stroke="var(--cse-gray)" stroke-width="1" marker-end="url(#rkAx4)"/>
+        <line x1="50" y1="297" x2="50" y2="303" stroke="var(--cse-gray)"/>
+        <text x="50.0" y="318.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n</tspan><tspan dy="-3"></tspan></text>
+        <line x1="250.0" y1="297" x2="250.0" y2="303" stroke="var(--cse-gray)"/>
+        <text x="250.0" y="318.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1/2</tspan><tspan dy="-3"></tspan></text>
+        <line x1="450.0" y1="297" x2="450.0" y2="303" stroke="var(--cse-gray)"/>
+        <text x="450.0" y="318.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="middle">t<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+        <path d="M50.0,248.0 L55.1,246.9 L60.1,245.9 L65.2,244.7 L70.3,243.6 L75.3,242.5 L80.4,241.3 L85.4,240.1 L90.5,238.9 L95.6,237.6 L100.6,236.3 L105.7,235.0 L110.8,233.7 L115.8,232.3 L120.9,231.0 L125.9,229.5 L131.0,228.1 L136.1,226.6 L141.1,225.1 L146.2,223.6 L151.3,222.0 L156.3,220.4 L161.4,218.8 L166.5,217.1 L171.5,215.5 L176.6,213.7 L181.6,212.0 L186.7,210.2 L191.8,208.3 L196.8,206.4 L201.9,204.5 L207.0,202.6 L212.0,200.6 L217.1,198.5 L222.2,196.5 L227.2,194.4 L232.3,192.2 L237.3,190.0 L242.4,187.7 L247.5,185.4 L252.5,183.1 L257.6,180.7 L262.7,178.3 L267.7,175.8 L272.8,173.2 L277.8,170.6 L282.9,168.0 L288.0,165.3 L293.0,162.5 L298.1,159.7 L303.2,156.8 L308.2,153.9 L313.3,150.9 L318.4,147.9 L323.4,144.8 L328.5,141.6 L333.5,138.4 L338.6,135.0 L343.7,131.7 L348.7,128.2 L353.8,124.7 L358.9,121.1 L363.9,117.5 L369.0,113.7 L374.1,109.9 L379.1,106.0 L384.2,102.1 L389.2,98.0 L394.3,93.9 L399.4,89.7 L404.4,85.4 L409.5,81.0 L414.6,76.5 L419.6,71.9 L424.7,67.2 L429.7,62.5 L434.8,57.6 L439.9,52.7 L444.9,47.6 L450.0,42.4" fill="none" stroke="var(--ink)" stroke-width="1.7"/>
+        <text x="362.5" y="140.5" font-size="13" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">true solution</text>
+        <line x1="50" y1="248" x2="250.0" y2="206.4" stroke="var(--cse-red)" stroke-width="1.1" stroke-dasharray="5 3"/>
+        <line x1="50" y1="248" x2="250.0" y2="173.1" stroke="var(--cse-blue)" stroke-width="1.1" stroke-dasharray="5 3"/>
+        <line x1="50" y1="248" x2="450.0" y2="45.0" stroke="#8e3fa0" stroke-width="1.1" stroke-dasharray="5 3"/>
+        <circle cx="50.0" cy="248.0" r="3" fill="var(--cse-red)"/>
+        <line x1="50.0" y1="248.0" x2="100.9" y2="237.4" stroke="var(--cse-red)" stroke-width="2" marker-end="url(#rkR)"/>
+        <text x="94.9" y="257.4" font-size="13" font-style="italic" fill="var(--cse-red)" font-family="Georgia, serif" text-anchor="start">k<tspan font-size="9" dy="3">1</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="250.0" cy="206.4" r="3" fill="var(--cse-blue)"/>
+        <line x1="250.0" y1="206.4" x2="298.7" y2="188.2" stroke="var(--cse-blue)" stroke-width="2" marker-end="url(#rkB)"/>
+        <text x="306.7" y="200.2" font-size="13" font-style="italic" fill="var(--cse-blue)" font-family="Georgia, serif" text-anchor="start">k<tspan font-size="9" dy="3">2</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="250.0" cy="173.1" r="3" fill="#8e3fa0"/>
+        <line x1="250.0" y1="173.1" x2="296.4" y2="149.6" stroke="#8e3fa0" stroke-width="2" marker-end="url(#rkP)"/>
+        <text x="292.4" y="143.6" font-size="13" font-style="italic" fill="#8e3fa0" font-family="Georgia, serif" text-anchor="start">k<tspan font-size="9" dy="3">3</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="450.0" cy="45.0" r="3" fill="#d9730d"/>
+        <line x1="450.0" y1="45.0" x2="486.4" y2="7.9" stroke="#d9730d" stroke-width="2" marker-end="url(#rkO)"/>
+        <text x="492.4" y="7.9" font-size="13" font-style="italic" fill="#d9730d" font-family="Georgia, serif" text-anchor="start">k<tspan font-size="9" dy="3">4</tspan><tspan dy="-3"></tspan></text>
+        <circle cx="450.0" cy="48.5" r="4" fill="var(--cse-green)"/>
+        <text x="458.0" y="66.5" font-size="13" font-style="italic" fill="var(--cse-green)" font-family="Georgia, serif" text-anchor="start">Y<tspan font-size="9" dy="3">n+1</tspan><tspan dy="-3"></tspan></text>
+      </svg>
+      <figcaption>This is $\dot y = y$ again with a long step, $h = 1.6$, so that the looks are
+      easy to tell apart. Each dashed walk has the colour of the slope it uses, and the arrow at
+      its end is the next look. None of the trial points is kept. Only the four slopes are, and
+      the green dot is where the real step lands.</figcaption>
+    </figure>
+
+    <div class="keyidea">
+      <span class="boxtitle">The RK4 step</span>
+      \[
+        \vec Y_{n+1} = \vec Y_n + \frac{h}{6}\,\bigl(\vec k_1 + 2\vec k_2 + 2\vec k_3 + \vec k_4\bigr)
+      \]
+      <p>These are Simpson's weights $1, 4, 1$, with the 4 shared between the two looks at the
+      middle. Each step costs four evaluations of $\vec f$. The error over a fixed time is of
+      order $h^4$: halve $h$ and it falls by about 16.</p>
+    </div>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:520px;margin:0 auto">
+      <tr><td><strong>$\dot y = y$, $h = 0.5$</strong></td><td><strong>Looks per step</strong></td>
+          <td><strong>$Y_1$</strong></td><td><strong>Error</strong></td></tr>
+      <tr><td>Forward Euler</td><td>1</td><td>$1.5$</td><td>$0.149$</td></tr>
+      <tr><td>Midpoint (two stages)</td><td>2</td><td>$1.625$</td><td>$0.024$</td></tr>
+      <tr><td>RK4</td><td>4</td><td>$1.6484375$</td><td>$0.00028$</td></tr>
+    </table>
+    </div>
+
+    <p>The derivation, with the proof that the method is fourth order, is in the Supplementary
+    Information at the end of these notes (<a href="#secS">Section S</a>).</p>
+  </section>
+
+  <section id="sec4">
+    <h2>4 · Comparing the five methods</h2>
+
+    <p>With RK4 there are five methods: forward Euler, backward Euler, leapfrog and the
+    trapezoidal method from <a href="L14.html">Lecture 15</a>, and RK4. This section compares
+    them on the oscillator $\ddot u + u = 0$ and on a fast decay.</p>
+
+    <h3 id="sec4-1">4.1 · RK4 on the oscillator</h3>
+    <p>For $\ddot u + u = 0$ the growth matrix of <a href="#secS">Section S</a> is
+    $\mat G_{RK} = \eye + h\mat A + \frac12(h\mat A)^2 + \frac16(h\mat A)^3 + \frac1{24}(h\mat A)^4$.
+    Since $\mat A^2 = -\eye$, the powers of $h\mat A$ are $(h\mat A)^2 = -h^2\eye$,
+    $(h\mat A)^3 = -h^3\mat A$ and $(h\mat A)^4 = h^4\eye$. Collecting the multiples of $\eye$
+    and of $\mat A$,</p>
+    \[
+      \mat G_{RK} = \Bigl(1 - \frac{h^2}{2} + \frac{h^4}{24}\Bigr)\eye + \Bigl(h - \frac{h^3}{6}\Bigr)\mat A
+      = \begin{bmatrix} a &amp; b \\ -b &amp; a \end{bmatrix}, \qquad
+      a = 1 - \frac{h^2}{2} + \frac{h^4}{24}, \quad b = h - \frac{h^3}{6}.
+    \]
+    <p>This is a multiple of a rotation, with eigenvalues $a \pm ib$. Expanding the squares,</p>
+    \[
+      a^2 = 1 - h^2 + \frac{h^4}{3} - \frac{h^6}{24} + \frac{h^8}{576}, \qquad
+      b^2 = h^2 - \frac{h^4}{3} + \frac{h^6}{36},
+    \]
+    <p>so the terms in $h^2$ and $h^4$ cancel and</p>
+    \[
+      \abs{\lambda}^2 = a^2 + b^2 = 1 - \frac{h^6}{72} + \frac{h^8}{576}.
+    \]
+    <p>Then $\abs{\lambda} \le 1$ if and only if $h^8/576 \le h^6/72$, that is $h^2 \le 8$. So
+    $\abs{\lambda} &lt; 1$ for $0 &lt; h &lt; 2\sqrt2 \approx 2.83$, and the method blows up for
+    $h &gt; 2\sqrt2$. For small $h$ the damping is slight, about $1 - h^6/144$ per step
+    ($0.99989$ at $h = 0.5$). For the angle, $a + ib$ is the series
+    $1 + ih + (ih)^2/2 + (ih)^3/6 + (ih)^4/24$, which differs from the exponential by
+    $(ih)^5/120$:</p>
+    \[
+      a + ib = e^{ih} - \frac{(ih)^5}{120} + \cdots = e^{ih}\Bigl(1 - \frac{ih^5}{120} + \cdots\Bigr),
+      \qquad \text{so} \qquad
+      \theta = \arctan\frac{b}{a} = h - \frac{h^5}{120} + \cdots .
+    \]
+    <p>The computed oscillation falls behind by about $h^5/120$ per step.</p>
+
+    <p id="ex4-1"><strong>Example 4.1</strong> (One RK4 step by hand).
+    <strong>Given.</strong> $\vec f(t, \vec y) = \mat A\vec y = (v, -u)$, $\vec Y_0 = (1, 0)$ and
+    $h = 0.5$.</p>
+    <p><strong>Find.</strong> What are the four slopes $\vec k_1, \ldots, \vec k_4$ and
+    $\vec Y_1$? How close is $\vec Y_1$ to the true point $(\cos 0.5, -\sin 0.5)$?</p>
+    <p><strong>Answer.</strong> With $h$ as a letter the answer is the first column of
+    $\mat G_{RK}$, $\vec Y_1 = (a, -b)$ with $a = 1 - h^2/2 + h^4/24$ and $b = h - h^3/6$. Step
+    by step at $h = 0.5$, each slope is $\vec f$ at a trial point:</p>
+    \[
+      \begin{aligned}
+        &amp;\vec k_1 = \mat A\vec Y_0 = (0, -1), &amp;&amp; \\
+        &amp;\vec Y_0 + 0.25\,\vec k_1 = (1, -0.25), &amp;&amp; \vec k_2 = (-0.25, -1), \\
+        &amp;\vec Y_0 + 0.25\,\vec k_2 = (0.9375, -0.25), &amp;&amp; \vec k_3 = (-0.25, -0.9375), \\
+        &amp;\vec Y_0 + 0.5\,\vec k_3 = (0.875, -0.46875), &amp;&amp; \vec k_4 = (-0.46875, -0.875).
+      \end{aligned}
+    \]
+    <p>Then $\vec k_1 + 2\vec k_2 + 2\vec k_3 + \vec k_4 = (-1.46875, -5.75)$ and</p>
+    \[
+      \vec Y_1 = (1, 0) + \tfrac1{12}\,(-1.46875, -5.75) = (0.877604, -0.479167).
+    \]
+    <p>The same point comes from $\mat G_{RK}$ with $a = 0.877604$ and $b = 0.479167$. The true
+    point is $(0.877583, -0.479426)$, so after one step RK4 is off by $0.00026$. After one step
+    of the same size forward Euler is off by $0.124$ and the trapezoidal method by $0.010$.</p>
+
+    <h3 id="sec4-2">4.2 · The same two steps</h3>
+    <p>Examples 1.1, 2.1, 3.2 and 4.1 of <a href="L14.html">Lecture 15</a> and
+    <a href="#ex4-1">Example 4.1</a> here start from $(u, v) = (1, 0)$ with $h = 0.5$. After
+    two steps, at $t = 1$:</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:520px;margin:0 auto">
+      <tr><td><strong>method</strong></td><td><strong>$U_2$</strong></td><td><strong>$V_2$</strong></td>
+          <td><strong>$U_2^2 + V_2^2$</strong></td><td><strong>off by</strong></td></tr>
+      <tr><td>forward Euler</td><td>$0.750$</td><td>$-1.000$</td><td>$1.5625$</td><td>$0.2629$</td></tr>
+      <tr><td>backward Euler</td><td>$0.480$</td><td>$-0.640$</td><td>$0.6400$</td><td>$0.2103$</td></tr>
+      <tr><td>leapfrog</td><td>$0.531$</td><td>$-0.953$</td><td>$1.1907$</td><td>$0.0100$</td></tr>
+      <tr><td>trapezoidal</td><td>$0.557$</td><td>$-0.830$</td><td>$1.0000$</td><td>$0.0201$</td></tr>
+      <tr><td>RK4</td><td>$0.541$</td><td>$-0.841$</td><td>$0.9996$</td><td>$0.0005$</td></tr>
+      <tr><td>true solution</td><td>$0.540$</td><td>$-0.841$</td><td>$1$</td><td></td></tr>
+    </table>
+    </div>
+    <p class="note" style="text-align:center">Leapfrog's $V_2$ is compared with the velocity at
+    $t = 1.25$, so its $U_2^2 + V_2^2$ mixes two times.</p>
+
+    <h3 id="sec4-3">4.3 · One eigenvalue at a time</h3>
+    <p>For the table below and for the stability regions, look at one eigenvalue at a time,
+    with the test equation of <a href="#secS">Section S</a>. For the scalar equation
+    $\dot y = \mu y$ each method multiplies $Y_n$ by a factor $R(z)$, with $z = h\mu$, against
+    $e^z$ for the true solution: forward Euler gives $Y_{n+1} = (1 + h\mu)\,Y_n$, so
+    $R(z) = 1 + z$, and in the same way</p>
+    \[
+      \begin{aligned}
+        \text{backward Euler:} \quad &amp; R(z) = \frac{1}{1 - z}, \\
+        \text{trapezoidal:} \quad &amp; R(z) = \frac{1 + z/2}{1 - z/2}, \\
+        \text{RK4:} \quad &amp; R(z) = 1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24}.
+      \end{aligned}
+    \]
+    <p>For a system $\dot{\vec y} = \mat A\vec y$ these methods have $\mat G = R(h\mat A)$, so
+    the eigenvalues of $\mat G$ are the numbers $R(h\mu)$, one for each eigenvalue $\mu$ of
+    $\mat A$ (the letter $\lambda$ stays with the eigenvalues of $\mat G$). Leapfrog is built
+    for second-order equations and has no single factor $R(z)$. The oscillator has
+    $\mu = \pm i$, so $z = \pm ih$ lies on the imaginary axis; a mode that decays like
+    $e^{-at}$ has $z = -ah$ on the negative real axis. The <strong>stability region</strong> of
+    a method is the set of $z$ with $\abs{R(z)} \le 1$.</p>
+    <p>For forward Euler it is the disc $\abs{1 + z} \le 1$, of radius 1 about $z = -1$; the
+    imaginary axis touches it only at $z = 0$, so forward Euler is unstable for the oscillator
+    at every $h &gt; 0$. For backward Euler it is $\abs{1 - z} \ge 1$, everything outside the
+    disc of radius 1 about $z = +1$. That contains the whole left half-plane, so every decaying
+    mode stays bounded at every step size; methods with this property are called
+    <strong>A-stable</strong>. For the trapezoidal method $\abs{R(z)} \le 1$ means
+    $\abs{1 + z/2} \le \abs{1 - z/2}$, that is $\abs{z + 2} \le \abs{z - 2}$: $z$ is no farther
+    from $-2$ than from $+2$, which holds if and only if $\operatorname{Re} z \le 0$. So its
+    stability region is the left half-plane, and its edge, the imaginary axis, is where the
+    oscillator's $z = \pm ih$ lie.</p>
+
+    <h3 id="sec4-4">4.4 · A table of properties</h3>
+
+    <div class="tablewrap">
+    <table class="cv" style="font-size:0.92rem">
+      <tr><td></td><td><strong>forward Euler</strong></td><td><strong>backward Euler</strong></td>
+          <td><strong>leapfrog</strong></td><td><strong>trapezoidal</strong></td><td><strong>RK4</strong></td></tr>
+      <tr><td>explicit or implicit</td><td>explicit</td><td>implicit</td><td>explicit</td><td>implicit</td><td>explicit</td></tr>
+      <tr><td>work per step</td><td>1 evaluation</td><td>1 solve</td><td>1 evaluation</td><td>1 solve</td><td>4 evaluations</td></tr>
+      <tr><td>order of accuracy</td><td>1</td><td>1</td><td>2</td><td>2</td><td>4</td></tr>
+      <tr><td>$R(z)$</td><td>$1 + z$</td><td>$\dfrac{1}{1 - z}$</td><td>none</td>
+          <td>$\dfrac{1 + z/2}{1 - z/2}$</td><td>$\displaystyle\sum_{k=0}^{4} \frac{z^k}{k!}$</td></tr>
+      <tr><td>$\abs{\lambda}$ for $\ddot u + u = 0$</td><td>$\sqrt{1 + h^2}$</td><td>$\dfrac{1}{\sqrt{1 + h^2}}$</td>
+          <td>$1$ $(h &lt; 2)$</td><td>$1$</td><td>$\sqrt{1 - \frac{h^6}{72} + \frac{h^8}{576}}$</td></tr>
+      <tr><td>energy over many periods</td><td>grows</td><td>decays</td><td>bounded</td><td>conserved</td><td>decays slowly</td></tr>
+      <tr><td>angle per step (true: $h$)</td><td>$h - \frac{h^3}{3}$</td><td>$h - \frac{h^3}{3}$</td>
+          <td>$h + \frac{h^3}{24}$</td><td>$h - \frac{h^3}{12}$</td><td>$h - \frac{h^5}{120}$</td></tr>
+      <tr><td>stable for $\ddot u + \omega^2 u = 0$</td><td>never</td><td>every $h$</td><td>$\omega h &lt; 2$</td>
+          <td>every $h$</td><td>$\omega h \le 2\sqrt2$</td></tr>
+      <tr><td>stable for $\dot y = -ay$</td><td>$ah \le 2$</td><td>every $h$</td><td>does not apply</td>
+          <td>every $h$</td><td>$ah \le 2.785$</td></tr>
+    </table>
+    </div>
+
+    <p>The angles are the first terms of their series. Backward Euler is “stable” for the
+    oscillator only in the sense that it does not blow up; it still damps the oscillation
+    away.</p>
+
+    <figure>
+      <svg viewBox="0 0 490 360" width="100%" style="max-width:490px" role="img"
+           aria-label="Log-log plot of the distance from the true point after one period against steps per period N from 8 to 1024: forward and backward Euler fall with slope minus 1, leapfrog and trapezoidal with slope minus 2, RK4 with slope minus 4 down to about 10 to the minus 10.">
+        <defs></defs>
+        <rect x="90" y="30" width="380" height="280" fill="none" stroke="var(--ink)" stroke-width="1"/>
+        <line x1="90" y1="54.8" x2="95" y2="54.8" stroke="var(--ink)"/>
+        <line x1="465" y1="54.8" x2="470" y2="54.8" stroke="var(--ink)"/>
+        <text x="84.0" y="58.8" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">0</tspan></text>
+        <line x1="90" y1="104.3" x2="95" y2="104.3" stroke="var(--ink)"/>
+        <line x1="465" y1="104.3" x2="470" y2="104.3" stroke="var(--ink)"/>
+        <text x="84.0" y="108.3" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">−2</tspan></text>
+        <line x1="90" y1="153.9" x2="95" y2="153.9" stroke="var(--ink)"/>
+        <line x1="465" y1="153.9" x2="470" y2="153.9" stroke="var(--ink)"/>
+        <text x="84.0" y="157.9" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">−4</tspan></text>
+        <line x1="90" y1="203.5" x2="95" y2="203.5" stroke="var(--ink)"/>
+        <line x1="465" y1="203.5" x2="470" y2="203.5" stroke="var(--ink)"/>
+        <text x="84.0" y="207.5" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">−6</tspan></text>
+        <line x1="90" y1="253.0" x2="95" y2="253.0" stroke="var(--ink)"/>
+        <line x1="465" y1="253.0" x2="470" y2="253.0" stroke="var(--ink)"/>
+        <text x="84.0" y="257.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">−8</tspan></text>
+        <line x1="90" y1="302.6" x2="95" y2="302.6" stroke="var(--ink)"/>
+        <line x1="465" y1="302.6" x2="470" y2="302.6" stroke="var(--ink)"/>
+        <text x="84.0" y="306.6" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">10<tspan font-size="8" dy="-6">−10</tspan></text>
+        <line x1="98.0" y1="310" x2="98.0" y2="305" stroke="var(--ink)"/>
+        <text x="98.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">8</text>
+        <line x1="150.0" y1="310" x2="150.0" y2="305" stroke="var(--ink)"/>
+        <text x="150.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">16</text>
+        <line x1="202.0" y1="310" x2="202.0" y2="305" stroke="var(--ink)"/>
+        <text x="202.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">32</text>
+        <line x1="254.0" y1="310" x2="254.0" y2="305" stroke="var(--ink)"/>
+        <text x="254.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">64</text>
+        <line x1="306.0" y1="310" x2="306.0" y2="305" stroke="var(--ink)"/>
+        <text x="306.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">128</text>
+        <line x1="358.0" y1="310" x2="358.0" y2="305" stroke="var(--ink)"/>
+        <text x="358.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">256</text>
+        <line x1="410.0" y1="310" x2="410.0" y2="305" stroke="var(--ink)"/>
+        <text x="410.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">512</text>
+        <line x1="462.0" y1="310" x2="462.0" y2="305" stroke="var(--ink)"/>
+        <text x="462.0" y="326.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">1024</text>
+        <text x="280.0" y="346.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">steps per period <tspan font-style="italic">N</tspan></text>
+        <text x="0" y="0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle" transform="translate(28,170.0) rotate(-90)">distance from the true point after one period</text>
+        <path d="M98.0,35.0 L121.9,40.1 L150.0,46.2 L177.2,51.9 L202.0,56.7 L227.6,61.3 L254.0,65.8 L280.4,70.1 L306.0,74.1 L332.0,78.0 L358.0,81.9 L384.0,85.8 L410.0,89.6 L436.0,93.4 L462.0,97.2" fill="none" stroke="var(--cse-red)" stroke-width="1.2"/>
+        <circle cx="98.0" cy="35.0" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="121.9" cy="40.1" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="150.0" cy="46.2" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="177.2" cy="51.9" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="202.0" cy="56.7" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="227.6" cy="61.3" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="254.0" cy="65.8" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="280.4" cy="70.1" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="306.0" cy="74.1" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="332.0" cy="78.0" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="358.0" cy="81.9" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="384.0" cy="85.8" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="410.0" cy="89.6" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="436.0" cy="93.4" r="2.4" fill="var(--cse-red)"/>
+        <circle cx="462.0" cy="97.2" r="2.4" fill="var(--cse-red)"/>
+        <path d="M98.0,55.6 L121.9,56.8 L150.0,58.6 L177.2,60.8 L202.0,63.2 L227.6,66.0 L254.0,69.1 L280.4,72.4 L306.0,75.7 L332.0,79.2 L358.0,82.8 L384.0,86.4 L410.0,90.0 L436.0,93.7 L462.0,97.4" fill="none" stroke="var(--cse-blue)" stroke-width="1.2"/>
+        <circle cx="98.0" cy="55.6" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="121.9" cy="56.8" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="150.0" cy="58.6" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="177.2" cy="60.8" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="202.0" cy="63.2" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="227.6" cy="66.0" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="254.0" cy="69.1" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="280.4" cy="72.4" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="306.0" cy="75.7" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="332.0" cy="79.2" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="358.0" cy="82.8" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="384.0" cy="86.4" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="410.0" cy="90.0" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="436.0" cy="93.7" r="2.4" fill="var(--cse-blue)"/>
+        <circle cx="462.0" cy="97.4" r="2.4" fill="var(--cse-blue)"/>
+        <path d="M98.0,74.2 L121.9,81.0 L150.0,89.1 L177.2,96.9 L202.0,104.1 L227.6,111.5 L254.0,119.1 L280.4,126.7 L306.0,134.0 L332.0,141.5 L358.0,149.0 L384.0,156.4 L410.0,163.9 L436.0,171.4 L462.0,178.8" fill="none" stroke="var(--cse-green)" stroke-width="1.2"/>
+        <rect x="95.7" y="71.9" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="119.6" y="78.7" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="147.7" y="86.8" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="174.9" y="94.6" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="199.7" y="101.8" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="225.3" y="109.2" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="251.7" y="116.8" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="278.1" y="124.4" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="303.7" y="131.7" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="329.7" y="139.2" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="355.7" y="146.7" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="381.7" y="154.1" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="407.7" y="161.6" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="433.7" y="169.1" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <rect x="459.7" y="176.5" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <path d="M98.0,67.9 L121.9,74.3 L150.0,82.1 L177.2,89.8 L202.0,96.8 L227.6,104.1 L254.0,111.7 L280.4,119.3 L306.0,126.6 L332.0,134.1 L358.0,141.5 L384.0,149.0 L410.0,156.5 L436.0,163.9 L462.0,171.4" fill="none" stroke="#d9730d" stroke-width="1.2"/>
+        <path d="M98.0,64.9 L101.0,70.3 L95.0,70.3 Z" fill="#d9730d"/>
+        <path d="M121.9,71.3 L124.9,76.7 L118.9,76.7 Z" fill="#d9730d"/>
+        <path d="M150.0,79.1 L153.0,84.5 L147.0,84.5 Z" fill="#d9730d"/>
+        <path d="M177.2,86.8 L180.2,92.2 L174.2,92.2 Z" fill="#d9730d"/>
+        <path d="M202.0,93.8 L205.0,99.2 L199.0,99.2 Z" fill="#d9730d"/>
+        <path d="M227.6,101.1 L230.6,106.5 L224.6,106.5 Z" fill="#d9730d"/>
+        <path d="M254.0,108.7 L257.0,114.1 L251.0,114.1 Z" fill="#d9730d"/>
+        <path d="M280.4,116.3 L283.4,121.7 L277.4,121.7 Z" fill="#d9730d"/>
+        <path d="M306.0,123.6 L309.0,129.0 L303.0,129.0 Z" fill="#d9730d"/>
+        <path d="M332.0,131.1 L335.0,136.5 L329.0,136.5 Z" fill="#d9730d"/>
+        <path d="M358.0,138.5 L361.0,143.9 L355.0,143.9 Z" fill="#d9730d"/>
+        <path d="M384.0,146.0 L387.0,151.4 L381.0,151.4 Z" fill="#d9730d"/>
+        <path d="M410.0,153.5 L413.0,158.9 L407.0,158.9 Z" fill="#d9730d"/>
+        <path d="M436.0,160.9 L439.0,166.3 L433.0,166.3 Z" fill="#d9730d"/>
+        <path d="M462.0,168.4 L465.0,173.8 L459.0,173.8 Z" fill="#d9730d"/>
+        <path d="M98.0,97.0 L121.9,110.7 L150.0,126.8 L177.2,142.4 L202.0,156.6 L227.6,171.3 L254.0,186.4 L280.4,201.6 L306.0,216.3 L332.0,231.2 L358.0,246.1 L384.0,261.0 L410.0,275.9 L436.0,290.9 L462.0,305.8" fill="none" stroke="var(--ink)" stroke-width="1.2"/>
+        <path d="M98.0,93.8 L101.2,97.0 L98.0,100.2 L94.8,97.0 Z" fill="var(--ink)"/>
+        <path d="M121.9,107.5 L125.1,110.7 L121.9,113.9 L118.7,110.7 Z" fill="var(--ink)"/>
+        <path d="M150.0,123.6 L153.2,126.8 L150.0,130.0 L146.8,126.8 Z" fill="var(--ink)"/>
+        <path d="M177.2,139.2 L180.4,142.4 L177.2,145.6 L174.0,142.4 Z" fill="var(--ink)"/>
+        <path d="M202.0,153.4 L205.2,156.6 L202.0,159.8 L198.8,156.6 Z" fill="var(--ink)"/>
+        <path d="M227.6,168.1 L230.8,171.3 L227.6,174.5 L224.4,171.3 Z" fill="var(--ink)"/>
+        <path d="M254.0,183.2 L257.2,186.4 L254.0,189.6 L250.8,186.4 Z" fill="var(--ink)"/>
+        <path d="M280.4,198.4 L283.6,201.6 L280.4,204.8 L277.2,201.6 Z" fill="var(--ink)"/>
+        <path d="M306.0,213.1 L309.2,216.3 L306.0,219.5 L302.8,216.3 Z" fill="var(--ink)"/>
+        <path d="M332.0,228.0 L335.2,231.2 L332.0,234.4 L328.8,231.2 Z" fill="var(--ink)"/>
+        <path d="M358.0,242.9 L361.2,246.1 L358.0,249.3 L354.8,246.1 Z" fill="var(--ink)"/>
+        <path d="M384.0,257.8 L387.2,261.0 L384.0,264.2 L380.8,261.0 Z" fill="var(--ink)"/>
+        <path d="M410.0,272.7 L413.2,275.9 L410.0,279.1 L406.8,275.9 Z" fill="var(--ink)"/>
+        <path d="M436.0,287.7 L439.2,290.9 L436.0,294.1 L432.8,290.9 Z" fill="var(--ink)"/>
+        <path d="M462.0,302.6 L465.2,305.8 L462.0,309.0 L458.8,305.8 Z" fill="var(--ink)"/>
+        <rect x="100" y="212" width="208" height="96" fill="var(--bg)" stroke="var(--ink)" stroke-width="0.8"/>
+        <line x1="108" y1="227.0" x2="134" y2="227.0" stroke="var(--cse-red)" stroke-width="1.2"/>
+        <circle cx="121.0" cy="227.0" r="2.4" fill="var(--cse-red)"/>
+        <text x="140.0" y="231.0" font-size="11.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">forward Euler, slope −1</text>
+        <line x1="108" y1="244.5" x2="134" y2="244.5" stroke="var(--cse-blue)" stroke-width="1.2"/>
+        <circle cx="121.0" cy="244.5" r="2.4" fill="var(--cse-blue)"/>
+        <text x="140.0" y="248.5" font-size="11.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">backward Euler, slope −1</text>
+        <line x1="108" y1="262.0" x2="134" y2="262.0" stroke="var(--cse-green)" stroke-width="1.2"/>
+        <rect x="118.7" y="259.7" width="4.6" height="4.6" fill="var(--cse-green)"/>
+        <text x="140.0" y="266.0" font-size="11.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">leapfrog, slope −2</text>
+        <line x1="108" y1="279.5" x2="134" y2="279.5" stroke="#d9730d" stroke-width="1.2"/>
+        <path d="M121.0,276.5 L124.0,281.9 L118.0,281.9 Z" fill="#d9730d"/>
+        <text x="140.0" y="283.5" font-size="11.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">trapezoidal, slope −2</text>
+        <line x1="108" y1="297.0" x2="134" y2="297.0" stroke="var(--ink)" stroke-width="1.2"/>
+        <path d="M121.0,293.8 L124.2,297.0 L121.0,300.2 L117.8,297.0 Z" fill="var(--ink)"/>
+        <text x="140.0" y="301.0" font-size="11.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">RK4, slope −4</text>
+      </svg>
+      <figcaption>Distance of the computed point from the true point after one period, for $N$
+      steps of $h = 2\pi/N$ from $(u, v) = (1, 0)$. Leapfrog starts with half a kick and its $V$
+      is compared with the velocity half a step later.</figcaption>
+    </figure>
+
+    <h3 id="sec4-5">4.5 · Accuracy for the work</h3>
+    <p>How many steps does each method need? Ask for the computed point $(U, V)$ to be within
+    1% of the radius of the true point at the end of ten periods (for leapfrog, $V$ is compared
+    with the velocity half a step later). The fewest steps per period that do it are:</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:560px;margin:0 auto">
+      <tr><td><strong>method</strong></td><td style="text-align:right"><strong>steps per period</strong></td>
+          <td style="text-align:right"><strong>evaluations or solves per period</strong></td></tr>
+      <tr><td>forward Euler</td><td style="text-align:right">19&#8201;838</td><td style="text-align:right">19&#8201;838</td></tr>
+      <tr><td>backward Euler</td><td style="text-align:right">19&#8201;641</td><td style="text-align:right">19&#8201;641</td></tr>
+      <tr><td>leapfrog</td><td style="text-align:right">102</td><td style="text-align:right">102</td></tr>
+      <tr><td>trapezoidal</td><td style="text-align:right">144</td><td style="text-align:right">144</td></tr>
+      <tr><td>RK4</td><td style="text-align:right">17</td><td style="text-align:right">68</td></tr>
+    </table>
+    </div>
+
+    <p>The first-order methods need about twenty thousand steps per period, the second-order
+    methods about a hundred, RK4 seventeen. The orders of accuracy show as slopes on a log-log
+    plot of the error against the number of steps: doubling the steps halves the Euler errors,
+    quarters the leapfrog and trapezoidal errors, and divides the RK4 error by 16. At the same
+    step leapfrog's error is half that of the trapezoidal method, because its phase error per
+    step is $h^3/24$ against $h^3/12$.</p>
+
+    <h3 id="sec4-6">4.6 · Stability regions</h3>
+    <p>The stability regions $\abs{R(z)} \le 1$ of <a href="#sec4-3">Section 4.3</a> are shaded
+    below for four of the methods, with the oscillator's $z = \pm0.5i$ (dots, $h = 0.5$) and the
+    fast decay $z = -5$ of <a href="#ex4-2">Example 4.2</a> (cross). Leapfrog has no region of
+    this kind: for $\ddot u = -\omega^2 u$ its condition is the stretch $\abs{\omega h} &lt; 2$ of
+    the imaginary axis. (Some books give the name leapfrog to the two-step method
+    $Y_{n+1} = Y_{n-1} + 2h\,f(Y_n)$ for a first-order equation; that method is stable only on
+    the stretch $\abs{z} &lt; 1$ of the imaginary axis. It is not the staggered method of this
+    lecture.)</p>
+
+    <figure>
+      <svg viewBox="0 0 590 520" width="100%" style="max-width:590px" role="img"
+           aria-label="Four stability regions in the complex z plane, shaded: forward Euler the disc of radius 1 about minus 1; backward Euler everything outside the disc of radius 1 about plus 1; trapezoidal the left half-plane; RK4 a rounded region reaching about minus 2.785 on the real axis and plus or minus 2.83 i on the imaginary axis. Blue dots mark z equals plus or minus 0.5 i and a red cross marks z equals minus 5.">
+        <defs><marker id="rkAx5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker></defs>
+        <clipPath id="rkClip0"><rect x="11.0" y="40.0" width="261.0" height="210.0"/></clipPath>
+        <g clip-path="url(#rkClip0)"><circle cx="155.0" cy="145.0" r="30.0" fill="var(--cse-green)" fill-opacity="0.25" stroke="var(--cse-green)" stroke-width="1.1"/></g>
+        <line x1="11.0" y1="145.0" x2="272.0" y2="145.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="185.0" y1="250.0" x2="185.0" y2="40.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="65.0" y1="142.0" x2="65.0" y2="148.0" stroke="var(--ink)"/>
+        <text x="65.0" y="160.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−4</text>
+        <line x1="125.0" y1="142.0" x2="125.0" y2="148.0" stroke="var(--ink)"/>
+        <text x="125.0" y="160.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−2</text>
+        <line x1="182.0" y1="85.0" x2="188.0" y2="85.0" stroke="var(--ink)"/>
+        <text x="179.0" y="89.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">2</text>
+        <line x1="182.0" y1="205.0" x2="188.0" y2="205.0" stroke="var(--ink)"/>
+        <text x="179.0" y="209.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">−2</text>
+        <text x="251.0" y="161.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Re <tspan font-style="italic">z</tspan></text>
+        <text x="179.0" y="38.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">Im <tspan font-style="italic">z</tspan></text>
+        <text x="140.0" y="22.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">forward Euler:  |1 + <tspan font-style="italic">z</tspan>| ≤ 1</text>
+        <circle cx="185.0" cy="130.0" r="2.8" fill="var(--cse-blue)"/>
+        <circle cx="185.0" cy="160.0" r="2.8" fill="var(--cse-blue)"/>
+        <path d="M31.0,141.0 L39.0,149.0 M39.0,141.0 L31.0,149.0" stroke="var(--cse-red)" stroke-width="1.6"/>
+        <clipPath id="rkClip1"><rect x="301.0" y="40.0" width="261.0" height="210.0"/></clipPath>
+        <g clip-path="url(#rkClip1)"><path d="M301.0,43.0 H568.0 V247.0 H301.0 Z M535.0,145.0 A30.0,30.0 0 1,0 475.0,145.0 A30.0,30.0 0 1,0 535.0,145.0 Z" fill="var(--cse-green)" fill-opacity="0.25" fill-rule="evenodd" stroke="none"/><circle cx="505.0" cy="145.0" r="30.0" fill="none" stroke="var(--cse-green)" stroke-width="1.1"/></g>
+        <line x1="301.0" y1="145.0" x2="562.0" y2="145.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="475.0" y1="250.0" x2="475.0" y2="40.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="355.0" y1="142.0" x2="355.0" y2="148.0" stroke="var(--ink)"/>
+        <text x="355.0" y="160.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−4</text>
+        <line x1="415.0" y1="142.0" x2="415.0" y2="148.0" stroke="var(--ink)"/>
+        <text x="415.0" y="160.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−2</text>
+        <line x1="472.0" y1="85.0" x2="478.0" y2="85.0" stroke="var(--ink)"/>
+        <text x="469.0" y="89.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">2</text>
+        <line x1="472.0" y1="205.0" x2="478.0" y2="205.0" stroke="var(--ink)"/>
+        <text x="469.0" y="209.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">−2</text>
+        <text x="541.0" y="161.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Re <tspan font-style="italic">z</tspan></text>
+        <text x="469.0" y="38.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">Im <tspan font-style="italic">z</tspan></text>
+        <text x="430.0" y="22.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">backward Euler:  |1 − <tspan font-style="italic">z</tspan>| ≥ 1</text>
+        <circle cx="475.0" cy="130.0" r="2.8" fill="var(--cse-blue)"/>
+        <circle cx="475.0" cy="160.0" r="2.8" fill="var(--cse-blue)"/>
+        <path d="M321.0,141.0 L329.0,149.0 M329.0,141.0 L321.0,149.0" stroke="var(--cse-red)" stroke-width="1.6"/>
+        <clipPath id="rkClip2"><rect x="11.0" y="290.0" width="261.0" height="210.0"/></clipPath>
+        <g clip-path="url(#rkClip2)"><rect x="11.0" y="293.0" width="174.0" height="204.0" fill="var(--cse-green)" fill-opacity="0.25" stroke="var(--cse-green)" stroke-width="1.1"/></g>
+        <line x1="11.0" y1="395.0" x2="272.0" y2="395.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="185.0" y1="500.0" x2="185.0" y2="290.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="65.0" y1="392.0" x2="65.0" y2="398.0" stroke="var(--ink)"/>
+        <text x="65.0" y="410.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−4</text>
+        <line x1="125.0" y1="392.0" x2="125.0" y2="398.0" stroke="var(--ink)"/>
+        <text x="125.0" y="410.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−2</text>
+        <line x1="182.0" y1="335.0" x2="188.0" y2="335.0" stroke="var(--ink)"/>
+        <text x="179.0" y="339.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">2</text>
+        <line x1="182.0" y1="455.0" x2="188.0" y2="455.0" stroke="var(--ink)"/>
+        <text x="179.0" y="459.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">−2</text>
+        <text x="251.0" y="411.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Re <tspan font-style="italic">z</tspan></text>
+        <text x="179.0" y="288.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">Im <tspan font-style="italic">z</tspan></text>
+        <text x="140.0" y="272.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">trapezoidal:  Re <tspan font-style="italic">z</tspan> ≤ 0</text>
+        <circle cx="185.0" cy="380.0" r="2.8" fill="var(--cse-blue)"/>
+        <circle cx="185.0" cy="410.0" r="2.8" fill="var(--cse-blue)"/>
+        <path d="M31.0,391.0 L39.0,399.0 M39.0,391.0 L31.0,399.0" stroke="var(--cse-red)" stroke-width="1.6"/>
+        <clipPath id="rkClip3"><rect x="301.0" y="290.0" width="261.0" height="210.0"/></clipPath>
+        <g clip-path="url(#rkClip3)"><path d="M475.0,395.0 L475.0,394.5 L475.0,394.0 L475.0,393.4 L475.0,392.9 L475.0,392.4 L475.0,391.8 L475.0,391.3 L475.0,390.8 L475.0,390.2 L475.0,389.7 L475.0,389.2 L475.0,388.6 L475.0,388.1 L475.0,387.5 L475.0,387.0 L475.0,386.4 L475.0,385.8 L475.0,385.3 L475.0,384.7 L475.0,384.1 L475.0,383.5 L475.0,382.9 L475.0,382.3 L475.0,381.6 L475.0,381.0 L475.0,380.4 L475.0,379.7 L475.0,379.0 L475.0,378.4 L475.0,377.7 L475.0,377.0 L475.0,376.2 L475.0,375.5 L475.0,374.8 L475.0,374.0 L475.0,373.2 L475.0,372.4 L475.0,371.5 L475.1,370.7 L475.1,369.8 L475.1,368.8 L475.1,367.9 L475.1,366.9 L475.2,365.9 L475.2,364.8 L475.2,363.7 L475.3,362.5 L475.4,361.3 L475.5,360.0 L475.6,358.6 L475.7,357.1 L475.9,355.4 L476.2,353.7 L476.5,351.7 L476.9,349.4 L477.6,346.7 L478.4,343.5 L479.6,339.7 L480.7,335.6 L481.6,331.6 L482.0,328.2 L482.1,325.2 L481.9,322.6 L481.5,320.2 L480.8,318.2 L480.0,316.3 L479.1,314.6 L478.1,313.2 L476.9,311.8 L475.7,310.7 L474.4,309.7 L473.0,308.9 L471.5,308.2 L470.1,307.6 L468.5,307.2 L466.9,307.0 L465.3,306.9 L463.7,306.9 L462.1,307.1 L460.4,307.5 L458.8,308.0 L457.1,308.7 L455.5,309.5 L453.9,310.5 L452.3,311.5 L450.8,312.8 L449.2,314.1 L447.8,315.5 L446.4,316.9 L445.0,318.3 L443.7,319.6 L442.4,320.9 L441.2,322.2 L440.0,323.3 L438.8,324.3 L437.7,325.3 L436.6,326.2 L435.4,327.0 L434.4,327.8 L433.3,328.5 L432.2,329.2 L431.2,329.9 L430.1,330.5 L429.1,331.1 L428.0,331.7 L427.0,332.3 L426.0,332.9 L425.0,333.4 L424.0,334.0 L423.0,334.5 L422.0,335.1 L421.0,335.6 L420.0,336.2 L419.1,336.8 L418.1,337.3 L417.2,337.9 L416.2,338.5 L415.3,339.1 L414.4,339.7 L413.5,340.4 L412.6,341.0 L411.7,341.7 L410.8,342.4 L410.0,343.1 L409.1,343.8 L408.3,344.5 L407.5,345.2 L406.7,346.0 L405.9,346.8 L405.2,347.5 L404.4,348.3 L403.7,349.2 L403.0,350.0 L402.4,350.8 L401.7,351.7 L401.1,352.6 L400.5,353.5 L399.9,354.4 L399.3,355.3 L398.8,356.2 L398.3,357.2 L397.8,358.1 L397.3,359.1 L396.9,360.0 L396.4,361.0 L396.0,362.0 L395.7,363.0 L395.3,363.9 L395.0,364.9 L394.6,365.9 L394.3,366.9 L394.1,367.9 L393.8,368.9 L393.6,369.9 L393.3,370.9 L393.1,371.9 L393.0,372.9 L392.8,373.9 L392.6,374.9 L392.5,375.9 L392.4,376.9 L392.2,377.9 L392.1,378.8 L392.0,379.8 L391.9,380.8 L391.9,381.8 L391.8,382.7 L391.7,383.7 L391.7,384.6 L391.6,385.6 L391.6,386.5 L391.6,387.5 L391.5,388.4 L391.5,389.4 L391.5,390.3 L391.5,391.3 L391.5,392.2 L391.4,393.1 L391.4,394.1 L391.4,395.0 L391.4,395.9 L391.4,396.9 L391.5,397.8 L391.5,398.7 L391.5,399.7 L391.5,400.6 L391.5,401.6 L391.6,402.5 L391.6,403.5 L391.6,404.4 L391.7,405.4 L391.7,406.3 L391.8,407.3 L391.9,408.2 L391.9,409.2 L392.0,410.2 L392.1,411.2 L392.2,412.1 L392.4,413.1 L392.5,414.1 L392.6,415.1 L392.8,416.1 L393.0,417.1 L393.1,418.1 L393.3,419.1 L393.6,420.1 L393.8,421.1 L394.1,422.1 L394.3,423.1 L394.6,424.1 L395.0,425.1 L395.3,426.1 L395.7,427.0 L396.0,428.0 L396.4,429.0 L396.9,430.0 L397.3,430.9 L397.8,431.9 L398.3,432.8 L398.8,433.8 L399.3,434.7 L399.9,435.6 L400.5,436.5 L401.1,437.4 L401.7,438.3 L402.4,439.2 L403.0,440.0 L403.7,440.8 L404.4,441.7 L405.2,442.5 L405.9,443.2 L406.7,444.0 L407.5,444.8 L408.3,445.5 L409.1,446.2 L410.0,446.9 L410.8,447.6 L411.7,448.3 L412.6,449.0 L413.5,449.6 L414.4,450.3 L415.3,450.9 L416.2,451.5 L417.2,452.1 L418.1,452.7 L419.1,453.2 L420.0,453.8 L421.0,454.4 L422.0,454.9 L423.0,455.5 L424.0,456.0 L425.0,456.6 L426.0,457.1 L427.0,457.7 L428.0,458.3 L429.1,458.9 L430.1,459.5 L431.2,460.1 L432.2,460.8 L433.3,461.5 L434.4,462.2 L435.4,463.0 L436.6,463.8 L437.7,464.7 L438.8,465.7 L440.0,466.7 L441.2,467.8 L442.4,469.1 L443.7,470.4 L445.0,471.7 L446.4,473.1 L447.8,474.5 L449.2,475.9 L450.8,477.2 L452.3,478.5 L453.9,479.5 L455.5,480.5 L457.1,481.3 L458.8,482.0 L460.4,482.5 L462.1,482.9 L463.7,483.1 L465.3,483.1 L466.9,483.0 L468.5,482.8 L470.1,482.4 L471.5,481.8 L473.0,481.1 L474.4,480.3 L475.7,479.3 L476.9,478.2 L478.1,476.8 L479.1,475.4 L480.0,473.7 L480.8,471.8 L481.5,469.8 L481.9,467.4 L482.1,464.8 L482.0,461.8 L481.6,458.4 L480.7,454.4 L479.6,450.3 L478.4,446.5 L477.6,443.3 L476.9,440.6 L476.5,438.3 L476.2,436.3 L475.9,434.6 L475.7,432.9 L475.6,431.4 L475.5,430.0 L475.4,428.7 L475.3,427.5 L475.2,426.3 L475.2,425.2 L475.2,424.1 L475.1,423.1 L475.1,422.1 L475.1,421.2 L475.1,420.2 L475.1,419.3 L475.0,418.5 L475.0,417.6 L475.0,416.8 L475.0,416.0 L475.0,415.2 L475.0,414.5 L475.0,413.8 L475.0,413.0 L475.0,412.3 L475.0,411.6 L475.0,411.0 L475.0,410.3 L475.0,409.6 L475.0,409.0 L475.0,408.4 L475.0,407.7 L475.0,407.1 L475.0,406.5 L475.0,405.9 L475.0,405.3 L475.0,404.7 L475.0,404.2 L475.0,403.6 L475.0,403.0 L475.0,402.5 L475.0,401.9 L475.0,401.4 L475.0,400.8 L475.0,400.3 L475.0,399.8 L475.0,399.2 L475.0,398.7 L475.0,398.2 L475.0,397.6 L475.0,397.1 L475.0,396.6 L475.0,396.0 L475.0,395.5 L475.0,395.0 Z" fill="var(--cse-green)" fill-opacity="0.25" stroke="var(--cse-green)" stroke-width="1.1"/></g>
+        <line x1="301.0" y1="395.0" x2="562.0" y2="395.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="475.0" y1="500.0" x2="475.0" y2="290.0" stroke="var(--ink)" stroke-width="0.9" marker-end="url(#rkAx5)"/>
+        <line x1="355.0" y1="392.0" x2="355.0" y2="398.0" stroke="var(--ink)"/>
+        <text x="355.0" y="410.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−4</text>
+        <line x1="415.0" y1="392.0" x2="415.0" y2="398.0" stroke="var(--ink)"/>
+        <text x="415.0" y="410.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">−2</text>
+        <line x1="472.0" y1="335.0" x2="478.0" y2="335.0" stroke="var(--ink)"/>
+        <text x="469.0" y="339.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">2</text>
+        <line x1="472.0" y1="455.0" x2="478.0" y2="455.0" stroke="var(--ink)"/>
+        <text x="469.0" y="459.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">−2</text>
+        <text x="541.0" y="411.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">Re <tspan font-style="italic">z</tspan></text>
+        <text x="469.0" y="288.0" font-size="11" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">Im <tspan font-style="italic">z</tspan></text>
+        <text x="430.0" y="272.0" font-size="12.5" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">RK4:  |<tspan font-style="italic">R</tspan>(<tspan font-style="italic">z</tspan>)| ≤ 1</text>
+        <circle cx="475.0" cy="380.0" r="2.8" fill="var(--cse-blue)"/>
+        <circle cx="475.0" cy="410.0" r="2.8" fill="var(--cse-blue)"/>
+        <path d="M321.0,391.0 L329.0,399.0 M329.0,391.0 L321.0,399.0" stroke="var(--cse-red)" stroke-width="1.6"/>
+      </svg>
+    </figure>
+
+    <p>The oscillator's dots lie outside the forward Euler disc, inside the backward Euler
+    region (where they are damped), on the edge of the trapezoidal half-plane, and just inside
+    the RK4 region ($\abs{R(\pm0.5i)} = 0.99989$). The RK4 region reaches $\pm2\sqrt2\,i$ on the
+    imaginary axis and $-2.785$ on the real axis. Only the implicit methods contain the
+    cross.</p>
+
+    <p id="ex4-2"><strong>Example 4.2</strong> (A fast decay). <strong>Given.</strong> An RC
+    circuit with time constant $RC = 20$ ms, so that its capacitor voltage $x$ obeys
+    $\dot x = -x/(RC) = -50\,x$, is one part of a larger simulation whose slow parts are stepped
+    with $h = 0.1$ s.</p>
+    <p><strong>Find.</strong> What does each method multiply the voltage $x$ by at each step?
+    Which methods keep it bounded?</p>
+    <p><strong>Answer.</strong> Here $z = -50\times0.1 = -5$, and the true factor per step is
+    $e^{-5} = 0.0067$.</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:480px;margin:0 auto">
+      <tr><td><strong>method</strong></td><td style="text-align:right"><strong>factor per step $R(-5)$</strong></td>
+          <td style="text-align:right"><strong>after five steps</strong></td></tr>
+      <tr><td>forward Euler</td><td style="text-align:right">$-4$</td><td style="text-align:right">$-1024$</td></tr>
+      <tr><td>backward Euler</td><td style="text-align:right">$1/6 = 0.167$</td><td style="text-align:right">$0.00013$</td></tr>
+      <tr><td>trapezoidal</td><td style="text-align:right">$-3/7 = -0.429$</td><td style="text-align:right">$-0.014$</td></tr>
+      <tr><td>RK4</td><td style="text-align:right">$13.7$</td><td style="text-align:right">$4.8\times10^5$</td></tr>
+      <tr><td>true solution</td><td style="text-align:right">$0.0067$</td><td style="text-align:right">$1.4\times10^{-11}$</td></tr>
+    </table>
+    </div>
+
+    <p>Leapfrog does not apply to this first-order equation. Backward Euler gives the right
+    picture: the fast part is gone after a step or two. The trapezoidal method keeps it bounded
+    but flips its sign at every step. Forward Euler and RK4 blow up; they would need
+    $h \le 2/50 = 0.04$ s and $h \le 2.785/50 = 0.056$ s, steps set by a part of the circuit
+    that does nothing of interest after its first hundred milliseconds or so (a few time
+    constants). Problems like this, with fast modes that decay and slow modes that we want to
+    follow, are called <strong>stiff</strong>, and implicit methods are made for them.</p>
+
+    <div class="keyidea">
+      <span class="boxtitle">Which method when</span>
+      <ul>
+        <li><em>Long runs of oscillations, where the energy must not drift</em> (orbits,
+        molecular dynamics, waves): leapfrog, which is explicit and cheap, inside its step
+        limit; or the trapezoidal method, which keeps the energy of a linear oscillator at any
+        step, at the cost of a solve.</li>
+        <li><em>Smooth problems without fast decaying modes</em>, where accuracy for the work
+        matters: RK4, or an adaptive Runge–Kutta pair such as <code>ode45</code>.</li>
+        <li><em>Stiff problems</em>: backward Euler, or the backward differentiation formulas
+        that extend it to higher order, which damp the fast modes at any step.</li>
+        <li><em>Forward Euler</em>: for understanding, and as a building block; rarely on its
+        own.</li>
+      </ul>
+    </div>
+
+    <div class="callout" id="ex4-3">
+      <span class="label">Exercise 4.3</span>
+      <p><strong>(An LC circuit). Given.</strong> A circuit with $L = 1$ mH and
+      $C = 10\ \mu$F and no resistance, so that the charge obeys $L\ddot q + q/C = 0$, that is
+      $\ddot q + \omega^2 q = 0$ with $\omega = 1/\sqrt{LC}$.</p>
+      <p><strong>Find.</strong> (a) What are $\omega$ and the period $T$? (b) For which steps
+      $h$ is each of the five methods stable? (c) Using the table of steps per period, what step
+      does each method need to stay within 1% for ten periods? Which sets the step here,
+      stability or accuracy?</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where this is going</h2>
+    <p>That closes our excursion through discrete mechanical models: masses and springs, their
+    motion, and how to step that motion in time. Next time we return to differential equations
+    in space and to the <em>finite element method</em>, which discretises the weak form of
+    $-\frac{d}{dx}\bigl(c(x)\frac{du}{dx}\bigr) = f(x)$ rather than the equation itself. The
+    stiffness matrix $\Kmat$ will reappear, but assembled from integrals of basis functions
+    instead of read off a spring chain.</p>
+  </section>
+
+  <section>
+    <h2>Reading</h2>
+    <p>Strang, <em>Computational Science and Engineering</em>, § 2.2 (Oscillation by Newton's
+    Law) for leapfrog and the trapezoidal method, and § 6.2 (Finite Difference Methods for
+    ODEs) for Runge–Kutta methods and stability. For why leapfrog keeps the energy close over
+    long times: E. Hairer, C. Lubich and G. Wanner, Geometric numerical integration illustrated
+    by the Störmer–Verlet method, <em>Acta Numerica</em> 12 (2003), 399–450.</p>
+  </section>
+
+  <section>
+    <h2 id="answer-4-3">Answer to <a href="#ex4-3">Exercise 4.3</a></h2>
+    <p>(a) $\omega = 1/\sqrt{10^{-3}\cdot10^{-5}} = 10^4$ rad/s, so $f = 1.59$ kHz and
+    $T = 2\pi/\omega = 628\ \mu$s.</p>
+    <p>(b) In the time $\omega t$ the equation is our oscillator, with the step $\omega h$.
+    Leapfrog needs $\omega h &lt; 2$, that is $h &lt; 200\ \mu$s; RK4 needs
+    $\omega h \le 2\sqrt2$, that is $h \le 283\ \mu$s. The trapezoidal method is stable at
+    every step, and so is backward Euler, which damps the oscillation. Forward Euler is
+    unstable at every step.</p>
+    <p>(c) The step is $h = T/N$ with $N$ from the table: forward Euler $0.032\ \mu$s,
+    backward Euler $0.032\ \mu$s, leapfrog $6.2\ \mu$s, trapezoidal $4.4\ \mu$s, RK4
+    $37\ \mu$s (with 68 evaluations per period). These steps are far below the stability
+    limits of (b): here accuracy, not stability, sets the step.</p>
+  </section>
+
+  <section id="appendix">
+    <h2>Appendix: Simpson's rule, RK4 and the five methods in Python</h2>
+    <p>The script below repeats Examples <a href="#ex2-1">2.1</a> and <a href="#exS-1">S.1</a>
+    and the table of Simpson's rule with $N$ steps, builds the five growth matrices, repeats the
+    two-step comparison and <a href="#ex4-1">Example 4.1</a>, finds the steps per period for 1%
+    by bisection, and prints the factors of <a href="#ex4-2">Example 4.2</a>. It needs only
+    NumPy.</p>
+<pre><code>"""Lecture 16: Simpson's rule, RK4, and five time-stepping methods for u'' + u = 0 (y' = Ay, y = (u, v))."""
+import numpy as np
+
+# 1. three rules for the integral of e^t over one step [0, 0.5]
+h = 0.5
+M = h * np.exp(h / 2)                                        # midpoint
+T = h / 2 * (1 + np.exp(h))                                  # trapezoid
+S = (2 * M + T) / 3                                          # Simpson = (h/6)(f_n + 4 f_m + f_n+1)
+exact = np.exp(h) - 1
+print(f"integral of e^t on [0, 0.5]: exact {exact:.7f}")
+for name, r in (("midpoint", M), ("trapezoid", T), ("Simpson", S)):
+    print(f"  {name:9s} {r:.7f}  exact minus rule {exact - r:+.7f}")
+
+# 2. Simpson's rule with N steps on [0, 1]
+for N in (1, 2, 4, 8):
+    hN = 1 / N
+    t = hN * np.arange(N)
+    SN = np.sum(hN / 6 * (np.exp(t) + 4 * np.exp(t + hN / 2) + np.exp(t + hN)))
+    print(f"  Simpson, N = {N}: exact minus rule {np.e - 1 - SN:.3e}")
+
+A = np.array([[0.0, 1.0], [-1.0, 0.0]])
+I = np.eye(2)
+methods = ["forward Euler", "backward Euler", "leapfrog", "trapezoidal", "RK4"]
+
+def growth_matrix(method, h):
+    if method == "forward Euler":
+        return I + h * A
+    if method == "backward Euler":
+        return np.linalg.inv(I - h * A)    # a real code solves with I - hA instead
+    if method == "leapfrog":
+        return np.array([[1.0, h], [-h, 1.0 - h * h]])
+    if method == "trapezoidal":
+        return np.linalg.solve(I - h * A / 2, I + h * A / 2)
+    if method == "RK4":
+        hA = h * A
+        return I + hA + hA @ hA / 2 + hA @ hA @ hA / 6 + hA @ hA @ hA @ hA / 24
+
+def rk4_step(f, t, y, h):                          # one RK4 step for any y' = f(t, y)
+    k1 = f(t, y)
+    k2 = f(t + h / 2, y + h / 2 * k1)
+    k3 = f(t + h / 2, y + h / 2 * k2)
+    k4 = f(t + h, y + h * k3)
+    return y + h / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+
+def start(method, h):                   # u(0) = 1, v(0) = 0; leapfrog gets half a kick
+    return np.array([1.0, -h / 2 if method == "leapfrog" else 0.0])
+
+def distance(method, y, t, h):    # leapfrog's V is the velocity half a step later
+    s = h / 2 if method == "leapfrog" else 0.0
+    return np.hypot(y[0] - np.cos(t), y[1] + np.sin(t + s))
+
+# 1. two steps of h = 0.5, and the size and angle of the eigenvalues of G
+h = 0.5
+print("two steps of h = 0.5 from u = 1, v = 0:")
+for m in methods:
+    G = growth_matrix(m, h)
+    y = G @ G @ start(m, h)
+    lam = np.linalg.eigvals(G)[0]
+    print(f"  {m:14s} U2 {y[0]:8.5f}  V2 {y[1]:8.5f}  off {distance(m, y, 1.0, h):.5f}"
+          f"  |lambda| {abs(lam):.5f}  angle {abs(np.angle(lam)):.5f}")
+y1 = rk4_step(lambda t, y: A @ y, 0.0, np.array([1.0, 0.0]), h)
+print("  one RK4 step with stages:", np.round(y1, 6),
+      " same as G:", np.allclose(y1, growth_matrix("RK4", h) @ [1.0, 0.0]))
+print("RK4 for y' = y, one step of h = 0.5:", rk4_step(lambda t, y: y, 0.0, 1.0, 0.5),
+      " exact", round(np.exp(0.5), 7))
+
+
+# 3. fewest steps per period that keep the point within 1% after ten periods
+def error_after(method, N, periods=10):
+    h = 2 * np.pi / N
+    n = N * periods
+    y = np.linalg.matrix_power(growth_matrix(method, h), n) @ start(method, h)
+    return distance(method, y, h * n, h)
+
+print("steps per period for 1% after ten periods:")
+for m in methods:
+    lo, hi = 2, 10 ** 6
+    while hi - lo &gt; 1:                  # bisection: the error falls as N grows
+        mid = (lo + hi) // 2
+        lo, hi = (lo, mid) if error_after(m, mid) &lt;= 0.01 else (mid, hi)
+    work = 4 * hi if m == "RK4" else hi
+    print(f"  {m:14s} {hi:6d} steps, {work:6d} evaluations or solves per period")
+
+# 4. a fast decay y' = -50 y with h = 0.1: z = -5
+z = -5.0
+R = {"forward Euler": 1 + z, "backward Euler": 1 / (1 - z),
+     "trapezoidal": (1 + z / 2) / (1 - z / 2),
+     "RK4": 1 + z + z ** 2 / 2 + z ** 3 / 6 + z ** 4 / 24}
+print("factor per step at z = -5, exact", round(np.exp(z), 4))
+for m, r in R.items():
+    print(f"  {m:14s} {r:8.4f}")</code></pre>
+    <p>Its output:</p>
+<pre><code>integral of e^t on [0, 0.5]: exact 0.6487213
+  midpoint  0.6420127  exact minus rule +0.0067086
+  trapezoid 0.6621803  exact minus rule -0.0134590
+  Simpson   0.6487352  exact minus rule -0.0000140
+  Simpson, N = 1: exact minus rule -5.793e-04
+  Simpson, N = 2: exact minus rule -3.701e-05
+  Simpson, N = 4: exact minus rule -2.326e-06
+  Simpson, N = 8: exact minus rule -1.456e-07
+two steps of h = 0.5 from u = 1, v = 0:
+  forward Euler  U2  0.75000  V2 -1.00000  off 0.26288  |lambda| 1.11803  angle 0.46365
+  backward Euler U2  0.48000  V2 -0.64000  off 0.21030  |lambda| 0.89443  angle 0.46365
+  leapfrog       U2  0.53125  V2 -0.95312  off 0.00995  |lambda| 1.00000  angle 0.50536
+  trapezoidal    U2  0.55709  V2 -0.83045  off 0.02009  |lambda| 1.00000  angle 0.48996
+  RK4            U2  0.54059  V2 -0.84104  off 0.00052  |lambda| 0.99989  angle 0.49976
+  one RK4 step with stages: [ 0.877604 -0.479167]  same as G: True
+RK4 for y' = y, one step of h = 0.5: 1.6484375  exact 1.6487213
+steps per period for 1% after ten periods:
+  forward Euler   19838 steps,  19838 evaluations or solves per period
+  backward Euler  19641 steps,  19641 evaluations or solves per period
+  leapfrog          102 steps,    102 evaluations or solves per period
+  trapezoidal       144 steps,    144 evaluations or solves per period
+  RK4                17 steps,     68 evaluations or solves per period
+factor per step at z = -5, exact 0.0067
+  forward Euler   -4.0000
+  backward Euler   0.1667
+  trapezoidal     -0.4286
+  RK4             13.7083</code></pre>
+  </section>
+
+  <section id="secS">
+    <h2>S · Supplementary Information: the derivation of RK4</h2>
+    <p>This section derives the RK4 step summarised in <a href="#sec3">Section 3</a>: how the
+    method follows from Simpson's rule, and why it is fourth order.</p>
+
+    <h3>The missing values</h3>
+    <p>For $\dot{\vec y} = \vec f(t, \vec y)$ Simpson's rule needs $\vec f$ at the midpoint and
+    at the end of the step, and these need $\vec y(t_{n+1/2})$ and $\vec y(t_{n+1})$, which are
+    not known yet. <a href="L14.html">Lecture 15</a> had two answers to this kind of problem.
+    Backward Euler and the trapezoidal method solve for the new value: they are implicit and
+    cost a solve per step. Forward Euler uses only values it already has: it is explicit.
+    Runge–Kutta methods stay explicit. They <em>predict</em> the missing values with Euler
+    steps and use the predictions only inside $\vec f$.</p>
+
+    <h3>Two stages: the midpoint method</h3>
+    <p>The smallest example is the midpoint rule. Predict the midpoint with half a forward Euler
+    step, take the slope there, and use it for the whole step:</p>
+    \[
+      \vec k_1 = \vec f(t_n, \vec Y_n), \qquad
+      \vec k_2 = \vec f\bigl(t_n + \tfrac{h}{2},\ \vec Y_n + \tfrac{h}{2}\,\vec k_1\bigr), \qquad
+      \vec Y_{n+1} = \vec Y_n + h\,\vec k_2 .
+    \]
+    <p>How much does the prediction cost? Half a forward Euler step from $\vec y(t_n)$ misses
+    $\frac12\bigl(\frac{h}{2}\bigr)^2\ddot{\vec y} = \frac{h^2}{8}\ddot{\vec y}$
+    (<a href="L14.html">Lecture 15</a>), so $\vec k_2$ is off the true midpoint slope by a
+    multiple of $h^2$, and $h\,\vec k_2$ by a multiple of $h^3$. That is the same order as the
+    error $\frac{h^3}{24}\ddot f$ of the midpoint rule itself, so one step is in error by
+    $\Oh{h^3}$ and the method is second order.</p>
+    <p>To see the order in one line, use the <strong>test equation</strong> $\dot y = \mu y$,
+    where $\mu$ is a number, possibly complex (for the oscillator $\mu = \pm i$, the eigenvalues
+    of $\mat A$). Its exact step multiplies $y$ by</p>
+    \[
+      e^{h\mu} = e^z = 1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24} + \frac{z^5}{120} + \cdots,
+      \qquad z = h\mu,
+    \]
+    <p>and each method multiplies $Y_n$ by a factor $R(z)$ instead. For the midpoint method
+    $k_1 = \mu Y_n$, the predicted midpoint is
+    $Y_n + \frac{h}{2}k_1 = (1 + \frac{z}{2})Y_n$, so $k_2 = \mu(1 + \frac{z}{2})Y_n$ and</p>
+    \[
+      Y_{n+1} = Y_n + h\,k_2 = \Bigl(1 + z + \frac{z^2}{2}\Bigr)Y_n, \qquad
+      R(z) = 1 + z + \frac{z^2}{2}.
+    \]
+    <p>This matches $e^z$ up to $z^2$ and misses $\frac{z^3}{6}$: an error of order $h^3$ per
+    step, second order.</p>
+
+    <h3>Four stages</h3>
+    <p>RK4 does the same for Simpson's rule, which needs the midpoint and the end. It predicts
+    the midpoint twice and the end once:</p>
+
+    <div class="tablewrap">
+    <table class="cv">
+      <tr><td style="padding-right:18px">$\vec k_1 = \vec f(t_n, \vec Y_n)$</td><td>slope at the start,</td></tr>
+      <tr><td style="padding-right:18px">$\vec k_2 = \vec f\bigl(t_n + \frac{h}{2},\ \vec Y_n + \frac{h}{2}\,\vec k_1\bigr)$</td>
+          <td>slope at a midpoint predicted with $\vec k_1$,</td></tr>
+      <tr><td style="padding-right:18px">$\vec k_3 = \vec f\bigl(t_n + \frac{h}{2},\ \vec Y_n + \frac{h}{2}\,\vec k_2\bigr)$</td>
+          <td>slope at a midpoint predicted with $\vec k_2$,</td></tr>
+      <tr><td style="padding-right:18px">$\vec k_4 = \vec f\bigl(t_n + h,\ \vec Y_n + h\,\vec k_3\bigr)$</td>
+          <td>slope at an end point predicted with $\vec k_3$.</td></tr>
+    </table>
+    </div>
+
+    <p>Then it applies Simpson's rule with the midpoint slope taken as the average of
+    $\vec k_2$ and $\vec k_3$:</p>
+    \[
+      \vec Y_{n+1} = \vec Y_n + \frac{h}{6}\Bigl(\vec k_1 + 4\cdot\frac{\vec k_2 + \vec k_3}{2} + \vec k_4\Bigr)
+      = \vec Y_n + \frac{h}{6}\bigl(\vec k_1 + 2\vec k_2 + 2\vec k_3 + \vec k_4\bigr).
+    \]
+    <p>The method is explicit: four evaluations of $\vec f$ per step and no solves. If $\vec f$
+    depends on $t$ only, then $\vec k_2 = \vec k_3$ and the update is Simpson's rule itself. Why
+    two midpoint slopes rather than one? The test equation answers this.</p>
+
+    <h3>The check on the test equation</h3>
+    <p>For $\dot y = \mu y$ every trial point is $Y_n$ times a polynomial in $z$, and every
+    slope is $\mu$ times the trial point:</p>
+    \[
+      \begin{aligned}
+        &amp;k_1 = \mu Y_n, &amp;&amp; \\
+        &amp;Y_n + \tfrac{h}{2}k_1 = \bigl(1 + \tfrac{z}{2}\bigr)Y_n, &amp;&amp;
+          k_2 = \mu\bigl(1 + \tfrac{z}{2}\bigr)Y_n, \\
+        &amp;Y_n + \tfrac{h}{2}k_2 = \bigl(1 + \tfrac{z}{2} + \tfrac{z^2}{4}\bigr)Y_n, &amp;&amp;
+          k_3 = \mu\bigl(1 + \tfrac{z}{2} + \tfrac{z^2}{4}\bigr)Y_n, \\
+        &amp;Y_n + hk_3 = \bigl(1 + z + \tfrac{z^2}{2} + \tfrac{z^3}{4}\bigr)Y_n, &amp;&amp;
+          k_4 = \mu\bigl(1 + z + \tfrac{z^2}{2} + \tfrac{z^3}{4}\bigr)Y_n.
+      \end{aligned}
+    \]
+    <p>Collect the coefficients of $\mu Y_n$ in $k_1 + 2k_2 + 2k_3 + k_4$:</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:300px;margin:0 auto;text-align:center">
+      <tr><td></td><td><strong>$1$</strong></td><td><strong>$z$</strong></td>
+          <td><strong>$z^2$</strong></td><td><strong>$z^3$</strong></td></tr>
+      <tr><td>$k_1$</td><td>$1$</td><td>$0$</td><td>$0$</td><td>$0$</td></tr>
+      <tr><td>$2k_2$</td><td>$2$</td><td>$1$</td><td>$0$</td><td>$0$</td></tr>
+      <tr><td>$2k_3$</td><td>$2$</td><td>$1$</td><td>$\frac12$</td><td>$0$</td></tr>
+      <tr><td>$k_4$</td><td>$1$</td><td>$1$</td><td>$\frac12$</td><td>$\frac14$</td></tr>
+      <tr><td><strong>sum</strong></td><td>$6$</td><td>$3$</td><td>$1$</td><td>$\frac14$</td></tr>
+    </table>
+    </div>
+
+    <p>So $k_1 + 2k_2 + 2k_3 + k_4 = \mu\bigl(6 + 3z + z^2 + \frac{z^3}{4}\bigr)Y_n$, and with
+    $\frac{h}{6}\,\mu = \frac{z}{6}$,</p>
+    \[
+      Y_{n+1} = Y_n + \frac{z}{6}\Bigl(6 + 3z + z^2 + \frac{z^3}{4}\Bigr)Y_n
+      = \Bigl(1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24}\Bigr)Y_n .
+    \]
+    <p>The factor $R(z) = 1 + z + \frac{z^2}{2} + \frac{z^3}{6} + \frac{z^4}{24}$ is $e^z$ up to
+    $z^4$ and misses $\frac{z^5}{120}$: one step is in error by $\Oh{h^5}$, the error at a fixed
+    time is $\Oh{h^4}$, and halving $h$ divides it by about 16.</p>
+    <p>The second midpoint slope is what makes the $z^3$ term right. With $4k_2$ in place of
+    $2k_2 + 2k_3$ the sum would be $6 + 3z + \frac{z^2}{2} + \frac{z^3}{4}$, and
+    $R(z) = 1 + z + \frac{z^2}{2} + \frac{z^3}{12} + \frac{z^4}{24}$, with $\frac1{12}$ where
+    $e^z$ has $\frac16$: only second order.</p>
+    <p>For a system $\dot{\vec y} = \mat A\vec y$ the same algebra holds with $\mu$ replaced by
+    $\mat A$, since powers of $\mat A$ commute. The growth matrix is the same polynomial,</p>
+    \[
+      \mat G_{RK} = \eye + h\mat A + \frac{(h\mat A)^2}{2} + \frac{(h\mat A)^3}{6} + \frac{(h\mat A)^4}{24},
+    \]
+    <p>the Taylor series of $e^{h\mat A}$ up to the fourth power.</p>
+
+    <h3>Fourth order for any $f$: the Taylor check</h3>
+    <p>We now check, with every step written out, that one RK4 step agrees with the Taylor
+    series of the true solution up to the $h^4$ term. To keep the bookkeeping short take a
+    single equation that does not depend on $t$ explicitly, $\dot y = f(y)$, start from
+    $Y_n = y(t_n)$, and write $f$, $f'$, $f''$, $f'''$ for $f$ and its derivatives with respect
+    to $y$, all evaluated at $Y_n$.</p>
+    <p><em>The true solution.</em> Differentiate $\dot y = f(y)$ with the chain rule, using
+    $\dot y = f$ each time:</p>
+    \[
+      \begin{aligned}
+        \ddot y &amp;= f'\,\dot y = ff', \\
+        \dddot y &amp;= \frac{d}{dt}(ff') = (f'f' + ff'')\dot y = ff'^2 + f^2f'', \\
+        y^{(4)} &amp;= \frac{d}{dt}(ff'^2 + f^2f'') = (f'^3 + 2ff'f'' + 2ff'f'' + f^2f''')\dot y
+          = ff'^3 + 4f^2f'f'' + f^3f''' .
+      \end{aligned}
+    \]
+    <p>So the Taylor series of the true solution over one step is</p>
+    \[
+      y(t_{n+1}) = Y_n + hf + \frac{h^2}{2}\,ff' + \frac{h^3}{6}\,(ff'^2 + f^2f'')
+        + \frac{h^4}{24}\,(ff'^3 + 4f^2f'f'' + f^3f''') + \Oh{h^5}.
+    \]
+    <p><em>The stages.</em> Each stage is $f$ at a shifted point, $f(Y_n + \delta)$, and
+    Taylor's theorem in $\delta$ gives</p>
+    \[
+      f(Y_n + \delta) = f + \delta f' + \frac{\delta^2}{2}\,f'' + \frac{\delta^3}{6}\,f''' + \cdots .
+    \]
+    <p>We keep every term up to $h^3$ in each stage (multiplied by $h$ in the update, that is
+    $h^4$).</p>
+    <ul>
+      <li><p>$k_1 = f$.</p></li>
+      <li><p>$k_2$: here $\delta = \frac{h}{2}k_1 = \frac{h}{2}f$, so</p>
+      \[
+        k_2 = f + \frac{h}{2}\,ff' + \frac{h^2}{8}\,f^2f'' + \frac{h^3}{48}\,f^3f''' + \Oh{h^4}.
+      \]</li>
+      <li><p>$k_3$: here
+      $\delta = \frac{h}{2}k_2 = \frac{h}{2}f + \frac{h^2}{4}ff' + \frac{h^3}{16}f^2f'' + \cdots$,
+      with $\delta^2 = \frac{h^2}{4}f^2 + \frac{h^3}{4}f^2f' + \cdots$ and
+      $\delta^3 = \frac{h^3}{8}f^3 + \cdots$. Then</p>
+      \[
+        \begin{aligned}
+          \delta f' &amp;= \frac{h}{2}\,ff' + \frac{h^2}{4}\,ff'^2 + \frac{h^3}{16}\,f^2f'f'' + \cdots, \\
+          \frac{\delta^2}{2}\,f'' &amp;= \frac{h^2}{8}\,f^2f'' + \frac{h^3}{8}\,f^2f'f'' + \cdots, \\
+          \frac{\delta^3}{6}\,f''' &amp;= \frac{h^3}{48}\,f^3f''' + \cdots,
+        \end{aligned}
+      \]
+      <p>and adding up $\bigl(\frac1{16} + \frac18 = \frac3{16}\bigr)$,</p>
+      \[
+        k_3 = f + \frac{h}{2}\,ff' + h^2\Bigl(\frac14\,ff'^2 + \frac18\,f^2f''\Bigr)
+          + h^3\Bigl(\frac3{16}\,f^2f'f'' + \frac1{48}\,f^3f'''\Bigr) + \Oh{h^4}.
+      \]</li>
+      <li><p>$k_4$: here
+      $\delta = hk_3 = hf + \frac{h^2}{2}ff' + h^3\bigl(\frac14ff'^2 + \frac18f^2f''\bigr) + \cdots$,
+      with $\delta^2 = h^2f^2 + h^3f^2f' + \cdots$ and $\delta^3 = h^3f^3 + \cdots$. Then</p>
+      \[
+        \begin{aligned}
+          \delta f' &amp;= h\,ff' + \frac{h^2}{2}\,ff'^2 + h^3\Bigl(\frac14\,ff'^3 + \frac18\,f^2f'f''\Bigr) + \cdots, \\
+          \frac{\delta^2}{2}\,f'' &amp;= \frac{h^2}{2}\,f^2f'' + \frac{h^3}{2}\,f^2f'f'' + \cdots, \\
+          \frac{\delta^3}{6}\,f''' &amp;= \frac{h^3}{6}\,f^3f''' + \cdots,
+        \end{aligned}
+      \]
+      <p>and adding up $\bigl(\frac18 + \frac12 = \frac58\bigr)$,</p>
+      \[
+        k_4 = f + h\,ff' + h^2\Bigl(\frac12\,ff'^2 + \frac12\,f^2f''\Bigr)
+          + h^3\Bigl(\frac14\,ff'^3 + \frac58\,f^2f'f'' + \frac16\,f^3f'''\Bigr) + \Oh{h^4}.
+      \]</li>
+    </ul>
+
+    <p><em>The weighted sum.</em> Collect the coefficients of $k_1 + 2k_2 + 2k_3 + k_4$, term by
+    term:</p>
+
+    <div class="tablewrap">
+    <table class="cv" style="max-width:560px;margin:0 auto;text-align:center">
+      <tr><td></td><td><strong>$f$</strong></td><td><strong>$h\,ff'$</strong></td>
+          <td><strong>$h^2ff'^2$</strong></td><td><strong>$h^2f^2f''$</strong></td>
+          <td><strong>$h^3ff'^3$</strong></td><td><strong>$h^3f^2f'f''$</strong></td>
+          <td><strong>$h^3f^3f'''$</strong></td></tr>
+      <tr><td>$k_1$</td><td>$1$</td><td>$0$</td><td>$0$</td><td>$0$</td><td>$0$</td><td>$0$</td><td>$0$</td></tr>
+      <tr><td>$2k_2$</td><td>$2$</td><td>$1$</td><td>$0$</td><td>$\frac14$</td><td>$0$</td><td>$0$</td><td>$\frac1{24}$</td></tr>
+      <tr><td>$2k_3$</td><td>$2$</td><td>$1$</td><td>$\frac12$</td><td>$\frac14$</td><td>$0$</td><td>$\frac38$</td><td>$\frac1{24}$</td></tr>
+      <tr><td>$k_4$</td><td>$1$</td><td>$1$</td><td>$\frac12$</td><td>$\frac12$</td><td>$\frac14$</td><td>$\frac58$</td><td>$\frac16$</td></tr>
+      <tr><td><strong>sum</strong></td><td>$6$</td><td>$3$</td><td>$1$</td><td>$1$</td><td>$\frac14$</td><td>$1$</td><td>$\frac14$</td></tr>
+    </table>
+    </div>
+
+    <p>So</p>
+    \[
+      k_1 + 2k_2 + 2k_3 + k_4 = 6f + 3h\,ff' + h^2(ff'^2 + f^2f'')
+        + \frac{h^3}{4}\,(ff'^3 + 4f^2f'f'' + f^3f''') + \Oh{h^4},
+    \]
+    <p>and multiplying by $h/6$,</p>
+    \[
+      Y_{n+1} = Y_n + hf + \frac{h^2}{2}\,ff' + \frac{h^3}{6}\,(ff'^2 + f^2f'')
+        + \frac{h^4}{24}\,(ff'^3 + 4f^2f'f'' + f^3f''') + \Oh{h^5}.
+    \]
+    <p>This is the Taylor series of the true solution, term by term up to $h^4$. One step makes
+    an error of order $h^5$, and over a fixed time the error is of order $h^4$: RK4 is
+    <strong>fourth order</strong>. The half steps and the weights $1, 2, 2, 1$ are what make
+    every column of the table agree with the Taylor series (Kutta found them in 1901). The third
+    stage is needed for this: with $4k_2$ in place of $2k_2 + 2k_3$, the $h^2ff'^2$ column would
+    sum to $\frac12$ instead of 1. For a system the same calculation has more terms, since $f'$
+    becomes the Jacobian matrix and $f''$ a bilinear form, and RK4 matches them as well.</p>
+
+    <p id="exS-1"><strong>Example S.1</strong> (One RK4 step for $\dot y = y$).
+    <strong>Given.</strong> $\dot y = y$, $y(0) = 1$, one step $h = 0.5$.</p>
+    <p><strong>Find.</strong> What are $k_1, \ldots, k_4$ and $Y_1$? How does $Y_1$ compare
+    with $e^{0.5}$, and with Simpson's rule for the same step
+    (<a href="#ex2-1">Example 2.1</a>)?</p>
+    <p><strong>Answer.</strong> Each slope is the trial value itself, since $f(y) = y$:</p>
+    \[
+      \begin{aligned}
+        &amp;k_1 = 1, &amp;&amp; \\
+        &amp;Y_0 + 0.25\,k_1 = 1.25, &amp;&amp; k_2 = 1.25, \\
+        &amp;Y_0 + 0.25\,k_2 = 1.3125, &amp;&amp; k_3 = 1.3125, \\
+        &amp;Y_0 + 0.5\,k_3 = 1.65625, &amp;&amp; k_4 = 1.65625.
+      \end{aligned}
+    \]
+    <p>Then $k_1 + 2k_2 + 2k_3 + k_4 = 1 + 2.5 + 2.625 + 1.65625 = 7.78125$ and</p>
+    \[
+      Y_1 = 1 + \frac{0.5}{6}\cdot 7.78125 = 1.6484375,
+    \]
+    <p>which is also $R(0.5) = 1 + 0.5 + 0.125 + 0.0208333 + 0.0026042$. The exact value is
+    $e^{0.5} = 1.6487213$, so the error is $0.00028$, close to the first missing term
+    $\frac{z^5}{120} = 0.00026$. Simpson's rule with the true values $1$, $e^{0.25}$ and
+    $e^{0.5}$ gives $1.6487352$, an error of $-0.000014$. RK4 has to predict those values: its
+    midpoint slope is $\frac12(k_2 + k_3) = 1.28125$ against $e^{0.25} = 1.28403$, and its end
+    slope $1.65625$ against $1.64872$. Most of its error comes from these predictions. The
+    sketch shows the step as an area.</p>
+
+    <figure>
+      <svg viewBox="0 0 560 280" width="100%" style="max-width:560px" role="img"
+           aria-label="One RK4 step as an area for y dot equals y, drawn to scale: three rectangles of widths h over 6, 4h over 6 and h over 6 with heights k1 equals 1, the average of k2 and k3 equals 1.28125, and k4 equals 1.65625, under the curve e to the t; small hatched pieces between rectangles and curve almost cancel.">
+        <defs><marker id="rkAx6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0.8 L10,5 L0,9.2 z" fill="var(--cse-gray)"/></marker><pattern id="rkH2" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink)" stroke-width="0.7"/></pattern></defs>
+        <rect x="230.0" y="130.0" width="35.0" height="120.0" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.3"/>
+        <path d="M230.0,130.0 L230.9,129.7 L231.8,129.5 L232.7,129.2 L233.6,129.0 L234.5,128.7 L235.4,128.5 L236.3,128.2 L237.2,127.9 L238.1,127.7 L239.0,127.4 L239.9,127.1 L240.8,126.9 L241.7,126.6 L242.6,126.4 L243.5,126.1 L244.4,125.8 L245.3,125.6 L246.2,125.3 L247.1,125.0 L247.9,124.8 L248.8,124.5 L249.7,124.2 L250.6,124.0 L251.5,123.7 L252.4,123.4 L253.3,123.1 L254.2,122.9 L255.1,122.6 L256.0,122.3 L256.9,122.1 L257.8,121.8 L258.7,121.5 L259.6,121.2 L260.5,121.0 L261.4,120.7 L262.3,120.4 L263.2,120.1 L264.1,119.8 L265.0,119.6 L265.0,130.0 L230.0,130.0 Z" fill="url(#rkH2)" stroke="none"/>
+        <rect x="265.0" y="96.2" width="140.0" height="153.8" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.3"/>
+        <path d="M265.0,119.6 L268.6,118.5 L272.2,117.3 L275.8,116.2 L279.4,115.0 L282.9,113.9 L286.5,112.7 L290.1,111.5 L293.7,110.3 L297.3,109.1 L300.9,107.9 L304.5,106.7 L308.1,105.5 L311.7,104.2 L315.3,103.0 L318.8,101.7 L322.4,100.5 L326.0,99.2 L329.6,97.9 L333.2,96.6 L336.8,95.3 L340.4,93.9 L344.0,92.6 L347.6,91.2 L351.2,89.9 L354.7,88.5 L358.3,87.1 L361.9,85.7 L365.5,84.3 L369.1,82.9 L372.7,81.4 L376.3,80.0 L379.9,78.5 L383.5,77.1 L387.1,75.6 L390.6,74.1 L394.2,72.6 L397.8,71.1 L401.4,69.5 L405.0,68.0 L405.0,96.2 L265.0,96.2 Z" fill="url(#rkH2)" stroke="none"/>
+        <rect x="405.0" y="51.2" width="35.0" height="198.8" fill="var(--cse-green)" fill-opacity="0.2" stroke="var(--cse-green)" stroke-width="1.3"/>
+        <path d="M405.0,68.0 L405.9,67.6 L406.8,67.2 L407.7,66.8 L408.6,66.4 L409.5,66.0 L410.4,65.6 L411.3,65.2 L412.2,64.8 L413.1,64.4 L414.0,64.0 L414.9,63.6 L415.8,63.2 L416.7,62.8 L417.6,62.4 L418.5,62.0 L419.4,61.6 L420.3,61.2 L421.2,60.8 L422.1,60.4 L422.9,60.0 L423.8,59.6 L424.7,59.2 L425.6,58.8 L426.5,58.4 L427.4,58.0 L428.3,57.6 L429.2,57.2 L430.1,56.7 L431.0,56.3 L431.9,55.9 L432.8,55.5 L433.7,55.1 L434.6,54.7 L435.5,54.3 L436.4,53.8 L437.3,53.4 L438.2,53.0 L439.1,52.6 L440.0,52.2 L440.0,51.2 L405.0,51.2 Z" fill="url(#rkH2)" stroke="none"/>
+        <path d="M230.0,130.0 L233.9,128.9 L237.8,127.7 L241.7,126.6 L245.7,125.4 L249.6,124.3 L253.5,123.1 L257.4,121.9 L261.3,120.7 L265.2,119.5 L269.2,118.3 L273.1,117.0 L277.0,115.8 L280.9,114.5 L284.8,113.3 L288.7,112.0 L292.6,110.7 L296.6,109.4 L300.5,108.1 L304.4,106.7 L308.3,105.4 L312.2,104.1 L316.1,102.7 L320.1,101.3 L324.0,99.9 L327.9,98.5 L331.8,97.1 L335.7,95.7 L339.6,94.2 L343.5,92.8 L347.5,91.3 L351.4,89.8 L355.3,88.3 L359.2,86.8 L363.1,85.2 L367.0,83.7 L370.9,82.1 L374.9,80.6 L378.8,79.0 L382.7,77.4 L386.6,75.8 L390.5,74.1 L394.4,72.5 L398.4,70.8 L402.3,69.2 L406.2,67.5 L410.1,65.7 L414.0,64.0 L417.9,62.3 L421.8,60.5 L425.8,58.7 L429.7,57.0 L433.6,55.1 L437.5,53.3 L441.4,51.5 L445.3,49.6 L449.3,47.7 L453.2,45.9 L457.1,43.9 L461.0,42.0" fill="none" stroke="var(--ink)" stroke-width="1.6"/>
+        <text x="463.1" y="44.0" font-size="13" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="start">y&#775; = e<tspan font-size="9" dy="-6">t</tspan></text>
+        <line x1="210" y1="250" x2="480.0" y2="250" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx6)"/>
+        <line x1="210" y1="250" x2="210" y2="16.0" stroke="var(--cse-gray)" stroke-width="1.1" marker-end="url(#rkAx6)"/>
+        <text x="207.0" y="10.0" font-size="13" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">f</text>
+        <text x="486.0" y="254.0" font-size="12" font-style="italic" fill="var(--cse-gray)" font-family="Georgia, serif" text-anchor="start">t</text>
+        <line x1="210" y1="130.0" x2="230.0" y2="130.0" stroke="var(--cse-gray)" stroke-width="0.9" stroke-dasharray="5 3"/>
+        <line x1="210" y1="96.2" x2="265.0" y2="96.2" stroke="var(--cse-gray)" stroke-width="0.9" stroke-dasharray="5 3"/>
+        <line x1="210" y1="51.2" x2="405.0" y2="51.2" stroke="var(--cse-gray)" stroke-width="0.9" stroke-dasharray="5 3"/>
+        <text x="204.0" y="134.0" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">k<tspan font-size="9" dy="3">1</tspan><tspan dy="-3"></tspan> = 1</text>
+        <text x="204.0" y="100.2" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">½(k<tspan font-size="9" dy="3">2</tspan><tspan dy="-3"></tspan> + k<tspan font-size="9" dy="3">3</tspan><tspan dy="-3"></tspan>) = 1.28125</text>
+        <text x="204.0" y="55.2" font-size="12" font-style="italic" fill="var(--ink)" font-family="Georgia, serif" text-anchor="end">k<tspan font-size="9" dy="3">4</tspan><tspan dy="-3"></tspan> = 1.65625</text>
+        <text x="230.0" y="266.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">0</text>
+        <text x="335.0" y="266.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">0.25</text>
+        <text x="440.0" y="266.0" font-size="12" fill="var(--ink)" font-family="Georgia, serif" text-anchor="middle">0.5</text>
+        <text x="247.5" y="220.0" font-size="11" font-style="italic" fill="var(--cse-green)" font-family="Georgia, serif" text-anchor="middle">h/6</text>
+        <text x="335.0" y="220.0" font-size="11" font-style="italic" fill="var(--cse-green)" font-family="Georgia, serif" text-anchor="middle">4h/6</text>
+        <text x="422.5" y="220.0" font-size="11" font-style="italic" fill="var(--cse-green)" font-family="Georgia, serif" text-anchor="middle">h/6</text>
+      </svg>
+      <figcaption>One RK4 step as an area, for $\dot y = y$, $y(0) = 1$, $h = 0.5$, drawn to
+      scale. Each slope is the height of a rectangle whose width is its weight: $k_1 = 1$ over
+      $h/6$, the average of $k_2 = 1.25$ and $k_3 = 1.3125$ over $4h/6$, and $k_4 = 1.65625$
+      over $h/6$. The three rectangles have the area
+      $\frac{h}{6}(k_1 + 2k_2 + 2k_3 + k_4) = 0.6484375$, the same number as Simpson's area
+      under the parabola through the three heights; the area under the curve $\dot y = e^t$ is
+      $e^{0.5} - 1 = 0.6487213$. Where the rectangles stand above the curve and where they fall
+      below it (hatched), the pieces almost cancel.</figcaption>
+    </figure>
+
+    <div class="remark">
+      <span class="boxtitle">Runge–Kutta in practice</span>
+      <p>Library solvers such as MATLAB's <code>ode45</code> and SciPy's
+      <code>solve_ivp</code> (by default) use a pair of Runge–Kutta formulas of orders 4 and 5,
+      due to Dormand and Prince, that share their evaluations of $\vec f$. The difference
+      between the two results estimates the error of the step, and the solver adjusts $h$ to
+      keep that estimate below a tolerance.</p>
+    </div>
+  </section>
+
+  <nav class="pager">
+    <span><a href="L14.html"><span class="arw">←</span> Lecture 15</a></span>
+    <span><a href="../lectures.html">All lectures</a></span>
+    <span class="disabled">Lecture 17 — not yet posted <span class="arw">→</span></span>
+  </nav>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>18.085 · Computational Science and Engineering I · Fall 2026</span>
+    <span>MIT Department of Mathematics</span>
+  </div>
+</footer>
+
+</body>
+</html>
